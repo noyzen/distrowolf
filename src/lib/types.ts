@@ -3,7 +3,7 @@ export interface Container {
   name: string;
   status: 'running' | 'stopped';
   image: string;
-  size: string;
+  size: string; // This will be dynamic, maybe we remove it or calculate it later.
   autostart: boolean;
   sharedHome: boolean;
   init: boolean;
