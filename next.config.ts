@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: 'export',
   distDir: 'out',
+  assetPrefix: './',
   typescript: {
     ignoreBuildErrors: true,
   },
