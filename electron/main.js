@@ -1,8 +1,10 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-const isDev = require('electron-is-dev');
 
-function createWindow() {
+async function createWindow() {
+  // Use a dynamic import for the ESM-only package 'electron-is-dev'
+  const isDev = (await import('electron-is-dev')).default;
+
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
