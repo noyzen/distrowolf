@@ -396,9 +396,9 @@ ipcMain.handle('install-wezterm', async (event) => {
     const binDir = path.join(homeDir, '.local', 'bin');
     const command = `
         mkdir -p ${binDir} &&
-        curl -LO https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly-Ubuntu22.04.AppImage &&
-        chmod +x WezTerm-nightly-Ubuntu22.04.AppImage &&
-        mv WezTerm-nightly-Ubuntu22.04.AppImage ${binDir}/wezterm &&
+        curl -LO https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly.AppImage &&
+        chmod +x WezTerm-nightly.AppImage &&
+        mv WezTerm-nightly.AppImage ${binDir}/wezterm &&
         echo "WezTerm installed to ${binDir}/wezterm"
     `;
     // We don't need pkexec for this since we are installing to user's local dir
