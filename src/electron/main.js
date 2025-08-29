@@ -11,8 +11,10 @@ const fs = require('fs');
 const execAsync = promisify(exec);
 const store = new Store();
 
+// This MUST be called before the app is ready.
+app.disableHardwareAcceleration();
+
 function createWindow() {
-  app.disableHardwareAcceleration();
   const isDev = !app.isPackaged;
 
   const win = new BrowserWindow({
@@ -706,3 +708,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    
