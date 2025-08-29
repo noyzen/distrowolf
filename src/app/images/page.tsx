@@ -91,7 +91,7 @@ export default function ImagesPage() {
         } else if (result.cancelled) {
              toast({ variant: "default", title: "Export cancelled", description: "You cancelled the file save operation."});
         } else {
-            throw new Error("Export failed for an unknown reason.");
+            throw new Error(result.error || "Export failed for an unknown reason.");
         }
     } catch (error: any) {
         toast({ variant: "destructive", title: "Export Failed", description: error.message });
@@ -103,12 +103,12 @@ export default function ImagesPage() {
      try {
         const result = await importImage();
         if(result.success) {
-            toast({ title: "Import complete!", description: `Successfully loaded image from file.`});
+            toast({ title: "Import complete!", description: `Successfully loaded image from ${result.path}.`});
             fetchImages();
         } else if (result.cancelled) {
              toast({ variant: "default", title: "Import cancelled", description: "You cancelled the file open operation."});
         } else {
-            throw new Error("Import failed for an unknown reason.");
+            throw new Error(result.error || "Import failed for an unknown reason.");
         }
     } catch (error: any) {
         toast({ variant: "destructive", title: "Import Failed", description: error.message });
@@ -228,3 +228,5 @@ export default function ImagesPage() {
     </>
   );
 }
+
+    

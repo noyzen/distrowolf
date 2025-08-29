@@ -308,7 +308,10 @@ ipcMain.handle('import-image', async () => {
 
     const filePath = filePaths[0];
     try {
-        await execAsync(`podman load -i "${filePath}"`);
+        const { stdout } = await execAsync(`podman load -i "${filePath}"`);
+        if (stdout.includes('already exists')) {
+             return { success: false, cancelled: false, error: 'Image already exists.' };
+        }
         return { success: true, cancelled: false, path: filePath };
     } catch (error) {
         console.error(`Error loading image from ${filePath}:`, error);
