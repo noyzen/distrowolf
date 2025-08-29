@@ -362,9 +362,22 @@ ipcMain.handle('list-local-images', async () => {
 
 
 ipcMain.handle('pull-image', (event, imageName) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+        let wasCancelled = false;
+
+        // Handle anonymous login for ghcr.io
+        if (imageName.startsWith('ghcr.io')) {
+            try {
+                console.log('Attempting anonymous login to ghcr.io...');
+                await execAsync('echo "" | podman login ghcr.io -u USER --password-stdin');
+                console.log('Anonymous login to ghcr.io successful.');
+            } catch (loginErr) {
+                console.warn('Anonymous login to ghcr.io failed, proceeding anyway...', loginErr.stderr);
+            }
+        }
+        
         const pullProcess = spawn('podman', ['pull', imageName]);
-        activePulls.set(imageName, pullProcess);
+        activePulls.set(imageName, { process: pullProcess, cancelled: false });
 
         let stderr = '';
         pullProcess.stderr.on('data', (data) => {
@@ -372,7 +385,16 @@ ipcMain.handle('pull-image', (event, imageName) => {
         });
 
         pullProcess.on('close', (code) => {
+            const pullInfo = activePulls.get(imageName);
             activePulls.delete(imageName);
+            
+            if (pullInfo?.cancelled) {
+                // If cancellation was requested, resolve successfully.
+                console.log(`Pull for ${imageName} was cancelled by user.`);
+                resolve({ success: true });
+                return;
+            }
+
             if (code === 0) {
                 resolve({ success: true });
             } else {
@@ -390,11 +412,11 @@ ipcMain.handle('pull-image', (event, imageName) => {
 });
 
 ipcMain.handle('cancel-pull-image', async (event, imageName) => {
-    const pullProcess = activePulls.get(imageName);
-    if (pullProcess) {
-        pullProcess.kill('SIGTERM'); // Send termination signal
-        activePulls.delete(imageName);
-        console.log(`Cancelled pulling image: ${imageName}`);
+    const pullInfo = activePulls.get(imageName);
+    if (pullInfo) {
+        pullInfo.cancelled = true; // Mark as cancelled
+        pullInfo.process.kill('SIGTERM'); // Send termination signal
+        console.log(`Cancellation requested for pulling image: ${imageName}`);
         return { success: true };
     }
     console.warn(`No active pull process found for image: ${imageName}`);
