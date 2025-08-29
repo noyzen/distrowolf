@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from 'next/navigation';
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { createContainer, listLocalImages } from "@/lib/distrobox";
-import { HardDrive, Loader, CheckCircle, Layers, Clock, Download, Power, Server } from "lucide-react";
+import { HardDrive, Loader, CheckCircle, Layers, Clock, Download, Power, Server, Search } from "lucide-react";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -60,6 +60,7 @@ export default function CreateContainerPage() {
   const [localImages, setLocalImages] = useState<LocalImage[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
   const [isSubmitting, setSubmitting] = useState(false);
+  const [imageSearchTerm, setImageSearchTerm] = useState("");
   const { toast } = useToast();
   const router = useRouter();
 
@@ -77,6 +78,14 @@ export default function CreateContainerPage() {
   });
 
   const homeMode = form.watch("homeMode");
+  
+  const filteredImages = useMemo(() => {
+    if (!imageSearchTerm) return localImages;
+    return localImages.filter(image => 
+        image.repository.toLowerCase().includes(imageSearchTerm.toLowerCase()) ||
+        image.tag.toLowerCase().includes(imageSearchTerm.toLowerCase())
+    );
+  }, [localImages, imageSearchTerm]);
 
   useEffect(() => {
     async function fetchImages() {
@@ -149,74 +158,22 @@ export default function CreateContainerPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Container Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., my-dev-env" {...field} />
-                      </FormControl>
-                       <FormDescription>A unique name for your container.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                 <FormField
-                  control={form.control}
-                  name="homeMode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Home Directory</FormLabel>
-                       <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex space-x-4 pt-2"
-                        >
-                          <FormItem className="flex items-center space-x-2">
-                            <RadioGroupItem value="shared" id="r1" />
-                            <FormLabel htmlFor="r1">Share Host Home</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-2">
-                            <RadioGroupItem value="isolated" id="r2" />
-                            <FormLabel htmlFor="r2">Isolated Home</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormDescription>Choose home directory isolation.</FormDescription>
-                      <FormMessage/>
-                    </FormItem>
-                  )}
-                />
-            </div>
-
-            {homeMode === 'isolated' && (
-                 <FormField
-                    control={form.control}
-                    name="customHome"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Custom Home Path</FormLabel>
-                        <FormControl>
-                            <Input placeholder="/path/on/host/for/container/home" {...field} />
-                        </FormControl>
-                        <FormDescription>The host path to mount as the container's home directory.</FormDescription>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                 />
-            )}
-            
-            <FormField
+             <FormField
               control={form.control}
               name="image"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Base Image</FormLabel>
-                  <FormDescription>Select a pre-downloaded image for your container.</FormDescription>
+                  <FormLabel>1. Select Base Image</FormLabel>
+                  <FormDescription>Choose a pre-downloaded image for your container.</FormDescription>
+                  <div className="relative my-2">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search images..."
+                        className="pl-8"
+                        value={imageSearchTerm}
+                        onChange={(e) => setImageSearchTerm(e.target.value)}
+                    />
+                  </div>
                   <div className="rounded-lg border bg-background/50 p-4">
                     <ScrollArea className="h-72 pr-4">
                         <FormControl>
@@ -229,8 +186,8 @@ export default function CreateContainerPage() {
                                    Array.from({ length: 6 }).map((_, i) => (
                                        <Skeleton key={i} className="h-28 w-full rounded-lg" />
                                    ))
-                                ) : localImages.length > 0 ? (
-                                    localImages.map((img) => (
+                                ) : filteredImages.length > 0 ? (
+                                    filteredImages.map((img) => (
                                         <FormItem key={img.id} className="relative">
                                             <FormControl>
                                                 <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
@@ -240,7 +197,7 @@ export default function CreateContainerPage() {
                                                 "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
                                             )}>
                                                 <div className="flex items-start gap-3 w-full">
-                                                    <i className={cn(getDistroIcon(img.repository), "text-3xl pt-1")}></i>
+                                                    <i className={cn(getDistroIcon(img.repository), "text-3xl")}></i>
                                                     <div className="flex flex-col items-start overflow-hidden w-full text-left">
                                                         <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
                                                         <Badge variant="outline" className="font-mono mt-1">{img.tag}</Badge>
@@ -265,7 +222,7 @@ export default function CreateContainerPage() {
                         </FormControl>
                     </ScrollArea>
                   </div>
-                  {localImages.length === 0 && !loadingImages && (
+                  {(localImages.length === 0 && !loadingImages) && (
                         <div className="text-center col-span-full p-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
                            <HardDrive className="mx-auto h-12 w-12 text-muted-foreground" />
                            <h3 className="mt-4 text-lg font-semibold">No Local Images Found</h3>
@@ -278,12 +235,83 @@ export default function CreateContainerPage() {
                            </Button>
                         </div>
                   )}
+                  {filteredImages.length === 0 && localImages.length > 0 && !loadingImages && (
+                    <div className="text-center col-span-full p-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
+                        <Search className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <h3 className="mt-4 text-lg font-semibold">No Images Match Your Search</h3>
+                        <p className="text-muted-foreground">Try a different search term.</p>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium">2. Container Configuration</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 rounded-lg border p-4">
+                    <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Container Name</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., my-dev-env" {...field} />
+                        </FormControl>
+                        <FormDescription>A unique name for your container.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="homeMode"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Home Directory</FormLabel>
+                        <FormControl>
+                            <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex space-x-4 pt-2"
+                            >
+                            <FormItem className="flex items-center space-x-2">
+                                <RadioGroupItem value="shared" id="r1" />
+                                <FormLabel htmlFor="r1">Share Host Home</FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-2">
+                                <RadioGroupItem value="isolated" id="r2" />
+                                <FormLabel htmlFor="r2">Isolated Home</FormLabel>
+                            </FormItem>
+                            </RadioGroup>
+                        </FormControl>
+                        <FormDescription>Choose home directory isolation.</FormDescription>
+                        <FormMessage/>
+                        </FormItem>
+                    )}
+                    />
+                    {homeMode === 'isolated' && (
+                        <FormField
+                            control={form.control}
+                            name="customHome"
+                            render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                <FormLabel>Custom Home Path</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="/path/on/host/for/container/home" {...field} />
+                                </FormControl>
+                                <FormDescription>The host path to mount as the container's home directory.</FormDescription>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    )}
+                </div>
+            </div>
+            
              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Advanced Options</h3>
+                <h3 className="text-lg font-medium">3. Advanced Options</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 rounded-lg border p-4">
                      <FormField
                         control={form.control}
@@ -339,7 +367,7 @@ export default function CreateContainerPage() {
               name="volumes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mount Volumes</FormLabel>
+                  <FormLabel>Mount Additional Volumes</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="e.g., /path/on/host:/path/in/container"
