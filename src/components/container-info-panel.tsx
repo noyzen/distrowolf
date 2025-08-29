@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Box, CheckCircle, Clock, Cpu, HardDrive, Hash, Home, Power, Server, Shield, XCircle } from 'lucide-react';
+import { ArrowLeft, Box, CheckCircle, Clock, HardDrive, Hash, Home, Power, Server, XCircle } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -45,19 +45,20 @@ export function ContainerInfoPanel({ info, onBack }: ContainerInfoPanelProps) {
         return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
     }
 
+    const hostHome = info.HostConfig?.Binds?.find((b: string) => b.includes(info.Config.Labels['distrobox.host_home']));
     const homeArg = findArg('--home');
     let homeStatus = "Shared with Host";
-    if (homeArg) {
+    if (homeArg && homeArg.trim() !== "" && homeArg.trim() !== info.Config.Labels['distrobox.host_home']) {
         homeStatus = `Isolated at ${homeArg}`;
     }
 
     const mounts = info.HostConfig?.Binds?.filter((bind: string) => {
         const parts = bind.split(':');
         // Filter out system and home binds to only show user-defined volumes
-        return parts.length >= 2 && !parts[1].startsWith('/dev') && !parts[1].startsWith('/sys') && !parts[1].startsWith('/tmp') && !parts[1].startsWith('/home') && !parts[1].includes('distrobox');
+        return parts.length >= 2 && !parts[1].startsWith('/dev') && !parts[1].startsWith('/sys') && !parts[1].startsWith('/tmp') && !parts[1].includes('.distrobox') && !parts[1].includes(info.Config.Labels['distrobox.host_home']);
     }).map((bind: string) => {
         const parts = bind.split(':');
-        return { host: parts[0], container: parts[1], options: parts.length > 2 ? parts[2] : 'ro' }
+        return { host: parts[0], container: parts[1], options: parts.length > 2 ? parts[2] : 'rw' }
     }) || [];
     
     return {
@@ -68,8 +69,6 @@ export function ContainerInfoPanel({ info, onBack }: ContainerInfoPanelProps) {
       created: info.Created ? formatDistanceToNow(new Date(info.Created), { addSuffix: true }) : 'N/A',
       startedAt: info.State?.StartedAt ? formatDistanceToNow(new Date(info.State.StartedAt), { addSuffix: true }) : 'N/A',
       home: homeStatus,
-      init: findArg('--init') === '1',
-      nvidia: findArg('--nvidia') === '1',
       privileged: info.HostConfig?.Privileged || false,
       autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
       mounts: mounts,
@@ -147,8 +146,6 @@ export function ContainerInfoPanel({ info, onBack }: ContainerInfoPanelProps) {
             </InfoRow>
             <InfoRow icon={Shield} label="Flags">
                 <div className='flex gap-2 flex-wrap mt-1'>
-                    <FlagBadge label="Init" enabled={parsedInfo.init} />
-                    <FlagBadge label="Nvidia" enabled={parsedInfo.nvidia} />
                     <FlagBadge label="Privileged" enabled={parsedInfo.privileged} />
                     <FlagBadge label="Autostart" enabled={parsedInfo.autostart} />
                 </div>

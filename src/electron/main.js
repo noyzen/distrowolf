@@ -50,7 +50,9 @@ async function parseListOutput(output) {
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
     
+    const hostHome = app.getPath('home');
     const dataLines = lines.slice(1);
+
     const containers = await Promise.all(dataLines.map(async line => {
         const parts = line.split('|').map(p => p.trim());
         if (parts.length < 4) return null;
@@ -74,21 +76,19 @@ async function parseListOutput(output) {
           return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
         }
         
-        // Correctly determine if home is isolated. It's isolated if --home is present and has a value.
         const homeArg = findArgValue('--home');
-        const homeStatus = homeArg ? 'Isolated' : 'Shared';
+        let homeStatus = "Shared"; // Default to Shared
+        if (homeArg && homeArg.trim() !== "" && homeArg.trim() !== hostHome) {
+            homeStatus = "Isolated";
+        }
 
         return {
             id: parts[0],
             name: name,
             status: status,
             image: parts[3],
-            // Correctly check for restart policy
             autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
             home: homeStatus,
-            // Correctly check if flags exist in the command arguments
-            init: args.includes('--init'),
-            nvidia: args.includes('--nvidia'),
         };
     }));
 
@@ -135,11 +135,8 @@ function parseSharedApps(output, containerName) {
         if (!line.trim()) return null;
         const parts = line.split('|').map(p => p.trim());
         if (parts.length < 2) return null;
-        // The name is the first part, and the path is the second part.
         const name = parts[0];
         const binaryPath = parts[1];
-        if (!name || !binaryPath) return null;
-
         return {
             id: `shared-app-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
             name,
@@ -155,11 +152,10 @@ function parseSharedBinaries(output, containerName) {
     const lines = output.trim().split('\n');
     return lines.map((line, index) => {
         if (!line.trim()) return null;
-        // Binaries are often just a single column list.
-        const name = line.trim();
-        const binaryPath = `In PATH of ${containerName}`; // Placeholder path
-        if (!name) return null;
-
+        const parts = line.split('|').map(p => p.trim());
+        if (parts.length < 2) return null;
+        const name = parts[0];
+        const binaryPath = parts[1];
         return {
             id: `shared-bin-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
             name,
@@ -182,55 +178,58 @@ function parseSearchableApps(output, packageManager) {
             if (parts.length === 0) return null;
             
             switch (packageManager) {
-                case 'dpkg': // apt list --installed | grep ...
-                    name = parts[0].split('/')[0];
-                    version = parts[1];
+                case 'dpkg':
+                    if (parts.length < 2 || parts[0] !== 'ii') return null;
+                    name = parts[1].split(':')[0];
+                    version = parts[2];
                     description = parts.slice(3).join(' ');
                     break;
-                case 'dnf': // dnf list installed | grep ...
+                case 'rpm':
+                case 'dnf':
                 case 'yum':
+                    if (parts.length < 2) return null;
                     name = parts[0].split('.').slice(0, -1).join('.') || parts[0];
                     version = parts[1];
                     description = `Repo: ${parts[2] || 'N/A'}`;
                     break;
-                case 'pacman': // pacman -Qs ...
-                    name = parts[0].split('/')[1]; // handles 'local/firefox'
+                case 'pacman':
+                    if (parts.length < 2) return null;
+                    name = parts[0].split('/')[1] || parts[0]; // handles 'local/firefox'
                     version = parts[1];
                     break;
-                case 'zypper': // zypper se -i ...
+                case 'zypper':
                     const zypperParts = line.split('|').map(p => p.trim());
                     if(zypperParts.length < 4 || !zypperParts[0].toLowerCase().includes('i')) return null;
                     name = zypperParts[1];
                     version = zypperParts[3];
                     description = zypperParts[2];
                     break;
-                case 'apk': // apk list -I | grep ...
-                    name = parts[0].replace(/-\d.*/, ''); // Basic parsing
-                    version = parts[0].substring(name.length + 1);
+                case 'apk':
+                    name = parts[0].replace(/-\d.*/, '');
+                    version = parts[0].substring(name.length + 1) || 'N/A';
                     break;
-                case 'snap': // snap list | grep ...
-                    if (line.toLowerCase().startsWith('name')) return null;
+                case 'snap':
+                    if (parts.length < 2 || line.toLowerCase().startsWith('name')) return null; // Skip header
                     name = parts[0];
                     version = parts[1];
-                    description = `Rev: ${parts[2]}, Publisher: ${parts[4] || 'N/A'}`;
+                    description = `Rev: ${parts[2]}, Publisher: ${parts[4]}`;
                     break;
-                case 'flatpak': // flatpak list | grep ...
-                    if (line.toLowerCase().startsWith('name')) return null;
+                case 'flatpak':
+                     if (parts.length < 2 || line.toLowerCase().startsWith('name')) return null; // Skip header
                     name = parts[0];
                     version = parts[2];
                     description = `App ID: ${parts[1]}`;
                     break;
-                case 'equery': // equery list '*...'
+                case 'equery':
                      if (parts.length < 1) return null;
                      name = parts[0].split('/')[1] || parts[0];
                      version = name.split('-').pop() || 'N/A';
                      name = name.replace(`-${version}`, '');
                      break;
-                default: // Fallback for others using grep
+                default: // Generic fallback for grep-based results
                     name = parts[0];
-                    version = parts.length > 1 ? parts[1] : 'N/A';
+                    version = parts[1] || 'N/A';
             }
-
         } catch (e) {
             console.error(`Error parsing line for ${packageManager}: "${line}"`, e);
             return null;
@@ -363,11 +362,9 @@ ipcMain.handle('export-image', async (event, image) => {
     }
 });
 
-ipcMain.handle('create-container', async (event, { name, image, home, init, nvidia, volumes }) => {
+ipcMain.handle('create-container', async (event, { name, image, home, volumes }) => {
     let command = `distrobox create --name ${name} --image "${image}"`;
     if (home && home.trim() !== '') command += ` --home "${home}"`;
-    if (init) command += ' --init';
-    if (nvidia) command += ' --nvidia';
     volumes.forEach(volume => {
         if (volume.trim()) command += ` --volume "${volume.trim()}"`;
     });
@@ -501,6 +498,9 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     case 'dpkg':
       searchCommand = `dpkg-query -l '*${escapedQuery}*' | grep '^ii'`;
       break;
+    case 'rpm':
+      searchCommand = `rpm -qa '*${escapedQuery}*'`;
+      break;
     case 'dnf':
     case 'yum':
       searchCommand = `dnf list installed '*${escapedQuery}*'`;
@@ -512,19 +512,18 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
       searchCommand = `zypper se -i '${escapedQuery}'`;
       break;
     case 'apk':
-      searchCommand = `apk info -e '*${escapedQuery}*'`;
-      break;
+        searchCommand = `apk info -e '*${escapedQuery}*'`;
+        break;
     case 'snap':
-      searchCommand = `snap list | grep -i '${escapedQuery}'`;
-      break;
+        searchCommand = `snap list | grep -i '${escapedQuery}'`;
+        break;
     case 'flatpak':
-      searchCommand = `flatpak list | grep -i '${escapedQuery}'`;
-      break;
+        searchCommand = `flatpak list | grep -i '${escapedQuery}'`;
+        break;
     case 'equery':
-      searchCommand = `equery list '*${escapedQuery}*'`;
-      break;
+        searchCommand = `equery list '*${escapedQuery}*'`;
+        break;
     default:
-      console.warn(`Unsupported package manager for search: ${packageManager}`);
       return []; // Unsupported package manager
   }
   
@@ -535,9 +534,8 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     const { stdout } = await execAsync(fullCommand);
     return parseSearchableApps(stdout, packageManager);
   } catch (error) {
-    // Command fails with exit code 1 if grep finds no matches, which is not an error.
     if (error.code === 1 && error.stdout === '') {
-        return []; 
+        return []; // Grep found no matches, not an error.
     }
     console.warn(`Error searching for apps in ${containerName} with ${packageManager}:`, error.message);
     return []; // Return empty on other errors
@@ -567,8 +565,7 @@ ipcMain.handle('unshare-app', async (event, { containerName, appName, type }) =>
     console.log(`[DEBUG] Unsharing with command: ${command}`);
     await execAsync(command);
     return { success: true };
-  } catch (error)
- {
+  } catch (error) {
     console.error(`Error unsharing app ${appName} from ${containerName}:`, error);
     throw error;
   }

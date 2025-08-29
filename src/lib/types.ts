@@ -6,8 +6,6 @@ export interface Container {
   image: string;
   autostart: boolean;
   home: 'Shared' | 'Isolated';
-  init: boolean;
-  nvidia: boolean;
 }
 
 export interface LocalImage {

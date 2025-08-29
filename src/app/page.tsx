@@ -33,8 +33,6 @@ import {
   Box,
   Copy,
   PlusCircle,
-  Cpu,
-  Rocket,
   Home as HomeIcon,
   AppWindow,
 } from "lucide-react";
@@ -107,7 +105,6 @@ export default function HomePage() {
       if (selectedContainer) {
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
         if (updatedSelected) {
-          // Don't reset the whole container, just update its status and flags
           setSelectedContainer(prev => prev ? {...prev, ...updatedSelected} : null);
         } else {
           setSelectedContainer(null);
@@ -410,8 +407,6 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0 self-end sm:self-center">
                  <div className="flex items-center gap-2">
-                    <FlagBadge icon={Rocket} text="Init" enabled={container.init} />
-                    <FlagBadge icon={Cpu} text="Nvidia" enabled={container.nvidia} />
                     <FlagBadge icon={HomeIcon} text="Isolated Home" enabled={container.home === 'Isolated'} />
                     <FlagBadge icon={Power} text="Autostart" enabled={container.autostart} />
                  </div>

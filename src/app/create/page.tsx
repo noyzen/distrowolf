@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { LocalImage } from "@/lib/types";
 import {
@@ -31,7 +30,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { createContainer, listLocalImages } from "@/lib/distrobox";
-import { HardDrive, Loader, CheckCircle, Package, Tag, Clock } from "lucide-react";
+import { HardDrive, Loader, CheckCircle, Package, Tag, Clock, Layers } from "lucide-react";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -42,8 +41,6 @@ const formSchema = z.object({
   image: z.string().min(1, "Please select an image."),
   homeMode: z.enum(["shared", "isolated"]).default("shared"),
   customHome: z.string().optional(),
-  init: z.boolean().default(false),
-  nvidia: z.boolean().default(false),
   volumes: z.string().optional(),
 }).refine(data => {
     if (data.homeMode === 'isolated') {
@@ -69,8 +66,6 @@ export default function CreateContainerPage() {
       image: "",
       homeMode: "shared",
       customHome: "",
-      init: false,
-      nvidia: false,
       volumes: "",
     },
   });
@@ -109,8 +104,6 @@ export default function CreateContainerPage() {
         name: values.name,
         image: values.image,
         home: homePath,
-        init: values.init,
-        nvidia: values.nvidia,
         volumes: volumesArray 
     };
 
@@ -222,11 +215,11 @@ export default function CreateContainerPage() {
                             <RadioGroup
                                 onValueChange={field.onChange}
                                 defaultValue={field.value}
-                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
                             >
                                 {loadingImages ? (
-                                   Array.from({ length: 4 }).map((_, i) => (
-                                       <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                                   Array.from({ length: 6 }).map((_, i) => (
+                                       <Skeleton key={i} className="h-28 w-full rounded-lg" />
                                    ))
                                 ) : localImages.length > 0 ? (
                                     localImages.map((img) => (
@@ -235,21 +228,22 @@ export default function CreateContainerPage() {
                                                 <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
                                             </FormControl>
                                             <FormLabel htmlFor={img.id} className={cn(
-                                                "flex flex-col items-start justify-between gap-4 rounded-lg border-2 border-muted bg-card p-4 h-full hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
+                                                "flex flex-col items-start justify-between gap-2 rounded-lg border-2 border-muted bg-card p-3 h-full hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
                                                 "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
                                             )}>
-                                                <div className="flex items-start gap-4 w-full">
-                                                    <i className={cn(getDistroIcon(img.repository), "text-4xl text-muted-foreground pt-1")}></i>
+                                                <div className="flex items-start gap-3 w-full">
+                                                    <i className={cn(getDistroIcon(img.repository), "text-3xl text-muted-foreground pt-1")}></i>
                                                     <div className="flex flex-col items-start overflow-hidden w-full text-left">
-                                                        <p className="text-xs text-muted-foreground">Repository</p>
                                                         <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
-                                                        <p className="text-xs text-muted-foreground mt-1">Tag</p>
-                                                        <p className="font-mono text-sm text-foreground truncate w-full" title={img.tag}>{img.tag}</p>
+                                                        <Badge variant="outline" className="font-mono mt-1">{img.tag}</Badge>
                                                     </div>
                                                     <CheckCircle className={cn("h-5 w-5 text-primary opacity-0 transition-opacity flex-shrink-0", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
                                                 </div>
-                                                <div className="flex items-center justify-between w-full text-xs text-muted-foreground mt-2">
-                                                    <Badge variant="outline" className="font-mono">{img.size}</Badge>
+                                                <div className="flex items-center justify-between w-full text-xs text-muted-foreground mt-2 pt-2 border-t border-dashed">
+                                                    <div className="flex items-center gap-1">
+                                                        <Layers className="h-3 w-3" />
+                                                        <span className="font-semibold">{img.size}</span>
+                                                    </div>
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="h-3 w-3" />
                                                         <span>{img.created}</span>
@@ -275,51 +269,6 @@ export default function CreateContainerPage() {
                 </FormItem>
               )}
             />
-            
-            <div className="space-y-4">
-                 <FormLabel>Flags</FormLabel>
-                 <FormDescription>Common flags for container creation.</FormDescription>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                    <FormField
-                        control={form.control}
-                        name="init"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-col rounded-lg border p-4">
-                            <div className="flex flex-row items-center justify-between">
-                                <FormLabel htmlFor="init-flag" className="mb-0">Use Init</FormLabel>
-                                <FormControl>
-                                <Switch
-                                    id="init-flag"
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                                </FormControl>
-                            </div>
-                            <FormDescription className="pt-2">Enables an init system (like systemd) inside the container.</FormDescription>
-                        </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="nvidia"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-col rounded-lg border p-4">
-                             <div className="flex flex-row items-center justify-between">
-                                <FormLabel htmlFor="nvidia-gpu" className="mb-0">Nvidia GPU</FormLabel>
-                                <FormControl>
-                                <Switch
-                                    id="nvidia-gpu"
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                                </FormControl>
-                            </div>
-                            <FormDescription className="pt-2">Share the host's Nvidia GPU drivers with the container.</FormDescription>
-                        </FormItem>
-                        )}
-                    />
-                 </div>
-            </div>
             
             <FormField
               control={form.control}

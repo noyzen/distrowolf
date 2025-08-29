@@ -5,8 +5,6 @@ type CreateContainerOptions = {
   name: string;
   image: string;
   home: string;
-  init: boolean;
-  nvidia: boolean;
   volumes: string[];
 }
 
@@ -185,5 +183,3 @@ export async function unshareApp(options: AppActionOptions): Promise<{ success: 
     console.warn("Electron API not available.");
     return { success: false };
 }
-
-    
