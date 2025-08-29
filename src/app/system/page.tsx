@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code, Terminal, Loader, Download } from "lucide-react";
+import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code, Terminal, Loader, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { getSystemInfo, listContainers, listLocalImages } from "@/lib/distrobox";
 import type { SystemInfo } from "@/lib/types";
@@ -41,9 +41,7 @@ export default function SystemPage() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [counts, setCounts] = useState<{containers: number | null, images: number | null}>({ containers: null, images: null });
   const [loading, setLoading] = useState(true);
-  const { dependencies, installAlacritty, isInstallingAlacritty } = useSystemCheck();
-
-  const hasTerminal = dependencies?.alacrittyInstalled || !!dependencies?.detectedTerminal;
+  const { dependencies } = useSystemCheck();
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -99,13 +97,13 @@ export default function SystemPage() {
                     <InfoRow icon={Info} label="Podman Version" value={systemInfo?.podmanVersion} />
                     <InfoRow icon={Terminal} label="Terminal Emulator">
                        {loading ? <Skeleton className="h-5 w-24" /> : (
-                            hasTerminal ? (
-                                 <span className="font-mono text-sm text-primary">{dependencies?.detectedTerminal || 'Alacritty'}</span>
+                            dependencies?.detectedTerminal ? (
+                                 <span className="font-mono text-sm text-primary">{dependencies.detectedTerminal}</span>
                             ) : (
-                                <Button size="sm" onClick={installAlacritty} disabled={isInstallingAlacritty}>
-                                    {isInstallingAlacritty ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                    Install Alacritty
-                                </Button>
+                                <div className="flex items-center gap-2 text-yellow-500 text-sm font-semibold">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <span>Not Detected</span>
+                                </div>
                             )
                        )}
                     </InfoRow>

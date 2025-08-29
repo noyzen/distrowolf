@@ -40,9 +40,6 @@ declare global {
     electron: {
       checkDependencies: () => Promise<DependencyInfo>;
       getSystemInfo: () => Promise<SystemInfo>;
-      installPodman: () => Promise<{ success: boolean }>;
-      installDistrobox: () => Promise<{ success: boolean }>;
-      installAlacritty: () => Promise<{ success: boolean }>;
       
       listContainers: () => Promise<Container[]>;
       createContainer: (options: CreateContainerOptions) => Promise<{ success: boolean }>;
@@ -76,25 +73,9 @@ export async function checkDependencies(): Promise<DependencyInfo> {
         distroboxInstalled: false, 
         podmanInstalled: false,
         dockerInstalled: false,
-        alacrittyInstalled: false,
         detectedTerminal: null,
         distroInfo: { id: 'unknown', name: 'Not Found' }
     };
-}
-
-export async function installPodman(): Promise<{ success: boolean }> {
-  if (window.electron) return window.electron.installPodman();
-  throw new Error("Electron API not available.");
-}
-
-export async function installDistrobox(): Promise<{ success: boolean }> {
-  if (window.electron) return window.electron.installDistrobox();
-  throw new Error("Electron API not available.");
-}
-
-export async function installAlacritty(): Promise<{ success: boolean }> {
-  if (window.electron) return window.electron.installAlacritty();
-  throw new Error("Electron API not available.");
 }
 
 export async function getSystemInfo(): Promise<SystemInfo> {

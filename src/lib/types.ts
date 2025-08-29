@@ -48,7 +48,6 @@ export interface DependencyInfo {
   distroboxInstalled: boolean;
   podmanInstalled: boolean;
   dockerInstalled: boolean;
-  alacrittyInstalled: boolean;
   detectedTerminal: string | null;
   distroInfo: {
     id: string;

@@ -3,18 +3,16 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, ExternalLink, Loader, Shield, LogOut, Terminal, AlertTriangle, Download } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Shield, LogOut, Terminal, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSystemCheck } from "@/hooks/use-system-check";
 
 export function SetupWizard() {
-  const { dependencies, checkSystemDependencies, setSkipped, installAlacritty, isInstallingAlacritty } = useSystemCheck();
+  const { dependencies, checkSystemDependencies, setSkipped } = useSystemCheck();
 
   const handleManualInstallClick = () => {
     window.open('https://distrobox.it/', '_blank');
   };
-
-  const hasTerminal = dependencies?.alacrittyInstalled || !!dependencies?.detectedTerminal;
 
   return (
     <motion.div
@@ -63,22 +61,16 @@ export function SetupWizard() {
 
               <div className="flex items-center justify-between p-4 bg-background rounded-lg border">
                   <div className="flex items-center gap-4">
-                      {hasTerminal ? <CheckCircle className="h-6 w-6 text-green-500" /> : <AlertTriangle className="h-6 w-6 text-yellow-500" />}
+                      {dependencies?.detectedTerminal ? <CheckCircle className="h-6 w-6 text-green-500" /> : <AlertTriangle className="h-6 w-6 text-yellow-500" />}
                       <div className="flex flex-col">
                           <span className="font-semibold">Terminal Emulator</span>
                           <span className="text-sm text-muted-foreground">For entering containers directly. (Optional)</span>
                       </div>
                   </div>
                    <div className="flex flex-col items-end gap-2">
-                     <span className={`text-sm font-semibold ${hasTerminal ? 'text-green-500' : 'text-yellow-500'}`}>
-                        {dependencies?.detectedTerminal ? `Detected: ${dependencies.detectedTerminal}` : (dependencies?.alacrittyInstalled ? 'Alacritty Installed' : 'Not Found')}
+                     <span className={`text-sm font-semibold ${dependencies?.detectedTerminal ? 'text-green-500' : 'text-yellow-500'}`}>
+                        {dependencies?.detectedTerminal ? `Detected: ${dependencies.detectedTerminal}` : 'Not Found'}
                      </span>
-                      {!hasTerminal && (
-                        <Button size="sm" onClick={installAlacritty} disabled={isInstallingAlacritty}>
-                            {isInstallingAlacritty ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Install Alacritty
-                        </Button>
-                      )}
                    </div>
               </div>
               

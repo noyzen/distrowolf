@@ -5,9 +5,6 @@ contextBridge.exposeInMainWorld('electron', {
   // Dependency & System Info
   checkDependencies: () => ipcRenderer.invoke('check-dependencies'),
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
-  installPodman: () => ipcRenderer.invoke('install-podman'),
-  installDistrobox: () => ipcRenderer.invoke('install-distrobox'),
-  installAlacritty: () => ipcRenderer.invoke('install-alacritty'),
   
   // Container Management
   listContainers: () => ipcRenderer.invoke('list-containers'),

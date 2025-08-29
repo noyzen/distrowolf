@@ -302,7 +302,6 @@ ipcMain.handle('check-dependencies', async () => {
     const distroboxInstalled = await checkCmd('distrobox');
     const podmanInstalled = await checkCmd('podman');
     const dockerInstalled = await checkCmd('docker');
-    const alacrittyInstalled = await checkCmd('alacritty');
     const detectedTerminal = await detectTerminal();
     const distroInfo = getDistroInfo();
 
@@ -310,121 +309,10 @@ ipcMain.handle('check-dependencies', async () => {
         distroboxInstalled,
         podmanInstalled,
         dockerInstalled,
-        alacrittyInstalled,
         detectedTerminal,
         distroInfo,
     };
 });
-
-function runCommandWithPkexec(command, event) {
-    return new Promise((resolve, reject) => {
-        const child = spawn('pkexec', ['sh', '-c', command], {
-            stdio: ['ignore', 'pipe', 'pipe'] // stdin, stdout, stderr
-        });
-
-        child.stdout.on('data', (data) => {
-            console.log(`[pkexec stdout]: ${data}`);
-            if (event) event.sender.send('install-progress', data.toString());
-        });
-
-        child.stderr.on('data', (data) => {
-            console.error(`[pkexec stderr]: ${data}`);
-            if (event) event.sender.send('install-progress', data.toString());
-        });
-
-        child.on('close', (code) => {
-            if (code === 0) {
-                resolve({ success: true });
-            } else {
-                 if (stderr.includes('polkit-agent-helper-1') || code === 126 || code === 127) {
-                     reject(new Error('Authentication failed or was cancelled by the user.'));
-                } else {
-                     reject(new Error(`Command failed with exit code ${code}: ${stderr || 'Unknown error'}`));
-                }
-            }
-        });
-        
-        child.on('error', (err) => {
-            console.error('[pkexec spawn error]:', err);
-            reject(new Error(`Failed to start pkexec. Is polkit configured correctly? Error: ${err.message}`));
-        });
-    });
-}
-
-ipcMain.handle('install-podman', async (event) => {
-    const { id } = getDistroInfo();
-    let command;
-
-    switch (id) {
-        case 'ubuntu':
-        case 'debian':
-        case 'pop':
-        case 'linuxmint':
-            command = 'apt-get update && apt-get install -y podman';
-            break;
-        case 'fedora':
-        case 'rocky':
-        case 'almalinux':
-        case 'centos':
-            command = 'dnf install -y podman';
-            break;
-        case 'arch':
-        case 'manjaro':
-        case 'endeavouros':
-        case 'garuda':
-            command = 'pacman -S --noconfirm podman';
-            break;
-        case 'opensuse-tumbleweed':
-        case 'opensuse-leap':
-            command = 'zypper install -y podman';
-            break;
-        default:
-            throw new Error(`Unsupported distribution for automatic Podman installation: ${id}`);
-    }
-
-    return runCommandWithPkexec(command, event);
-});
-
-
-ipcMain.handle('install-distrobox', async (event) => {
-    const command = 'curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sh';
-    return runCommandWithPkexec(command, event);
-});
-
-ipcMain.handle('install-alacritty', async (event) => {
-    const { id } = getDistroInfo();
-    let command;
-
-    switch (id) {
-        case 'ubuntu':
-        case 'debian':
-        case 'pop':
-        case 'linuxmint':
-            command = 'apt-get update && apt-get install -y alacritty';
-            break;
-        case 'fedora':
-        case 'rocky':
-        case 'almalinux':
-        case 'centos':
-            command = 'dnf install -y alacritty';
-            break;
-        case 'arch':
-        case 'manjaro':
-        case 'endeavouros':
-        case 'garuda':
-            command = 'pacman -S --noconfirm alacritty';
-            break;
-        case 'opensuse-tumbleweed':
-        case 'opensuse-leap':
-            command = 'zypper install -y alacritty';
-            break;
-        default:
-            throw new Error(`Unsupported distribution for automatic Alacritty installation: ${id}`);
-    }
-
-    return runCommandWithPkexec(command, event);
-});
-
 
 ipcMain.handle('get-system-info', async () => {
     const getInfo = async (cmd, parser) => {
@@ -599,9 +487,6 @@ ipcMain.handle('enter-container', async (event, containerName) => {
 
     if (terminal) {
         switch (terminal) {
-            case 'wezterm':
-                spawnArgs = ['wezterm', 'start', '--', 'distrobox', 'enter', containerName];
-                break;
             case 'konsole':
                 spawnArgs = ['konsole', '-e', enterCommand];
                 break;
