@@ -100,11 +100,10 @@ const SidebarProvider = React.forwardRef<
     // Sync state between mobile and desktop when window is resized
     React.useEffect(() => {
       if (isMobile) {
-        setOpenMobile(open)
+        setOpenMobile(false)
       } else {
-        setOpen(openMobile)
+        setOpenMobile(false)
       }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isMobile])
 
 
@@ -227,7 +226,7 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className={cn("peer text-sidebar-foreground md:block", className)}
+        className={cn("peer hidden text-sidebar-foreground md:block", className)}
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
