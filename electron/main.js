@@ -365,7 +365,8 @@ ipcMain.handle('export-image', async (event, image) => {
     }
 });
 
-ipcMain.handle('create-container', async (event, { name, image, home, volumes }) => {
+ipcMain.handle('create-container', async (event, { name, image, home, volumes, init, nvidia }) => {
+    console.log('[DEBUG] Received create-container request with options:', { name, image, home, volumes, init, nvidia });
     let command = `distrobox create --name ${name} --image "${image}"`;
     if (home && home.trim() !== '') command += ` --home "${home}"`;
     if (init) command += ' --init';
@@ -375,7 +376,7 @@ ipcMain.handle('create-container', async (event, { name, image, home, volumes })
     });
 
     try {
-        console.log(`Executing create command: ${command}`);
+        console.log(`[DEBUG] Executing create command: ${command}`);
         await execAsync(command);
         return { success: true };
     } catch (error) {
