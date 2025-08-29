@@ -12,6 +12,7 @@ const serve = require('electron-serve');
 const execAsync = promisify(exec);
 const store = new Store();
 const isDev = !app.isPackaged;
+const activePulls = new Map();
 
 let loadURL;
 if (!isDev) {
@@ -96,7 +97,6 @@ async function parseListOutput(output) {
             homeInfo = { type: "Shared", path: hostHome };
         }
         
-        const init = !!(info.Config.Cmd && info.Config.Cmd.includes('--init'));
         const nvidia = !!(info.HostConfig.DeviceRequests && info.HostConfig.DeviceRequests.some(dr => dr.Driver === 'nvidia'));
 
 
@@ -107,7 +107,6 @@ async function parseListOutput(output) {
             image: parts[3],
             autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
             home: homeInfo,
-            init: init,
             nvidia: nvidia
         };
     }));
@@ -362,23 +361,46 @@ ipcMain.handle('list-local-images', async () => {
 });
 
 
-ipcMain.handle('pull-image', async (event, imageName) => {
-    try {
-        // Using exec instead of execAsync to get streaming output if needed later.
-        // For now, just waiting for completion.
-        const { stdout, stderr } = await execAsync(`podman pull ${imageName}`);
-        if (stderr) {
-            // Some tools write progress to stderr, so check for actual error keywords
-            if (stderr.toLowerCase().includes('error')) {
-                throw new Error(stderr);
+ipcMain.handle('pull-image', (event, imageName) => {
+    return new Promise((resolve, reject) => {
+        const pullProcess = spawn('podman', ['pull', imageName]);
+        activePulls.set(imageName, pullProcess);
+
+        let stderr = '';
+        pullProcess.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+
+        pullProcess.on('close', (code) => {
+            activePulls.delete(imageName);
+            if (code === 0) {
+                resolve({ success: true });
+            } else {
+                console.error(`Error pulling image ${imageName}:`, stderr);
+                reject(new Error(stderr || `Process exited with code ${code}`));
             }
-        }
-        return { success: true };
-    } catch (error) {
-        console.error(`Error pulling image ${imageName}:`, error);
-        throw error;
-    }
+        });
+
+        pullProcess.on('error', (err) => {
+            activePulls.delete(imageName);
+            console.error(`Spawn error for podman pull ${imageName}:`, err);
+            reject(err);
+        });
+    });
 });
+
+ipcMain.handle('cancel-pull-image', async (event, imageName) => {
+    const pullProcess = activePulls.get(imageName);
+    if (pullProcess) {
+        pullProcess.kill('SIGTERM'); // Send termination signal
+        activePulls.delete(imageName);
+        console.log(`Cancelled pulling image: ${imageName}`);
+        return { success: true };
+    }
+    console.warn(`No active pull process found for image: ${imageName}`);
+    return { success: false, error: "Process not found." };
+});
+
 
 ipcMain.handle('delete-image', async (event, imageId) => {
     try {

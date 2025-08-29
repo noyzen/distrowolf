@@ -11,7 +11,6 @@ export interface Container {
   image: string;
   autostart: boolean;
   home: HomeInfo;
-  init: boolean;
   nvidia: boolean;
 }
 

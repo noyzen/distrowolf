@@ -8,10 +8,10 @@ import * as z from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, Loader, Star, Boxes, Factory, Globe } from "lucide-react";
+import { Download, Loader, Star, Boxes, Factory, Globe, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { pullImage } from "@/lib/distrobox";
+import { pullImage, cancelPullImage } from "@/lib/distrobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -167,6 +167,27 @@ export default function DownloadPage() {
     }
   };
 
+  const handleCancelPull = async () => {
+    const imageName = form.getValues("imageName");
+    if (!imageName || !isDownloading) return;
+
+    try {
+      await cancelPullImage(imageName);
+      toast({
+        title: "Download Cancelled",
+        description: `Cancelled pull for image: ${imageName}`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to Cancel",
+        description: error.message || "Could not cancel the download.",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <Card>
       <Form {...form}>
@@ -191,13 +212,25 @@ export default function DownloadPage() {
                             placeholder="docker.io/library/ubuntu:latest" 
                             {...field} 
                             onChange={handleInputChange}
+                            disabled={isDownloading}
                             />
                         </FormControl>
-                        <Button type="submit" className="flex-shrink-0" disabled={isDownloading || !form.getValues("imageName")}>
-                            {isDownloading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                            Download
-                        </Button>
+                        {isDownloading ? (
+                          <Button type="button" variant="destructive" onClick={handleCancelPull} className="flex-shrink-0">
+                              <XCircle className="mr-2 h-4 w-4" /> Cancel
+                          </Button>
+                        ) : (
+                          <Button type="submit" className="flex-shrink-0" disabled={!form.getValues("imageName")}>
+                              <Download className="mr-2 h-4 w-4" /> Download
+                          </Button>
+                        )}
                     </div>
+                    {isDownloading && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                        <Loader className="h-4 w-4 animate-spin" />
+                        <span>Pulling image... this can take a while depending on the size and your network speed.</span>
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

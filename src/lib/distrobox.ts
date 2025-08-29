@@ -54,6 +54,7 @@ declare global {
       
       listLocalImages: () => Promise<LocalImage[]>;
       pullImage: (imageName: string) => Promise<{ success: boolean }>;
+      cancelPullImage: (imageName: string) => Promise<{ success: boolean, error?: string }>;
       deleteImage: (imageId: string) => Promise<{ success: boolean }>;
       importImage: () => Promise<ImageActionResult>;
       exportImage: (image: LocalImage) => Promise<ImageActionResult>;
@@ -100,6 +101,12 @@ export async function pullImage(imageName: string): Promise<{ success: boolean }
   if (window.electron) return window.electron.pullImage(imageName);
   console.warn("Electron API not available.");
   return { success: false };
+}
+
+export async function cancelPullImage(imageName: string): Promise<{ success: boolean, error?: string }> {
+  if (window.electron) return window.electron.cancelPullImage(imageName);
+  console.warn("Electron API not available.");
+  return { success: false, error: "Electron API not available." };
 }
 
 export async function deleteImage(imageId: string): Promise<{ success: boolean }> {

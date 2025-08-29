@@ -122,9 +122,8 @@ const ContainerRow = React.memo(({ container, onSelect, isSelected, actioningCon
           </div>
           <div className="flex items-center gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0 self-end sm:self-center">
                <div className="flex items-center gap-2">
-                  <FlagBadge icon={Home} text={container.home.type} enabled={true} />
+                  <FlagBadge icon={Home} text={container.home.type} enabled={container.home.type === 'Isolated'} />
                   <FlagBadge icon={Power} text="Autostart" enabled={container.autostart} />
-                  <FlagBadge icon={Power} text="Init" enabled={container.init} />
                   <FlagBadge icon={Box} text="Nvidia" enabled={container.nvidia} />
                </div>
                <TooltipProvider>
