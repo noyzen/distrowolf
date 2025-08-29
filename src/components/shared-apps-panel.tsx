@@ -8,44 +8,19 @@ import { Button } from "@/components/ui/button";
 import { XCircle, Loader, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Container, SharedApp } from "@/lib/types";
-import { listSharedApps, unshareApp } from "@/lib/distrobox";
+import { unshareApp } from "@/lib/distrobox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SharedAppsPanelProps {
     container: Container;
+    sharedApps: SharedApp[];
+    onAppUnshared: () => void;
 }
 
-export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
+export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: SharedAppsPanelProps) {
   const { toast } = useToast();
-  const [sharedApps, setSharedApps] = useState<SharedApp[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // No longer fetches its own data
   const [isUnsharing, setIsUnsharing] = useState<string | null>(null);
-
-  const fetchSharedApps = useCallback(async () => {
-    if (!container) return;
-    setIsLoading(true);
-    try {
-        const apps = await listSharedApps(container.name);
-        setSharedApps(apps);
-    } catch (error: any) {
-        toast({
-            variant: "destructive",
-            title: "Failed to load shared apps",
-            description: error.message,
-        });
-        setSharedApps([]); // Clear on error
-    } finally {
-        setIsLoading(false);
-    }
-  }, [container.name, toast]);
-
-  useEffect(() => {
-    fetchSharedApps();
-    // Also poll for changes every 10 seconds to catch new exports
-    const interval = setInterval(fetchSharedApps, 10000);
-    return () => clearInterval(interval);
-  }, [fetchSharedApps]);
-
 
   const handleUnshare = async (appName: string) => {
     setIsUnsharing(appName);
@@ -59,7 +34,7 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
             title: "Unshare Successful",
             description: `"${appName}" has been unshared from the host.`,
         });
-        await fetchSharedApps(); // Refresh the list immediately
+        onAppUnshared(); // Notify parent to refresh
     } catch(error: any) {
         toast({
         variant: "destructive",
@@ -78,10 +53,10 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
         <div>
             <CardTitle className="font-headline">Shared Apps from {container.name}</CardTitle>
             <CardDescription>
-            Applications from this container that are exported to the host.
+            Applications from this container that are available on the host.
             </CardDescription>
         </div>
-        <Button variant="outline" size="icon" onClick={fetchSharedApps} disabled={isLoading}>
+        <Button variant="outline" size="icon" onClick={onAppUnshared} disabled={isLoading}>
             {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
       </CardHeader>

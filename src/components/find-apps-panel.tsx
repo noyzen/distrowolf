@@ -6,17 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader, Search, Settings, Info } from "lucide-react";
+import { Upload, Loader, Search, Settings, Info, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import type { Container, SearchableApp } from "@/lib/types";
+import type { Container, SearchableApp, SharedApp } from "@/lib/types";
 import { exportApp, searchContainerApps } from "@/lib/distrobox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "./ui/badge";
 
 interface FindAppsPanelProps {
     container: Container;
+    sharedApps: SharedApp[];
+    onAppShared: () => void;
 }
 
 const allPackageManagers = [
@@ -37,13 +40,15 @@ const allPackageManagers = [
     { value: 'flatpak', label: 'flatpak' },
 ];
 
-export function FindAppsPanel({ container }: FindAppsPanelProps) {
+export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPanelProps) {
   const { toast } = useToast();
   const [selectedPM, setSelectedPM] = useState<string>("dpkg");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchableApp[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
+
+  const sharedAppNames = sharedApps.map(app => app.name);
 
   const handleSearch = async () => {
     if (!searchQuery || !selectedPM) return;
@@ -90,6 +95,7 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
             title: "Export Successful",
             description: `"${appName}" has been shared with the host.`,
         });
+        onAppShared(); // Notify parent to refresh shared apps
     } catch (error: any) {
         toast({
             variant: "destructive",
@@ -106,7 +112,7 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
       <CardHeader>
         <CardTitle className="font-headline">Find Applications in {container.name}</CardTitle>
         <CardDescription>
-          Search for installed packages and export them to your host system.
+          Search for installed packages and share them with your host system.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -179,10 +185,17 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                     <TableCell className="truncate" title={app.version}>{app.version}</TableCell>
                     <TableCell className="text-muted-foreground truncate" title={app.description}>{app.description}</TableCell>
                     <TableCell className="text-right">
-                    <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
-                        {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Export
-                    </Button>
+                    { sharedAppNames.includes(app.name) ? (
+                        <Badge variant="secondary" className="gap-1.5">
+                            <CheckCircle className="h-4 w-4"/>
+                            Shared
+                        </Badge>
+                    ) : (
+                        <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
+                            {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                            Share
+                        </Button>
+                    )}
                     </TableCell>
                 </TableRow>
                 ))

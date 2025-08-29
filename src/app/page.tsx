@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -41,7 +41,7 @@ import {
   Box,
   Copy,
 } from "lucide-react";
-import type { Container } from "@/lib/types";
+import type { Container, SharedApp } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { 
   listContainers, 
@@ -54,6 +54,7 @@ import {
   checkDependencies,
   toggleAutostart as apiToggleAutostart,
   copyToClipboard,
+  listSharedApps,
 } from "@/lib/distrobox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn, getDistroIcon } from "@/lib/utils";
@@ -77,6 +78,7 @@ export default function Home() {
   const [dialogContent, setDialogContent] = useState({ title: "", message: "" });
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const [selectedContainerInfo, setSelectedContainerInfo] = useState<any | null>(null);
+  const [sharedApps, setSharedApps] = useState<SharedApp[]>([]);
   const [containerToDelete, setContainerToDelete] = useState<Container | null>(null);
   const [actioningContainerId, setActioningContainerId] = useState<string | null>(null);
   const [activePanel, setActivePanel] = useState<PanelMode>("apps");
@@ -97,7 +99,7 @@ export default function Home() {
     return deps;
   }
 
-  const fetchContainers = async () => {
+  const fetchContainers = useCallback(async () => {
     setLoading(true);
     setActioningContainerId(null);
     try {
@@ -122,7 +124,21 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, selectedContainer]);
+
+  const fetchSharedApps = useCallback(async () => {
+    if (!selectedContainer) {
+        setSharedApps([]);
+        return;
+    }
+    try {
+        const apps = await listSharedApps(selectedContainer.name);
+        setSharedApps(apps);
+    } catch (error: any) {
+        setSharedApps([]);
+    }
+  }, [selectedContainer]);
+
 
   useEffect(() => {
     checkSystemDependencies().then(deps => {
@@ -132,7 +148,14 @@ export default function Home() {
             setLoading(false);
         }
     });
-  }, []);
+  }, [fetchContainers]);
+  
+  useEffect(() => {
+    if (selectedContainer) {
+      fetchSharedApps();
+    }
+  }, [selectedContainer, fetchSharedApps]);
+
 
   const handleToggleContainerStatus = async (container: Container) => {
     const isRunning = container.status === "running";
@@ -329,8 +352,8 @@ export default function Home() {
             transition={{ duration: 0.3 }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
-            <FindAppsPanel container={selectedContainer} />
-            <SharedAppsPanel container={selectedContainer} />
+            <FindAppsPanel container={selectedContainer} sharedApps={sharedApps} onAppShared={fetchSharedApps} />
+            <SharedAppsPanel container={selectedContainer} sharedApps={sharedApps} onAppUnshared={fetchSharedApps} />
           </motion.div>
         );
     }
@@ -397,8 +420,8 @@ export default function Home() {
                         key={container.id} 
                         onClick={() => handleRowClick(container)}
                         className={cn(
-                            "cursor-pointer transition-all duration-200", 
-                            selectedContainer?.id === container.id && "bg-primary/10 rounded-lg outline outline-3 outline-primary/70"
+                            "cursor-pointer transition-all duration-200 rounded-lg", 
+                            selectedContainer?.id === container.id && "bg-primary/10 ring-2 ring-primary ring-offset-2 ring-offset-background"
                         )}
                     >
                       <TableCell>
@@ -491,7 +514,7 @@ export default function Home() {
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={activePanel}
+          key={selectedContainer ? `${selectedContainer.id}-${activePanel}` : 'empty'}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
