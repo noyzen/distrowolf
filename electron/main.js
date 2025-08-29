@@ -106,7 +106,7 @@ ipcMain.handle('start-container', async (event, containerName) => {
 
 ipcMain.handle('stop-container', async (event, containerName) => {
   try {
-    await execAsync(`distrobox stop -f ${containerName}`);
+    await execAsync(`distrobox stop --yes ${containerName}`);
     return { success: true };
   } catch (error) {
     console.error(`Error stopping container ${containerName}:`, error);
