@@ -130,14 +130,16 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                                 Choose the package manager to search with.
                             </DialogDescription>
                         </DialogHeader>
-                        <RadioGroup value={selectedPM} onValueChange={setSelectedPM} className="grid grid-cols-2 gap-4 py-4 max-h-96 overflow-y-auto">
-                            {allPackageManagers.map(pm => (
-                                <div key={pm.value} className="flex items-center space-x-2">
-                                    <RadioGroupItem value={pm.value} id={pm.value} />
-                                    <Label htmlFor={pm.value} className="cursor-pointer">{pm.label}</Label>
-                                </div>
-                            ))}
-                        </RadioGroup>
+                        <ScrollArea className="max-h-96">
+                            <RadioGroup value={selectedPM} onValueChange={setSelectedPM} className="grid grid-cols-2 gap-4 py-4 pr-4">
+                                {allPackageManagers.map(pm => (
+                                    <div key={pm.value} className="flex items-center space-x-2">
+                                        <RadioGroupItem value={pm.value} id={pm.value} />
+                                        <Label htmlFor={pm.value} className="cursor-pointer">{pm.label}</Label>
+                                    </div>
+                                ))}
+                            </RadioGroup>
+                        </ScrollArea>
                     </DialogContent>
                 </Dialog>
                  <Button onClick={handleSearch} disabled={isSearching || !searchQuery || !selectedPM} className="flex-grow sm:flex-grow-0">
@@ -154,10 +156,10 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
             <Table>
             <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                <TableHead className="w-[200px]">Application</TableHead>
-                <TableHead className="w-[150px]">Version</TableHead>
+                <TableHead className="w-[30%]">Application</TableHead>
+                <TableHead className="w-[20%]">Version</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-right w-[100px]">Action</TableHead>
+                <TableHead className="text-right w-[120px]">Action</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>

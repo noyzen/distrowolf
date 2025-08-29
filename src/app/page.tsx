@@ -396,8 +396,9 @@ export default function Home() {
                     <TableRow 
                         key={container.id} 
                         onClick={() => handleRowClick(container)}
-                        className={cn("cursor-pointer transition-colors duration-300", 
-                            selectedContainer?.id === container.id && "bg-primary/20 border-2 border-primary ring-2 ring-primary/50 ring-offset-2 ring-offset-background"
+                        className={cn(
+                            "cursor-pointer transition-all duration-200", 
+                            selectedContainer?.id === container.id && "bg-primary/10 rounded-lg outline outline-3 outline-primary/70"
                         )}
                     >
                       <TableCell>
