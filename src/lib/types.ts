@@ -4,12 +4,10 @@ export interface Container {
   name: string;
   status: 'running' | 'stopped';
   image: string;
-  size: string;
   autostart: boolean;
-  sharedHome: boolean;
+  home: 'Shared' | 'Isolated';
   init: boolean;
   nvidia: boolean;
-  volumes: string[];
 }
 
 export interface LocalImage {

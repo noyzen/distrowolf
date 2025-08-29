@@ -184,7 +184,7 @@ export default function ImagesPage() {
                             </Tooltip>
                             <Tooltip>
                                <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteConfirm(image)}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteConfirm(image)}>
                                     {isDeleting === image.id ? <Loader className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                 </Button>
                                </TooltipTrigger>

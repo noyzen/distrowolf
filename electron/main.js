@@ -2,7 +2,7 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const { ipcMain } = require('electron');
-const { exec, spawn } = require('child_process');
+const { exec } = require('child_process');
 const { promisify } = require('util');
 const Store = require('electron-store');
 const clipboard = require('electron').clipboard;
@@ -57,31 +57,38 @@ async function parseListOutput(output) {
         
         const status = parts[2].toLowerCase().startsWith('up') ? 'running' : 'stopped';
         const name = parts[1];
-
-        let autostart = false;
+        let info;
+        
         try {
             const { stdout } = await execAsync(`podman inspect ${name}`);
-            const info = JSON.parse(stdout);
-            if (info && info.length > 0) {
-                autostart = info[0]?.HostConfig?.RestartPolicy?.Name === 'always';
-            }
+            info = JSON.parse(stdout)[0];
         } catch (e) {
-            console.warn(`Could not inspect container ${name} for autostart status:`, e.message);
+            console.warn(`Could not inspect container ${name}:`, e.message);
+            return null;
         }
-        
-        const container = {
+
+        const args = info.Config?.Cmd || [];
+        const findArg = (arg) => {
+          const index = args.indexOf(arg);
+          return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
+        }
+
+        const homeArg = findArg('--home');
+        let homeStatus = "Shared";
+        if (homeArg) {
+            homeStatus = `Isolated`;
+        }
+
+        return {
             id: parts[0],
             name: name,
             status: status,
             image: parts[3],
-            size: 'N/A', 
-            autostart: autostart, 
-            sharedHome: false, 
-            init: false, 
-            nvidia: false, 
-            volumes: [], 
+            autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
+            home: homeStatus,
+            init: args.includes('--init'),
+            nvidia: args.includes('--nvidia'),
         };
-        return container;
     }));
 
     return containers.filter(Boolean);
@@ -121,6 +128,7 @@ function parseLocalImages(output) {
 }
 
 function parseSharedApps(output, containerName) {
+    console.log('[DEBUG] Raw shared apps output:', `\n---\n${output}\n---`);
     const lines = output.trim().split('\n');
     return lines.map((line, index) => {
         if (!line.trim()) return null;
@@ -139,6 +147,7 @@ function parseSharedApps(output, containerName) {
 }
 
 function parseSharedBinaries(output, containerName) {
+    console.log('[DEBUG] Raw shared binaries output:', `\n---\n${output}\n---`);
     const lines = output.trim().split('\n');
     return lines.map((line, index) => {
         if (!line.trim()) return null;
@@ -156,8 +165,8 @@ function parseSharedBinaries(output, containerName) {
     }).filter(Boolean);
 }
 
-
 function parseSearchableApps(output, packageManager) {
+    console.log(`[DEBUG] Raw output for ${packageManager}:`, `\n---\n${output}\n---`);
     const lines = output.trim().split('\n').filter(line => line.trim() !== '');
     if (lines.length === 0) return [];
     
@@ -169,7 +178,7 @@ function parseSearchableApps(output, packageManager) {
             
             switch (packageManager) {
                 case 'dpkg':
-                    if (parts.length < 2) return null;
+                    if (parts.length < 2 || parts[0] !== 'ii') return null;
                     name = parts[1].split(':')[0]; // remove arch
                     version = parts[2];
                     description = parts.slice(3).join(' ');
@@ -177,11 +186,13 @@ function parseSearchableApps(output, packageManager) {
                 case 'rpm':
                 case 'dnf':
                 case 'yum':
+                     if (parts.length < 2) return null;
                     name = parts[0].split('.').slice(0, -1).join('.'); // remove arch from name
                     version = parts[1];
                     description = `Repo: ${parts[2] || 'N/A'}`;
                     break;
                 case 'pacman':
+                    if (parts.length < 2) return null;
                     name = parts[0];
                     version = parts[1];
                     break;
@@ -212,7 +223,7 @@ function parseSearchableApps(output, packageManager) {
             name: name.trim(),
             version: version.trim(),
             description: description.trim(),
-            type: 'app', // Assume app for now
+            type: 'app',
         };
     }).filter(Boolean);
 }
@@ -439,7 +450,6 @@ ipcMain.handle('toggle-autostart', async (event, containerName, autostart) => {
     }
 });
 
-
 ipcMain.handle('list-shared-apps', async (event, containerName) => {
   try {
     const { stdout: appOutput } = await execAsync(`distrobox enter ${containerName} -- distrobox-export --list-apps`);
@@ -468,16 +478,14 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
       searchCommand = `dpkg-query -W -f='ii \${binary:Package} \${Version} \${Description}\\n' | grep -i "${escapedQuery}"`;
       break;
     case 'rpm':
-      searchCommand = `rpm -qa | grep -i "${escapedQuery}"`;
+      searchCommand = `rpm -qa --queryformat '%{NAME} %{VERSION}-%{RELEASE} %{SUMMARY}\\n' | grep -i "${escapedQuery}"`;
       break;
     case 'dnf':
+    case 'yum':
       searchCommand = `dnf list installed | grep -i "${escapedQuery}"`;
       break;
-    case 'yum':
-      searchCommand = `yum list installed | grep -i "${escapedQuery}"`;
-      break;
     case 'pacman':
-      searchCommand = `pacman -Q | grep -i "${escapedQuery}"`; 
+      searchCommand = `pacman -Qs ${escapedQuery}`; 
       break;
     case 'zypper':
       searchCommand = `zypper se -i ${escapedQuery}`; 
@@ -485,14 +493,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     case 'apk':
         searchCommand = `apk info | grep -i "${escapedQuery}"`;
         break;
-    case 'equery':
-        searchCommand = `equery list ${escapedQuery}`;
-        break;
-    case 'xbps-query':
-        searchCommand = `xbps-query -l | grep -i ${escapedQuery}`;
-        break;
     default:
-        // A safe default
         searchCommand = `echo "Unsupported package manager"`;
   }
 
@@ -500,7 +501,6 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     const { stdout } = await execAsync(`distrobox enter ${containerName} -- sh -c "${searchCommand}"`);
     return parseSearchableApps(stdout, packageManager);
   } catch (error) {
-    // Grep returns exit code 1 if no matches are found, which execAsync treats as an error.
     if (error.code === 1 && error.stdout === '') {
         return [];
     }

@@ -33,6 +33,9 @@ import {
   Box,
   Copy,
   PlusCircle,
+  Cpu,
+  Rocket,
+  Home as HomeIcon,
 } from "lucide-react";
 import type { Container, SharedApp } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -62,7 +65,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 type PanelMode = "apps" | "info";
 
-export default function Home() {
+export default function HomePage() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [dependencies, setDependencies] = useState<{ distroboxInstalled: boolean, podmanInstalled: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,8 +105,8 @@ export default function Home() {
       if (selectedContainer) {
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
         if (updatedSelected) {
-          // Don't reset the whole container, just update its status
-          setSelectedContainer(prev => prev ? {...prev, status: updatedSelected.status, autostart: updatedSelected.autostart} : null);
+          // Don't reset the whole container, just update its status and flags
+          setSelectedContainer(prev => prev ? {...prev, ...updatedSelected} : null);
         } else {
           setSelectedContainer(null);
         }
@@ -353,19 +356,29 @@ export default function Home() {
     }
   };
   
+  const FlagBadge = ({ icon, text, enabled }: { icon: React.ElementType, text: string, enabled: boolean }) => {
+    if (!enabled) return null;
+    return (
+        <Badge variant="secondary" className="gap-1.5 font-normal">
+            {React.createElement(icon, { className: "h-3 w-3" })}
+            {text}
+        </Badge>
+    );
+  };
+  
   const ContainerRow = ({ container, onSelect, isSelected }: { container: Container, onSelect: (c: Container) => void, isSelected: boolean }) => {
     return (
         <div
             onClick={() => onSelect(container)}
             className={cn(
-                "relative flex items-center justify-between p-4 border rounded-lg transition-colors duration-200 cursor-pointer hover:bg-muted/50",
+                "relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg transition-all duration-200 cursor-pointer hover:bg-muted/50",
                 isSelected && "ring-2 ring-primary ring-inset bg-primary/10"
             )}
         >
             <div className="flex items-center gap-4 flex-1 min-w-0">
                 <Badge
                     variant={container.status === "running" ? "default" : "secondary"}
-                    className="capitalize w-24 justify-center"
+                    className="capitalize w-24 justify-center flex-shrink-0"
                 >
                     {actioningContainerId === container.id ? (
                         <Loader className="mr-2 h-3 w-3 animate-spin"/>
@@ -382,8 +395,13 @@ export default function Home() {
                     </div>
                 </div>
             </div>
-            <div className="flex items-center gap-2 ml-4">
-                 <span className="font-mono text-xs text-muted-foreground hidden md:block">{container.id}</span>
+            <div className="flex items-center gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0 self-end sm:self-center">
+                 <div className="hidden md:flex items-center gap-2">
+                    <FlagBadge icon={Rocket} text="Init" enabled={container.init} />
+                    <FlagBadge icon={Cpu} text="Nvidia" enabled={container.nvidia} />
+                    <FlagBadge icon={HomeIcon} text={container.home} enabled={container.home === 'Isolated'} />
+                    <FlagBadge icon={Power} text="Autostart" enabled={container.autostart} />
+                 </div>
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
