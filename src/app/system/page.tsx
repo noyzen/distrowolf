@@ -3,19 +3,21 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code } from "lucide-react";
+import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code, Terminal, Loader } from "lucide-react";
 import Link from "next/link";
 import { getSystemInfo, listContainers, listLocalImages } from "@/lib/distrobox";
 import type { SystemInfo } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSystemCheck } from "@/hooks/use-system-check";
+import { Button } from "@/components/ui/button";
 
-const InfoRow = ({ icon, label, value }: { icon: React.ElementType, label: string, value: string | undefined }) => (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-background hover:bg-accent/50 transition-colors">
+const InfoRow = ({ icon, label, value, children }: { icon: React.ElementType, label: string, value?: string, children?: React.ReactNode }) => (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-background hover:bg-accent/50 transition-colors min-h-[52px]">
       <div className="flex items-center gap-3">
         {React.createElement(icon, { className: "h-5 w-5 text-muted-foreground" })}
         <span className="font-medium">{label}</span>
       </div>
-      {value !== undefined ? <span className="font-mono text-sm text-primary">{value || 'N/A'}</span> : <Skeleton className="h-5 w-24" />}
+      {value !== undefined ? <span className="font-mono text-sm text-primary">{value || 'N/A'}</span> : children}
     </div>
 );
 
@@ -39,6 +41,9 @@ export default function SystemPage() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [counts, setCounts] = useState<{containers: number | null, images: number | null}>({ containers: null, images: null });
   const [loading, setLoading] = useState(true);
+  const { dependencies, installWezterm, isInstallingWezterm } = useSystemCheck();
+
+  const hasTerminal = dependencies?.weztermInstalled || !!dependencies?.detectedTerminal;
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -92,6 +97,18 @@ export default function SystemPage() {
                     <InfoRow icon={Server} label="Operating System" value={systemInfo?.distro} />
                     <InfoRow icon={Box} label="Distrobox Version" value={systemInfo?.distroboxVersion} />
                     <InfoRow icon={Info} label="Podman Version" value={systemInfo?.podmanVersion} />
+                    <InfoRow icon={Terminal} label="Terminal Emulator">
+                       {loading ? <Skeleton className="h-5 w-24" /> : (
+                            hasTerminal ? (
+                                 <span className="font-mono text-sm text-primary">{dependencies?.detectedTerminal || 'WezTerm'}</span>
+                            ) : (
+                                <Button size="sm" onClick={installWezterm} disabled={isInstallingWezterm}>
+                                    {isInstallingWezterm ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                    Install WezTerm
+                                </Button>
+                            )
+                       )}
+                    </InfoRow>
                 </div>
             </div>
         </CardContent>
