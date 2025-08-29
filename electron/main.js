@@ -140,7 +140,7 @@ function parseSharedApps(output, containerName) {
 }
 
 function parseSearchableApps(output, packageManager) {
-    const lines = output.trim().split('\n').filter(line => line.trim() !== '');
+    const lines = output.trim().split('\n').filter(line => line.trim() !== '' && !line.includes('Reading package lists...'));
     return lines.map((line, index) => {
         let name, version = 'N/A', description = '';
 
@@ -149,27 +149,24 @@ function parseSearchableApps(output, packageManager) {
             if (parts.length < 1) return null;
 
             switch (packageManager) {
-                case 'dpkg': // for dpkg -l
-                    if (parts[0] !== 'ii') return null;
-                    name = parts[1].split(':')[0]; // handle arch like code:amd64
-                    version = parts[2];
-                    description = parts.slice(3).join(' ');
+                case 'dpkg': // for dpkg-query
+                    const [pkgName, pkgVersion, ...pkgDescParts] = line.split('\t');
+                    if (!pkgName) return null;
+                    name = pkgName.split(':')[0]; // handle arch like code:amd64
+                    version = pkgVersion || 'N/A';
+                    description = pkgDescParts.join(' ') || 'No description available.';
                     break;
                 case 'rpm': // for rpm -qa
-                    if (line.includes('.snap')) return null;
-                    const nameParts = parts[0].split('-');
-                    version = nameParts.pop();
-                    name = nameParts.join('-');
+                    const rpmParts = line.split('-');
+                    version = rpmParts.pop();
+                    const release = rpmParts.pop(); // e.g. 1.fc40
+                    name = rpmParts.join('-');
                     description = 'N/A';
                     break;
                 case 'dnf': // for dnf list installed
-                    if (line.includes('.snap')) return null;
-                    name = parts[0].split('.').slice(0, -1).join('.'); // remove .arch
-                    version = parts[1];
-                    description = parts.slice(2).join(' ');
-                    break;
                 case 'yum': // for yum list installed
-                     name = parts[0].split('.')[0];
+                     if (line.startsWith('Installed Packages')) return null;
+                     name = parts[0].split('.').slice(0, -1).join('.'); // remove .arch
                      version = parts[1];
                      description = parts.slice(2).join(' ');
                      break;
@@ -187,8 +184,10 @@ function parseSearchableApps(output, packageManager) {
                 case 'apk': // for apk info
                     if (line.startsWith('Description:')) return null;
                     if (line.startsWith('Homepage:')) return null;
-                    name = line.split('-')[0];
-                    version = line.split('-').slice(1).join('-').split(' ')[0];
+                    const apkLine = line.trim();
+                    const lastDashIndex = apkLine.lastIndexOf('-');
+                    name = apkLine.substring(0, lastDashIndex);
+                    version = apkLine.substring(lastDashIndex + 1);
                     description = `Installed package`;
                     break;
                 case 'equery': // gentoo
@@ -197,8 +196,9 @@ function parseSearchableApps(output, packageManager) {
                     description = line;
                     break;
                 case 'xbps-query': // void
-                    name = parts[0].split('-')[0];
-                    version = parts[0].split('-')[1];
+                    const xbpsParts = parts[0].split('-');
+                    name = xbpsParts[0];
+                    version = xbpsParts[1];
                     description = parts.slice(1).join(' ');
                     break;
                 case 'nix-env':
@@ -475,35 +475,41 @@ ipcMain.handle('list-shared-apps', async (event, containerName) => {
 
 ipcMain.handle('search-container-apps', async (event, { containerName, packageManager, query }) => {
   let searchCommand;
-  const escapedQuery = query.replace(/"/g, '\\"');
-  
+  // Escape only shell-special characters, not '*' for wildcards
+  const escapedQuery = query.replace(/(["'$`\\])/g, '\\$1');
+  const wildcardQuery = `*${escapedQuery}*`;
+
   switch (packageManager) {
     case 'dpkg':
-      searchCommand = `dpkg -l | grep -i "${escapedQuery}"`;
+      // Use dpkg-query for better formatting and wildcard support.
+      // -W is for --show, -f is for --showformat.
+      searchCommand = `dpkg-query -W -f='\\\${binary:Package}\\\t\\\${Version}\\\t\\\${description}\\n' '${wildcardQuery}'`;
       break;
     case 'rpm':
-        searchCommand = `rpm -qa | grep -i "${escapedQuery}"`;
-        break;
+      searchCommand = `rpm -qa --queryformat '%{NAME}\\t%{VERSION}-%{RELEASE}\\t%{SUMMARY}\\n' | grep -i "${escapedQuery}"`;
+      break;
     case 'dnf':
-      searchCommand = `dnf list installed | grep -i "${escapedQuery}"`;
+      searchCommand = `dnf list installed '${wildcardQuery}'`;
       break;
     case 'yum':
-      searchCommand = `yum list installed | grep -i "${escapedQuery}"`;
+      searchCommand = `yum list installed '${wildcardQuery}'`;
       break;
     case 'pacman':
-      searchCommand = `pacman -Q | grep -i "${escapedQuery}"`;
+      searchCommand = `pacman -Qs "${escapedQuery}"`;
       break;
     case 'zypper':
-      searchCommand = `zypper se -i ${escapedQuery}`;
+      // 'se -i' is search installed. The '-s' gives detailed info.
+      searchCommand = `zypper se -i -s '${wildcardQuery}'`;
       break;
     case 'apk':
-        searchCommand = `apk info | grep -i "${escapedQuery}"`;
+        // apk info -e is for exact match, so we list all and grep
+        searchCommand = `apk info -v | grep -i "${escapedQuery}"`;
         break;
     case 'equery':
-        searchCommand = `equery list "*" | grep -i "${escapedQuery}"`;
+        searchCommand = `equery list "*${escapedQuery}*"`;
         break;
     case 'xbps-query':
-        searchCommand = `xbps-query -l | grep -i "${escapedQuery}"`;
+        searchCommand = `xbps-query -Rs "${escapedQuery}"`;
         break;
     case 'nix-env':
         searchCommand = `nix-env -q | grep -i "${escapedQuery}"`;
@@ -531,6 +537,11 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     const { stdout } = await execAsync(`distrobox enter ${containerName} -- sh -c "${searchCommand}"`);
     return parseSearchableApps(stdout, packageManager);
   } catch (error) {
+    // Grep returns exit code 1 if no lines are found, which throws an error.
+    // We can safely ignore this and return an empty array.
+    if (error.code === 1 && error.stdout === '') {
+        return [];
+    }
     console.warn(`Error searching for apps in ${containerName} with ${packageManager}:`, error.message);
     return [];
   }
