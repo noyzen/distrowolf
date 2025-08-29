@@ -66,6 +66,7 @@ import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
 import { ContainerInfoPanel } from "@/components/container-info-panel";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type PanelMode = "apps" | "info";
 
@@ -109,7 +110,8 @@ export default function Home() {
       if (selectedContainer) {
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
         if (updatedSelected) {
-          setSelectedContainer(updatedSelected);
+          // Don't reset the whole container, just update its status
+          setSelectedContainer(prev => prev ? {...prev, status: updatedSelected.status, autostart: updatedSelected.autostart} : null);
         } else {
           setSelectedContainer(null);
         }
@@ -383,6 +385,7 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
+          <ScrollArea className="h-[400px] pr-4">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -423,6 +426,7 @@ export default function Home() {
                             "cursor-pointer transition-all duration-300", 
                             selectedContainer?.id === container.id && "bg-primary/10 shadow-lg shadow-primary/20"
                         )}
+                        data-state={selectedContainer?.id === container.id ? 'selected' : undefined}
                     >
                       <TableCell className={cn("rounded-l-lg", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>
                         <Badge
@@ -509,6 +513,7 @@ export default function Home() {
                 )}
               </TableBody>
             </Table>
+          </ScrollArea>
         </CardContent>
       </Card>
 
@@ -569,5 +574,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
