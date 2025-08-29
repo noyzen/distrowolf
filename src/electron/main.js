@@ -7,12 +7,13 @@ const { promisify } = require('util');
 const Store = require('electron-store');
 const clipboard = require('electron').clipboard;
 const fs = require('fs');
-const isDev = require('electron-is-dev');
 
 const execAsync = promisify(exec);
 const store = new Store();
 
 function createWindow() {
+  const isDev = !app.isPackaged;
+
   const win = new BrowserWindow({
     width: store.get('windowBounds.width', 1200),
     height: store.get('windowBounds.height', 800),
@@ -493,7 +494,7 @@ ipcMain.handle('enter-container', async (event, containerName) => {
                 spawnArgs = ['ptyxis', '--new-window', '--', 'distrobox', 'enter', containerName];
                 break;
             case 'konsole':
-                spawnArgs = ['konsole', '--separate', '-e', `distrobox enter ${containerName}`];
+                spawnArgs = ['konsole', '--separate', '-e', 'distrobox', 'enter', containerName];
                 break;
             case 'gnome-terminal':
                  spawnArgs = ['gnome-terminal', '--window', '--', 'distrobox', 'enter', containerName];
