@@ -92,6 +92,28 @@ const formSchema = z.object({
   imageName: z.string().min(1, "Image name cannot be empty."),
 });
 
+const FeaturedImageCard = ({ image, description, onSelect, isSelected }: { image: string, description: string, onSelect: (img: string) => void, isSelected: boolean }) => {
+    const [name] = image.split(':');
+    const imageName = name.substring(name.lastIndexOf('/') + 1);
+     return (
+        <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative flex flex-col justify-between h-36", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
+            <div>
+                <p className="font-semibold text-lg truncate">{imageName.replace('-toolbox', '').replace('ubuntu-','').replace('fedora-','')}</p>
+                <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+            <p className="text-xs text-muted-foreground font-mono mt-1 truncate">{image}</p>
+        </button>
+    );
+};
+  
+const ImageCard = ({ image, onSelect, isSelected }: { image: string, onSelect: (img: string) => void, isSelected: boolean }) => {
+    return (
+        <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
+            <p className="font-semibold truncate">{image}</p>
+        </button>
+    );
+};
+
 export default function DownloadPage() {
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
@@ -142,28 +164,6 @@ export default function DownloadPage() {
       setIsDownloading(false);
     }
   };
-  
-  const FeaturedImageCard = ({ image, description, onSelect, isSelected }: { image: string, description: string, onSelect: (img: string) => void, isSelected: boolean }) => {
-    const [name] = image.split(':');
-    const imageName = name.substring(name.lastIndexOf('/') + 1);
-     return (
-        <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative flex flex-col justify-between h-36", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
-            <div>
-                <p className="font-semibold text-lg truncate">{imageName.replace('-toolbox', '').replace('ubuntu-','').replace('fedora-','')}</p>
-                <p className="text-sm text-muted-foreground">{description}</p>
-            </div>
-            <p className="text-xs text-muted-foreground font-mono mt-1 truncate">{image}</p>
-        </button>
-    );
-  };
-  
-  const ImageCard = ({ image, onSelect, isSelected }: { image: string, onSelect: (img: string) => void, isSelected: boolean }) => {
-    return (
-        <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
-            <p className="font-semibold truncate">{image}</p>
-        </button>
-    );
-  };
 
   return (
     <Card>
@@ -173,7 +173,7 @@ export default function DownloadPage() {
             <CardTitle className="font-headline">Download Container Image</CardTitle>
             <CardDescription>
               Select a popular image from the list or enter a custom URL to download it from a registry.
-            </Description>
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <Tabs defaultValue="featured" className="w-full">
@@ -266,5 +266,3 @@ export default function DownloadPage() {
     </Card>
   );
 }
-
-    
