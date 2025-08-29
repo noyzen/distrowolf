@@ -1,22 +1,37 @@
+
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { ipcMain } = require('electron');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const Store = require('electron-store');
 
 const execAsync = promisify(exec);
+const store = new Store();
 
 async function createWindow() {
   const isDev = (await import('electron-is-dev')).default;
 
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: store.get('windowBounds.width', 1200),
+    height: store.get('windowBounds.height', 800),
+    x: store.get('windowBounds.x'),
+    y: store.get('windowBounds.y'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js')
     },
+  });
+
+  win.setMenu(null);
+
+  win.on('resize', () => {
+    store.set('windowBounds', win.getBounds());
+  });
+  
+  win.on('move', () => {
+    store.set('windowBounds', win.getBounds());
   });
 
   const loadUrl = isDev
@@ -36,23 +51,22 @@ function parseListOutput(output) {
     return [];
   }
 
-  // Remove header line
-  lines.shift(); 
-  // Remove separator line
-  lines.shift();
+  // Remove header and separator lines
+  const dataLines = lines.slice(2);
 
-  return lines.map(line => {
+  return dataLines.map(line => {
+    // Split by '|' and trim whitespace
     const parts = line.split('|').map(p => p.trim());
-    const id = parts[0];
-    const name = parts[1];
-    const status = parts[3].toLowerCase();
-    const image = parts[4];
     
+    // Ensure the line has the expected number of parts
+    if (parts.length < 5) return null;
+
     return {
-      id,
-      name,
-      status,
-      image,
+      id: parts[0],
+      name: parts[1],
+      status: parts[3].toLowerCase(),
+      image: parts[4],
+      // These are placeholders for now as 'distrobox list' doesn't provide them
       size: 'N/A', 
       autostart: false, 
       sharedHome: false,
@@ -60,11 +74,12 @@ function parseListOutput(output) {
       nvidia: false,
       volumes: [],
     };
-  });
+  }).filter(Boolean); // Filter out any null entries from invalid lines
 }
 
 ipcMain.handle('list-containers', async () => {
   try {
+    // --no-color is important to ensure consistent output for parsing
     const { stdout } = await execAsync('distrobox list --no-color');
     return parseListOutput(stdout);
   } catch (error) {
@@ -76,7 +91,8 @@ ipcMain.handle('list-containers', async () => {
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
-    await execAsync(`distrobox enter ${containerName} -- "true"`); // A simple command to start it
+    // A simple, non-interactive command to ensure the container starts
+    await execAsync(`distrobox enter ${containerName} -- "true"`); 
     return { success: true };
   } catch (error) {
     console.error(`Error starting container ${containerName}:`, error);
@@ -86,7 +102,7 @@ ipcMain.handle('start-container', async (event, containerName) => {
 
 ipcMain.handle('stop-container', async (event, containerName) => {
   try {
-    await execAsync(`distrobox stop ${containerName}`);
+    await execAsync(`distrobox stop -f ${containerName}`); // Use -f to force stop
     return { success: true };
   } catch (error) {
     console.error(`Error stopping container ${containerName}:`, error);
@@ -96,6 +112,7 @@ ipcMain.handle('stop-container', async (event, containerName) => {
 
 ipcMain.handle('delete-container', async (event, containerName) => {
   try {
+    // Use -f to force deletion without interactive prompts
     await execAsync(`distrobox rm -f ${containerName}`);
     return { success: true };
   } catch (error) {
