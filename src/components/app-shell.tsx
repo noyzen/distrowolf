@@ -23,11 +23,9 @@ import {
   PlusCircle,
   Search,
   PanelLeft,
-  Loader
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useSearch } from "@/hooks/use-search";
-import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "./ui/button";
