@@ -209,7 +209,7 @@ function parseSearchableApps(output, packageManager) {
                     description = zypperParts[2];
                     break;
                 case 'apk':
-                    name = parts[0].replace(/-\d.*/, '');
+                    name = parts[0].replace(/-\\d.*/, '');
                     version = parts[0].substring(name.length + 1) || 'N/A';
                     break;
                 case 'snap':
@@ -269,67 +269,89 @@ function getDistroInfo() {
     return { id: info.ID || 'unknown', name: info.PRETTY_NAME || 'Unknown Linux' };
 }
 
+const checkCmd = async (cmd) => {
+    try {
+        await execAsync(`command -v ${cmd}`);
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
+
+async function detectTerminal() {
+    const terminals = [
+        'konsole',
+        'gnome-terminal',
+        'xfce4-terminal',
+        'lxterminal',
+        'mate-terminal',
+        'terminator',
+        'tilix',
+        'alacritty',
+        'kitty',
+    ];
+    for (const term of terminals) {
+        if (await checkCmd(term)) {
+            return term;
+        }
+    }
+    return null;
+}
 
 ipcMain.handle('check-dependencies', async () => {
-    const checkCmd = async (cmd) => {
-        try {
-            await execAsync(`command -v ${cmd}`);
-            return true;
-        } catch (error) {
-            return false;
-        }
-    };
     const distroboxInstalled = await checkCmd('distrobox');
     const podmanInstalled = await checkCmd('podman');
     const dockerInstalled = await checkCmd('docker');
+    const alacrittyInstalled = await checkCmd('alacritty');
+    const detectedTerminal = await detectTerminal();
     const distroInfo = getDistroInfo();
 
     return {
         distroboxInstalled,
         podmanInstalled,
         dockerInstalled,
+        alacrittyInstalled,
+        detectedTerminal,
         distroInfo,
     };
 });
 
-function runCommandWithPkexec(command) {
+function runCommandWithPkexec(command, event) {
     return new Promise((resolve, reject) => {
         const child = spawn('pkexec', ['sh', '-c', command], {
-            stdio: 'pipe' 
+            stdio: ['ignore', 'pipe', 'pipe'] // stdin, stdout, stderr
         });
 
-        let stdout = '';
-        let stderr = '';
-
         child.stdout.on('data', (data) => {
-            stdout += data.toString();
-            console.log(`stdout: ${data}`);
+            console.log(`[pkexec stdout]: ${data}`);
+            if (event) event.sender.send('install-progress', data.toString());
         });
 
         child.stderr.on('data', (data) => {
-            stderr += data.toString();
-            console.error(`stderr: ${data}`);
+            console.error(`[pkexec stderr]: ${data}`);
+            if (event) event.sender.send('install-progress', data.toString());
         });
 
         child.on('close', (code) => {
             if (code === 0) {
-                resolve({ success: true, stdout });
+                resolve({ success: true });
             } else {
                  if (stderr.includes('polkit-agent-helper-1') || code === 126 || code === 127) {
                      reject(new Error('Authentication failed or was cancelled by the user.'));
                 } else {
-                     reject(new Error(`Command failed with exit code ${code}: ${stderr}`));
+                     reject(new Error(`Command failed with exit code ${code}: ${stderr || 'Unknown error'}`));
                 }
             }
         });
         
         child.on('error', (err) => {
-            reject(err);
+            console.error('[pkexec spawn error]:', err);
+            reject(new Error(`Failed to start pkexec. Is polkit configured correctly? Error: ${err.message}`));
         });
     });
 }
 
-ipcMain.handle('install-podman', async () => {
+ipcMain.handle('install-podman', async (event) => {
     const { id } = getDistroInfo();
     let command;
 
@@ -337,17 +359,19 @@ ipcMain.handle('install-podman', async () => {
         case 'ubuntu':
         case 'debian':
         case 'pop':
-        case 'mint':
+        case 'linuxmint':
             command = 'apt-get update && apt-get install -y podman';
             break;
         case 'fedora':
         case 'rocky':
         case 'almalinux':
+        case 'centos':
             command = 'dnf install -y podman';
             break;
         case 'arch':
         case 'manjaro':
         case 'endeavouros':
+        case 'garuda':
             command = 'pacman -S --noconfirm podman';
             break;
         case 'opensuse-tumbleweed':
@@ -358,13 +382,47 @@ ipcMain.handle('install-podman', async () => {
             throw new Error(`Unsupported distribution for automatic Podman installation: ${id}`);
     }
 
-    return runCommandWithPkexec(command);
+    return runCommandWithPkexec(command, event);
 });
 
 
-ipcMain.handle('install-distrobox', async () => {
+ipcMain.handle('install-distrobox', async (event) => {
     const command = 'curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sh';
-    return runCommandWithPkexec(command);
+    return runCommandWithPkexec(command, event);
+});
+
+ipcMain.handle('install-alacritty', async (event) => {
+    const { id } = getDistroInfo();
+    let command;
+
+    switch (id) {
+        case 'ubuntu':
+        case 'debian':
+        case 'pop':
+        case 'linuxmint':
+            command = 'apt-get update && apt-get install -y alacritty';
+            break;
+        case 'fedora':
+        case 'rocky':
+        case 'almalinux':
+        case 'centos':
+            command = 'dnf install -y alacritty';
+            break;
+        case 'arch':
+        case 'manjaro':
+        case 'endeavouros':
+        case 'garuda':
+            command = 'pacman -S --noconfirm alacritty';
+            break;
+        case 'opensuse-tumbleweed':
+        case 'opensuse-leap':
+            command = 'zypper install -y alacritty';
+            break;
+        default:
+            throw new Error(`Unsupported distribution for automatic Alacritty installation: ${id}`);
+    }
+
+    return runCommandWithPkexec(command, event);
 });
 
 
@@ -432,7 +490,7 @@ ipcMain.handle('import-image', async () => {
     const filePath = filePaths[0];
     try {
         const { stdout, stderr } = await execAsync(`podman load -i "${filePath}"`);
-        if (stderr.toLowerCase().includes('already exists')) {
+        if (stderr && stderr.toLowerCase().includes('already exists')) {
              return { success: false, cancelled: false, error: 'Image already exists.' };
         }
         return { success: true, cancelled: false, path: filePath };
@@ -533,9 +591,58 @@ ipcMain.handle('delete-container', async (event, containerName) => {
 });
 
 
-ipcMain.handle('enter-container', (event, containerName) => {
-    const command = `distrobox enter ${containerName}`;
-    return { success: true, message: command };
+ipcMain.handle('enter-container', async (event, containerName) => {
+    let terminal = await detectTerminal();
+    
+    const enterCommand = `distrobox enter ${containerName}`;
+    let spawnArgs = [];
+
+    if (terminal) {
+        switch (terminal) {
+            case 'wezterm':
+                spawnArgs = ['wezterm', 'start', '--', 'distrobox', 'enter', containerName];
+                break;
+            case 'konsole':
+                spawnArgs = ['konsole', '-e', enterCommand];
+                break;
+            case 'gnome-terminal':
+            case 'mate-terminal':
+            case 'xfce4-terminal':
+            case 'lxterminal':
+                spawnArgs = [terminal, '--', 'distrobox', 'enter', containerName];
+                break;
+            case 'terminator':
+            case 'tilix':
+                spawnArgs = [terminal, '-e', enterCommand];
+                break;
+            case 'alacritty':
+                 spawnArgs = ['alacritty', '-e', 'distrobox', 'enter', containerName];
+                 break;
+            default:
+                // This case should ideally not be hit if detection is accurate, but as a fallback:
+                spawnArgs = ['x-terminal-emulator', '-e', enterCommand];
+                break;
+        }
+
+        try {
+            console.log(`[DEBUG] Spawning terminal command:`, spawnArgs);
+            const child = spawn(spawnArgs[0], spawnArgs.slice(1), {
+                detached: true,
+                stdio: 'ignore'
+            });
+            child.on('error', (err) => {
+                console.error(`Failed to launch terminal with spawn:`, err);
+            });
+            child.unref(); 
+            return { success: true, launched: true };
+        } catch (error) {
+             console.error(`Failed to launch terminal with spawn:`, error);
+             return { success: true, launched: false, message: enterCommand };
+        }
+    }
+
+    // Fallback if no terminal is found
+    return { success: true, launched: false, message: enterCommand };
 });
 
 ipcMain.handle('copy-to-clipboard', (event, text) => {
@@ -695,5 +802,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-    

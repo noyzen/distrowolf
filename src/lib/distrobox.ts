@@ -42,7 +42,7 @@ declare global {
       getSystemInfo: () => Promise<SystemInfo>;
       installPodman: () => Promise<{ success: boolean }>;
       installDistrobox: () => Promise<{ success: boolean }>;
-      installWezterm: () => Promise<{ success: boolean }>;
+      installAlacritty: () => Promise<{ success: boolean }>;
       
       listContainers: () => Promise<Container[]>;
       createContainer: (options: CreateContainerOptions) => Promise<{ success: boolean }>;
@@ -76,7 +76,7 @@ export async function checkDependencies(): Promise<DependencyInfo> {
         distroboxInstalled: false, 
         podmanInstalled: false,
         dockerInstalled: false,
-        weztermInstalled: false,
+        alacrittyInstalled: false,
         detectedTerminal: null,
         distroInfo: { id: 'unknown', name: 'Not Found' }
     };
@@ -92,8 +92,8 @@ export async function installDistrobox(): Promise<{ success: boolean }> {
   throw new Error("Electron API not available.");
 }
 
-export async function installWezterm(): Promise<{ success: boolean }> {
-  if (window.electron) return window.electron.installWezterm();
+export async function installAlacritty(): Promise<{ success: boolean }> {
+  if (window.electron) return window.electron.installAlacritty();
   throw new Error("Electron API not available.");
 }
 

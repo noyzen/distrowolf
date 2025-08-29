@@ -41,9 +41,9 @@ export default function SystemPage() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [counts, setCounts] = useState<{containers: number | null, images: number | null}>({ containers: null, images: null });
   const [loading, setLoading] = useState(true);
-  const { dependencies, installWezterm, isInstallingWezterm } = useSystemCheck();
+  const { dependencies, installAlacritty, isInstallingAlacritty } = useSystemCheck();
 
-  const hasTerminal = dependencies?.weztermInstalled || !!dependencies?.detectedTerminal;
+  const hasTerminal = dependencies?.alacrittyInstalled || !!dependencies?.detectedTerminal;
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -100,11 +100,11 @@ export default function SystemPage() {
                     <InfoRow icon={Terminal} label="Terminal Emulator">
                        {loading ? <Skeleton className="h-5 w-24" /> : (
                             hasTerminal ? (
-                                 <span className="font-mono text-sm text-primary">{dependencies?.detectedTerminal || 'WezTerm'}</span>
+                                 <span className="font-mono text-sm text-primary">{dependencies?.detectedTerminal || 'Alacritty'}</span>
                             ) : (
-                                <Button size="sm" onClick={installWezterm} disabled={isInstallingWezterm}>
-                                    {isInstallingWezterm ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                                    Install WezTerm
+                                <Button size="sm" onClick={installAlacritty} disabled={isInstallingAlacritty}>
+                                    {isInstallingAlacritty ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                                    Install Alacritty
                                 </Button>
                             )
                        )}

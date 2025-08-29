@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electron', {
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
   installPodman: () => ipcRenderer.invoke('install-podman'),
   installDistrobox: () => ipcRenderer.invoke('install-distrobox'),
+  installAlacritty: () => ipcRenderer.invoke('install-alacritty'),
   
   // Container Management
   listContainers: () => ipcRenderer.invoke('list-containers'),
@@ -35,5 +36,3 @@ contextBridge.exposeInMainWorld('electron', {
   exportApp: (options) => ipcRenderer.invoke('export-app', options),
   unshareApp: (options) => ipcRenderer.invoke('unshare-app', options),
 });
-
-    

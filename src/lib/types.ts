@@ -48,7 +48,7 @@ export interface DependencyInfo {
   distroboxInstalled: boolean;
   podmanInstalled: boolean;
   dockerInstalled: boolean;
-  weztermInstalled: boolean;
+  alacrittyInstalled: boolean;
   detectedTerminal: string | null;
   distroInfo: {
     id: string;

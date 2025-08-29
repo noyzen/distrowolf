@@ -3,18 +3,18 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, ExternalLink, Loader, Shield, LogOut, Terminal, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Loader, Shield, LogOut, Terminal, AlertTriangle, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSystemCheck } from "@/hooks/use-system-check";
 
 export function SetupWizard() {
-  const { dependencies, checkSystemDependencies, setSkipped, installWezterm, isInstallingWezterm } = useSystemCheck();
+  const { dependencies, checkSystemDependencies, setSkipped, installAlacritty, isInstallingAlacritty } = useSystemCheck();
 
   const handleManualInstallClick = () => {
     window.open('https://distrobox.it/', '_blank');
   };
 
-  const hasTerminal = dependencies?.weztermInstalled || !!dependencies?.detectedTerminal;
+  const hasTerminal = dependencies?.alacrittyInstalled || !!dependencies?.detectedTerminal;
 
   return (
     <motion.div
@@ -71,12 +71,12 @@ export function SetupWizard() {
                   </div>
                    <div className="flex flex-col items-end gap-2">
                      <span className={`text-sm font-semibold ${hasTerminal ? 'text-green-500' : 'text-yellow-500'}`}>
-                        {dependencies?.detectedTerminal ? `Detected: ${dependencies.detectedTerminal}` : (dependencies?.weztermInstalled ? 'WezTerm Installed' : 'Not Found')}
+                        {dependencies?.detectedTerminal ? `Detected: ${dependencies.detectedTerminal}` : (dependencies?.alacrittyInstalled ? 'Alacritty Installed' : 'Not Found')}
                      </span>
                       {!hasTerminal && (
-                        <Button size="sm" onClick={installWezterm} disabled={isInstallingWezterm}>
-                            {isInstallingWezterm ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Terminal className="mr-2 h-4 w-4" />}
-                            Install WezTerm
+                        <Button size="sm" onClick={installAlacritty} disabled={isInstallingAlacritty}>
+                            {isInstallingAlacritty ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Install Alacritty
                         </Button>
                       )}
                    </div>
