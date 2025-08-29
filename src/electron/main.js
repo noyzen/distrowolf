@@ -96,8 +96,6 @@ async function parseListOutput(output) {
             image: parts[3],
             autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
             home: homeInfo,
-            init: hasFlag('--init'),
-            nvidia: hasFlag('--nvidia'),
         };
     }));
 
