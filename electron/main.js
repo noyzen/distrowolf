@@ -2,7 +2,7 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { ipcMain } = require('electron');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 const Store = require('electron-store');
 
@@ -69,11 +69,11 @@ function parseListOutput(output) {
             image: parts[3],
             // These properties are not available from `distrobox list` and need other commands
             size: 'N/A', 
-            autostart: false, 
-            sharedHome: false,
-            init: false,
-            nvidia: false,
-            volumes: [],
+            autostart: false, // Placeholder
+            sharedHome: false, // Placeholder
+            init: false, // Placeholder
+            nvidia: false, // Placeholder
+            volumes: [], // Placeholder
         };
         console.log(`DEBUG: Parsed container: ${JSON.stringify(container)}`);
         return container;
@@ -131,6 +131,31 @@ ipcMain.handle('delete-container', async (event, containerName) => {
   }
 });
 
+ipcMain.handle('enter-container', (event, containerName) => {
+  try {
+    // This is platform-specific. This example works for terminals like gnome-terminal,
+    // konsole, etc. It might need adjustments for other terminals or OSes.
+    const terminal = process.env.TERMINAL || 'gnome-terminal';
+    spawn(terminal, ['-e', `distrobox enter ${containerName}`], {
+      detached: true,
+      stdio: 'ignore'
+    }).unref();
+    return { success: true };
+  } catch (error) {
+    console.error(`Error entering container ${containerName}:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('info-container', async (event, containerName) => {
+  // Placeholder for getting detailed info.
+  // We can eventually parse `podman inspect` or similar.
+  console.log(`Info requested for ${containerName}`);
+  return {
+    success: true,
+    message: `Info for ${containerName} is not yet implemented.`,
+  };
+});
 
 app.whenReady().then(createWindow);
 

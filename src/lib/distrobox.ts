@@ -7,6 +7,8 @@ declare global {
       startContainer: (containerName: string) => Promise<{ success: boolean }>;
       stopContainer: (containerName: string) => Promise<{ success: boolean }>;
       deleteContainer: (containerName: string) => Promise<{ success: boolean }>;
+      enterContainer: (containerName: string) => Promise<{ success: boolean }>;
+      infoContainer: (containerName: string) => Promise<{ success: boolean, message?: string }>;
     }
   }
 }
@@ -50,4 +52,26 @@ export async function deleteContainer(containerName: string): Promise<{ success:
   }
   console.warn("Electron API not available.");
   return { success: false };
+}
+
+export async function enterContainer(containerName: string): Promise<{ success: boolean }> {
+    if (window.electron) {
+        return window.electron.enterContainer(containerName);
+    }
+    console.warn("Electron API not available.");
+    return { success: false };
+}
+
+export async function infoContainer(containerName: string): Promise<{ success: boolean, message?: string }> {
+    if (window.electron) {
+        return window.electron.infoContainer(containerName);
+    }
+    console.warn("Electron API not available.");
+    return { success: false, message: "Electron API not available." };
+}
+
+export async function toggleAutostart(containerName: string): Promise<{ success: boolean }> {
+    // This is a placeholder. Real implementation requires `distrobox-generate-entry` and managing systemd services.
+    console.warn(`Autostart toggle for ${containerName} is not implemented in the backend yet.`);
+    return { success: true };
 }

@@ -45,7 +45,14 @@ import {
 import type { Container } from "@/lib/types";
 import { CreateContainerDialog } from "@/components/create-container-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listContainers, startContainer, stopContainer, deleteContainer as removeContainer } from "@/lib/distrobox";
+import { 
+  listContainers, 
+  startContainer, 
+  stopContainer, 
+  deleteContainer as removeContainer,
+  enterContainer,
+  infoContainer,
+} from "@/lib/distrobox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +67,7 @@ export default function Home() {
 
   const fetchContainers = async () => {
     setLoading(true);
+    setActioningContainerId(null);
     try {
       const fetchedContainers = await listContainers();
       setContainers(fetchedContainers);
@@ -105,6 +113,8 @@ export default function Home() {
         title: `Failed to ${actionName.toLowerCase()} container`,
         description: error.message,
       });
+       // Refetch to get the real state even on failure
+      await fetchContainers();
     } finally {
         setActioningContainerId(null);
     }
@@ -133,7 +143,7 @@ export default function Home() {
       });
       await fetchContainers();
     } catch (error: any) {
-       toast({
+      toast({
         variant: "destructive",
         title: "Failed to delete container",
         description: error.message,
@@ -144,6 +154,43 @@ export default function Home() {
         setActioningContainerId(null);
     }
   };
+
+  const handleEnterContainer = async (containerName: string) => {
+    try {
+      await enterContainer(containerName);
+      toast({
+        title: "Opening Terminal",
+        description: `Entering container "${containerName}" in a new terminal.`
+      })
+    } catch(error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to enter container",
+        description: error.message,
+      });
+    }
+  }
+  
+  const handleInfoContainer = async (containerName: string) => {
+    const res = await infoContainer(containerName);
+    toast({
+        title: "Container Info",
+        description: res.message || "No specific info available yet.",
+    });
+  }
+
+  const handleToggleAutostart = (container: Container) => {
+    // This is just a visual toggle for now
+    const updatedContainers = containers.map(c => 
+        c.id === container.id ? { ...c, autostart: !c.autostart } : c
+    );
+    setContainers(updatedContainers);
+
+    toast({
+        title: "Autostart Toggled (Visual Only)",
+        description: `Autostart for "${container.name}" is now ${!container.autostart ? 'enabled' : 'disabled'}. Backend not implemented.`,
+    });
+  }
 
   const handleCreateContainer = (newContainerData: Omit<Container, "id" | "size" | "status">) => {
     const newContainer: Container = {
@@ -201,8 +248,8 @@ export default function Home() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchContainers}>
-              <RefreshCw className="mr-2 h-4 w-4" />
+            <Button variant="outline" onClick={fetchContainers} disabled={loading}>
+              {loading && !actioningContainerId ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
               Refresh
             </Button>
             <Button onClick={() => setCreateDialogOpen(true)}>
@@ -212,7 +259,7 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {loading && containers.length === 0 ? (
             <div className="flex items-center justify-center py-10">
               <Loader className="h-8 w-8 animate-spin text-primary" />
               <p className="ml-4 text-muted-foreground">Loading containers...</p>
@@ -273,6 +320,7 @@ export default function Home() {
                           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                             <DropdownMenuItem
                               onClick={() => handleToggleContainerStatus(container)}
+                              disabled={!!actioningContainerId}
                             >
                               {container.status === "running" ? (
                                 <StopCircle className="mr-2 h-4 w-4" />
@@ -283,11 +331,11 @@ export default function Home() {
                                 {container.status === "running" ? "Stop" : "Start"}
                               </span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEnterContainer(container.name)}>
                               <Terminal className="mr-2 h-4 w-4" />
                               <span>Enter</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleInfoContainer(container.name)}>
                               <Info className="mr-2 h-4 w-4" />
                               <span>Info</span>
                             </DropdownMenuItem>
@@ -296,7 +344,7 @@ export default function Home() {
                               <Save className="mr-2 h-4 w-4" />
                               <span>Save as Image</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleToggleAutostart(container)}>
                               {container.autostart ? (
                                 <PowerOff className="mr-2 h-4 w-4" />
                               ) : (
@@ -312,6 +360,7 @@ export default function Home() {
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive-foreground focus:bg-destructive"
                               onClick={() => handleDeleteConfirm(container)}
+                              disabled={!!actioningContainerId}
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               <span>Delete</span>
