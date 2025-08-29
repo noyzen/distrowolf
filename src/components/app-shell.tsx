@@ -72,10 +72,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <>
       <Sidebar>
         <SidebarHeader className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/20 rounded-lg">
-                <Logo className="h-8 w-8 text-primary" />
-            </div>
+          <div className="flex flex-col items-center justify-center gap-4 text-center">
+            <Logo className="h-24 w-24 text-primary" />
             <h1 className="font-headline text-2xl font-semibold text-primary">
               DistroWolf
             </h1>
