@@ -51,9 +51,12 @@ function parseListOutput(output) {
         console.log('DEBUG: No container data lines found.');
         return [];
     }
+    // Skip header line
     const dataLines = lines.slice(1);
     return dataLines.map(line => {
+        // Split by the pipe character
         const parts = line.split('|').map(p => p.trim());
+        // Expecting 4 parts: ID | NAME | STATUS | IMAGE
         if (parts.length < 4) {
             console.log(`DEBUG: Skipping invalid line: "${line}" (expected 4 parts, got ${parts.length})`);
             return null;
@@ -64,6 +67,7 @@ function parseListOutput(output) {
             name: parts[1],
             status: status,
             image: parts[3],
+            // These properties are not available from `distrobox list` and need other commands
             size: 'N/A', 
             autostart: false, 
             sharedHome: false,
@@ -73,7 +77,7 @@ function parseListOutput(output) {
         };
         console.log(`DEBUG: Parsed container: ${JSON.stringify(container)}`);
         return container;
-    }).filter(Boolean);
+    }).filter(Boolean); // Filter out any null entries from invalid lines
 }
 
 
@@ -83,6 +87,7 @@ ipcMain.handle('list-containers', async () => {
     const { stdout, stderr } = await execAsync('distrobox list --no-color');
     if (stderr) {
       console.error('DEBUG: "distrobox list" stderr:', stderr);
+      // Don't throw here, as some info might still be in stdout
     }
     console.log('DEBUG: Raw "distrobox list" stdout:\n---START---\n' + stdout + '---END---');
     const containers = parseListOutput(stdout);
@@ -96,7 +101,8 @@ ipcMain.handle('list-containers', async () => {
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
-    await execAsync(`distrobox start ${containerName}`);
+    // Using `distrobox enter` with a non-interactive command is a reliable way to start it
+    await execAsync(`distrobox enter ${containerName} -- "echo 'Container starting'"`);
     return { success: true };
   } catch (error) {
     console.error(`Error starting container ${containerName}:`, error);
@@ -106,7 +112,8 @@ ipcMain.handle('start-container', async (event, containerName) => {
 
 ipcMain.handle('stop-container', async (event, containerName) => {
   try {
-    await execAsync(`distrobox stop --yes ${containerName}`);
+    // Use --yes to avoid interactive prompts
+    await execAsync(`distrobox stop ${containerName} --yes`);
     return { success: true };
   } catch (error) {
     console.error(`Error stopping container ${containerName}:`, error);
