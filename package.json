@@ -5,7 +5,7 @@
   "private": true,
   "description": "A GUI for managing Distrobox containers.",
   "author": "DistroWolf",
-  "main": "electron/main.js",
+  "main": "src/electron/main.js",
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
@@ -82,8 +82,8 @@
     "productName": "DistroWolf",
     "files": [
       "out",
-      "electron/main.js",
-      "electron/preload.js"
+      "src/electron/main.js",
+      "src/electron/preload.js"
     ],
     "directories": {
       "buildResources": "resources",

@@ -1,3 +1,4 @@
+
 {
   "compilerOptions": {
     "target": "ES2017",
@@ -34,7 +35,7 @@
     ".next/types/**/*.ts",
     "next-env.d.ts",
     "out/types/**/*.ts",
-    "electron/**/*.js"
+    "src/electron/**/*.js"
   ],
   "exclude": [
     "node_modules"
