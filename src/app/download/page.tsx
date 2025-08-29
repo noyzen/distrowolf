@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { pullImage } from "@/lib/distrobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import { cn, getDistroIcon } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const imageCategories = {
@@ -92,14 +92,15 @@ const formSchema = z.object({
   imageName: z.string().min(1, "Image name cannot be empty."),
 });
 
-const FeaturedImageCard = ({ image, description, onSelect, isSelected }: { image: string, description: string, onSelect: (img: string) => void, isSelected: boolean }) => {
-    const [name] = image.split(':');
-    const imageName = name.substring(name.lastIndexOf('/') + 1);
+const FeaturedImageCard = ({ name, image, description, onSelect, isSelected }: { name: string, image: string, description: string, onSelect: (img: string) => void, isSelected: boolean }) => {
      return (
         <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative flex flex-col justify-between h-36", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
-            <div>
-                <p className="font-semibold text-lg truncate">{imageName.replace('-toolbox', '').replace('ubuntu-','').replace('fedora-','')}</p>
-                <p className="text-sm text-muted-foreground">{description}</p>
+            <div className="flex items-center gap-3">
+                 <i className={cn(getDistroIcon(name), "text-4xl")}></i>
+                <div>
+                    <p className="font-semibold text-lg truncate">{name}</p>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                </div>
             </div>
             <p className="text-xs text-muted-foreground font-mono mt-1 truncate">{image}</p>
         </button>
@@ -108,8 +109,9 @@ const FeaturedImageCard = ({ image, description, onSelect, isSelected }: { image
   
 const ImageCard = ({ image, onSelect, isSelected }: { image: string, onSelect: (img: string) => void, isSelected: boolean }) => {
     return (
-        <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
-            <p className="font-semibold truncate">{image}</p>
+        <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative flex items-center gap-3", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
+            <i className={cn(getDistroIcon(image), "text-3xl")}></i>
+            <p className="font-semibold truncate font-mono text-sm">{image}</p>
         </button>
     );
 };
@@ -187,7 +189,7 @@ export default function DownloadPage() {
                 <TabsContent value="featured" className="pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {imageCategories["Featured"].map((item) => (
-                            <FeaturedImageCard key={item.image} image={item.image} description={item.description} onSelect={handleImageSelect} isSelected={selectedImage === item.image} />
+                            <FeaturedImageCard key={item.image} name={item.name} image={item.image} description={item.description} onSelect={handleImageSelect} isSelected={selectedImage === item.image} />
                         ))}
                     </div>
                 </TabsContent>

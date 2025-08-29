@@ -1,6 +1,7 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
+import '../../fontlogodistro/font-logos.css'; // Import the distro font logos
 import { Toaster } from '@/components/ui/toaster';
 import { AppShell } from '@/components/app-shell';
 import { SearchProvider } from '@/hooks/use-search';

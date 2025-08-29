@@ -32,7 +32,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { createContainer, listLocalImages } from "@/lib/distrobox";
 import { HardDrive, Loader, CheckCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getDistroIcon } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
@@ -177,7 +177,7 @@ export default function CreateContainerPage() {
                         >
                             {loadingImages ? (
                                Array.from({ length: 8 }).map((_, i) => (
-                                   <Skeleton key={i} className="h-28 w-full rounded-lg" />
+                                   <Skeleton key={i} className="h-32 w-full rounded-lg" />
                                ))
                             ) : localImages.length > 0 ? (
                                 localImages.map((img) => (
@@ -186,17 +186,16 @@ export default function CreateContainerPage() {
                                             <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
                                         </FormControl>
                                         <FormLabel htmlFor={img.id} className={cn(
-                                            "flex flex-col items-start justify-between rounded-lg border-2 border-muted bg-popover p-4 h-28 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
+                                            "flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-4 h-32 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
                                             "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
                                         )}>
                                             <CheckCircle className={cn("h-5 w-5 absolute top-2 right-2 text-primary opacity-0 transition-opacity", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
-                                            <div className="overflow-hidden">
-                                                <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
-                                                <p className="text-sm text-muted-foreground">{img.tag}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">{img.size}</p>
-                                                <p className="text-xs text-muted-foreground">{img.created}</p>
+                                            <div className="flex flex-col items-center gap-2 text-center">
+                                                <i className={cn(getDistroIcon(img.repository), "text-6xl text-primary")}></i>
+                                                <div className="overflow-hidden w-full">
+                                                    <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
+                                                    <p className="text-sm text-muted-foreground">{img.tag}</p>
+                                                </div>
                                             </div>
                                         </FormLabel>
                                     </FormItem>

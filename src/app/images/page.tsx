@@ -13,6 +13,7 @@ import type { LocalImage } from "@/lib/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import { useSearch } from "@/hooks/use-search";
+import { cn, getDistroIcon } from "@/lib/utils";
 
 export default function ImagesPage() {
   const { toast } = useToast();
@@ -98,7 +99,7 @@ export default function ImagesPage() {
   }
 
   const handleImport = async () => {
-    toast({ title: "Preparing to import image..." });
+    toast({ title: "Opening file dialog to import image..." });
      try {
         const result = await importImage();
         if(result.success) {
@@ -158,7 +159,10 @@ export default function ImagesPage() {
               ) : filteredImages.length > 0 ? (
                 filteredImages.map((image) => (
                   <TableRow key={image.id}>
-                    <TableCell className="font-medium">{image.repository}</TableCell>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <i className={cn(getDistroIcon(image.repository), "text-2xl")}></i>
+                      <span>{image.repository}</span>
+                    </TableCell>
                     <TableCell>{image.tag}</TableCell>
                     <TableCell className="font-mono text-xs">{image.imageID.substring(0, 12)}</TableCell>
                     <TableCell>{image.size}</TableCell>

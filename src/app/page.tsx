@@ -53,7 +53,7 @@ import {
   checkDependencies,
 } from "@/lib/distrobox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
+import { cn, getDistroIcon } from "@/lib/utils";
 import { FindAppsPanel } from "@/components/find-apps-panel";
 import { SharedAppsPanel } from "@/components/shared-apps-panel";
 import { AnimatePresence, motion } from "framer-motion";
@@ -199,7 +199,7 @@ export default function Home() {
          toast({
             variant: "destructive",
             title: "Could not open terminal",
-            description: result.message || "No compatible terminal found on your system.",
+            description: result.message || "No compatible terminal found on your system. Please run the command manually.",
          });
       }
     } catch(error: any) {
@@ -364,7 +364,10 @@ export default function Home() {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">{container.name}</TableCell>
-                      <TableCell>{container.image}</TableCell>
+                      <TableCell className="flex items-center gap-2">
+                        <i className={cn(getDistroIcon(container.image), "text-2xl")}></i>
+                        <span>{container.image}</span>
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{container.id}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
