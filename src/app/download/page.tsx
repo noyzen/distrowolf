@@ -8,49 +8,84 @@ import * as z from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, Loader, Server, Star } from "lucide-react";
+import { Download, Loader, Star, Boxes, Factory, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { pullImage } from "@/lib/distrobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const imageCategories = {
     "Featured": [
-        { name: "Ubuntu", image: "quay.io/toolbx/ubuntu-toolbox:24.04", tags: ["General", "Debian"] },
-        { name: "Fedora", image: "quay.io/fedora/fedora-toolbox:40", tags: ["General", "RPM"] },
-        { name: "Arch Linux", image: "quay.io/toolbx/arch-toolbox:latest", tags: ["General", "Rolling"] },
-        { name: "Debian", image: "quay.io/toolbx-images/debian-toolbox:12", tags: ["General", "Stable"] },
-        { name: "Ublue Toolbox", image: "ghcr.io/ublue-os/toolbox:latest", tags: ["Immutable", "Fedora"] },
-        { name: "Alpine", image: "quay.io/toolbx-images/alpine-toolbox:latest", tags: ["Minimal", "Lightweight"] },
+        { name: "Ubuntu", image: "quay.io/toolbx/ubuntu-toolbox:24.04", description: "Modern, popular, and versatile." },
+        { name: "Fedora", image: "quay.io/fedora/fedora-toolbox:40", description: "Cutting-edge with strong community support." },
+        { name: "Arch Linux", image: "quay.io/toolbx/arch-toolbox:latest", description: "Rolling-release, for experienced users." },
+        { name: "Debian", image: "quay.io/toolbx-images/debian-toolbox:12", description: "The rock-solid stable distribution." },
+        { name: "Ublue Toolbox", image: "ghcr.io/ublue-os/toolbox:latest", description: "Fedora-based for immutable systems." },
+        { name: "Alpine", image: "quay.io/toolbx-images/alpine-toolbox:latest", description: "Extremely lightweight and secure." },
     ],
-    "General Purpose": [
-        "quay.io/toolbx/ubuntu-toolbox:25.04",
-        "quay.io/toolbx/ubuntu-toolbox:24.04",
-        "quay.io/toolbx/ubuntu-toolbox:22.04",
-        "quay.io/fedora/fedora-toolbox:42",
-        "quay.io/fedora/fedora-toolbox:41",
-        "registry.fedoraproject.org/fedora-toolbox:40",
-        "quay.io/toolbx-images/debian-toolbox:13",
-        "quay.io/toolbx-images/debian-toolbox:12",
-        "quay.io/toolbx/arch-toolbox:latest",
-        "registry.opensuse.org/opensuse/distrobox:latest",
-    ],
-    "Enterprise & Stable": [
-        "quay.io/toolbx-images/almalinux-toolbox:9",
-        "quay.io/toolbx-images/rockylinux-toolbox:9",
-        "quay.io/toolbx-images/centos-toolbox:stream9",
-        "registry.access.redhat.com/ubi9/toolbox",
-        "quay.io/toolbx-images/amazonlinux-toolbox:2023",
-    ],
-    "Immutable & Specialized": [
-        "ghcr.io/ublue-os/bluefin-cli:latest",
-        "ghcr.io/ublue-os/bazzite-arch:latest",
-        "ghcr.io/ublue-os/ubuntu-toolbox:latest",
-        "ghcr.io/ublue-os/fedora-toolbox:latest",
-        "ghcr.io/ublue-os/wolfi-toolbox:latest",
-        "quay.io/toolbx-images/wolfi-toolbox:latest",
-    ]
+    "General Purpose": {
+        "Ubuntu": [
+            "quay.io/toolbx/ubuntu-toolbox:25.04",
+            "quay.io/toolbx/ubuntu-toolbox:24.04",
+            "quay.io/toolbx/ubuntu-toolbox:22.04",
+            "quay.io/toolbx/ubuntu-toolbox:20.04"
+        ],
+        "Fedora": [
+            "quay.io/fedora/fedora-toolbox:42",
+            "quay.io/fedora/fedora-toolbox:41",
+            "registry.fedoraproject.org/fedora-toolbox:40",
+            "registry.fedoraproject.org/fedora-toolbox:39"
+        ],
+        "Debian": [
+            "quay.io/toolbx-images/debian-toolbox:13",
+            "quay.io/toolbx-images/debian-toolbox:12",
+            "quay.io/toolbx-images/debian-toolbox:11",
+            "quay.io/toolbx-images/debian-toolbox:10"
+        ],
+        "openSUSE": ["registry.opensuse.org/opensuse/distrobox:latest"],
+        "Archlinux": ["quay.io/toolbx/arch-toolbox:latest"],
+        "Alpine": [
+            "quay.io/toolbx-images/alpine-toolbox:3.22",
+            "quay.io/toolbx-images/alpine-toolbox:3.21",
+            "quay.io/toolbx-images/alpine-toolbox:3.20",
+            "quay.io/toolbx-images/alpine-toolbox:3.19"
+        ],
+    },
+    "Enterprise & Stable": {
+        "RedHat": [
+            "registry.access.redhat.com/ubi9/toolbox",
+            "registry.access.redhat.com/ubi8/toolbox"
+        ],
+        "AlmaLinux": [
+            "quay.io/toolbx-images/almalinux-toolbox:9",
+            "quay.io/toolbx-images/almalinux-toolbox:8"
+        ],
+        "Rocky Linux": [
+            "quay.io/toolbx-images/rockylinux-toolbox:9",
+            "quay.io/toolbx-images/rockylinux-toolbox:8"
+        ],
+        "CentOS": [
+            "quay.io/toolbx-images/centos-toolbox:stream9",
+            "quay.io/toolbx-images/centos-toolbox:stream8"
+        ],
+        "AmazonLinux": [
+            "quay.io/toolbx-images/amazonlinux-toolbox:2023",
+            "quay.io/toolbx-images/amazonlinux-toolbox:2"
+        ],
+    },
+    "Specialized & Immutable": {
+        "Ublue Variants": [
+            "ghcr.io/ublue-os/bluefin-cli:latest",
+            "ghcr.io/ublue-os/bazzite-arch:latest",
+            "ghcr.io/ublue-os/ubuntu-toolbox:latest",
+            "ghcr.io/ublue-os/fedora-toolbox:latest",
+            "ghcr.io/ublue-os/wolfi-toolbox:latest",
+            "ghcr.io/ublue-os/archlinux-distrobox:latest"
+        ],
+        "Wolfi": ["quay.io/toolbx-images/wolfi-toolbox:latest"],
+    }
 };
 
 const formSchema = z.object({
@@ -108,16 +143,24 @@ export default function DownloadPage() {
     }
   };
   
-  const ImageCard = ({ image, onSelect, isSelected }: { image: string, onSelect: (img: string) => void, isSelected: boolean }) => {
-    const [name, tag] = image.split(':');
-    const repo = name.substring(0, name.lastIndexOf('/'));
+  const FeaturedImageCard = ({ image, description, onSelect, isSelected }: { image: string, description: string, onSelect: (img: string) => void, isSelected: boolean }) => {
+    const [name] = image.split(':');
     const imageName = name.substring(name.lastIndexOf('/') + 1);
-
+     return (
+        <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative flex flex-col justify-between h-36", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
+            <div>
+                <p className="font-semibold text-lg truncate">{imageName.replace('-toolbox', '').replace('ubuntu-','').replace('fedora-','')}</p>
+                <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+            <p className="text-xs text-muted-foreground font-mono mt-1 truncate">{image}</p>
+        </button>
+    );
+  };
+  
+  const ImageCard = ({ image, onSelect, isSelected }: { image: string, onSelect: (img: string) => void, isSelected: boolean }) => {
     return (
         <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
-            <p className="font-semibold truncate">{imageName}</p>
-            <p className="text-xs text-muted-foreground truncate">{repo}</p>
-            <p className="text-xs text-muted-foreground font-mono mt-1">{tag || 'latest'}</p>
+            <p className="font-semibold truncate">{image}</p>
         </button>
     );
   };
@@ -130,47 +173,64 @@ export default function DownloadPage() {
             <CardTitle className="font-headline">Download Container Image</CardTitle>
             <CardDescription>
               Select a popular image from the list or enter a custom URL to download it from a registry.
-            </CardDescription>
+            </Description>
           </CardHeader>
           <CardContent className="space-y-6">
             <Tabs defaultValue="featured" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="featured"><Star className="w-4 h-4 mr-2"/>Featured</TabsTrigger>
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="enterprise">Enterprise</TabsTrigger>
-                <TabsTrigger value="specialized">Specialized</TabsTrigger>
+                <TabsTrigger value="general"><Boxes className="w-4 h-4 mr-2"/>General</TabsTrigger>
+                <TabsTrigger value="enterprise"><Factory className="w-4 h-4 mr-2"/>Enterprise</TabsTrigger>
+                <TabsTrigger value="specialized"><Globe className="w-4 h-4 mr-2"/>Specialized</TabsTrigger>
               </TabsList>
-              <TabsContent value="featured" className="pt-4">
-                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {imageCategories["Featured"].map(({image}) => (
-                        <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
+              <ScrollArea className="h-[450px] pr-4">
+                <TabsContent value="featured" className="pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {imageCategories["Featured"].map((item) => (
+                            <FeaturedImageCard key={item.image} image={item.image} description={item.description} onSelect={handleImageSelect} isSelected={selectedImage === item.image} />
+                        ))}
+                    </div>
+                </TabsContent>
+                <TabsContent value="general" className="pt-4 space-y-6">
+                    {Object.entries(imageCategories["General Purpose"]).map(([distro, images]) => (
+                        <div key={distro}>
+                            <h3 className="font-semibold text-lg mb-2">{distro}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {images.map(image => (
+                                    <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
+                                ))}
+                            </div>
+                        </div>
                     ))}
-                 </div>
-              </TabsContent>
-              <TabsContent value="general" className="pt-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {imageCategories["General Purpose"].map(image => (
-                    <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
-                  ))}
-                </div>
-              </TabsContent>
-               <TabsContent value="enterprise" className="pt-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {imageCategories["Enterprise & Stable"].map(image => (
-                     <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="specialized" className="pt-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {imageCategories["Immutable & Specialized"].map(image => (
-                    <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
-                  ))}
-                </div>
-              </TabsContent>
+                </TabsContent>
+                <TabsContent value="enterprise" className="pt-4 space-y-6">
+                    {Object.entries(imageCategories["Enterprise & Stable"]).map(([distro, images]) => (
+                        <div key={distro}>
+                            <h3 className="font-semibold text-lg mb-2">{distro}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {images.map(image => (
+                                    <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </TabsContent>
+                <TabsContent value="specialized" className="pt-4 space-y-6">
+                    {Object.entries(imageCategories["Specialized & Immutable"]).map(([distro, images]) => (
+                        <div key={distro}>
+                            <h3 className="font-semibold text-lg mb-2">{distro}</h3>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {images.map(image => (
+                                    <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </TabsContent>
+              </ScrollArea>
             </Tabs>
             
-            <div className="relative">
+            <div className="relative pt-4">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
               </div>

@@ -87,9 +87,9 @@ export default function ImagesPage() {
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={fetchImages} disabled={loading}>
-              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+              {loading ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />} Refresh
             </Button>
-            <Button variant="outline" onClick={() => handleAction("Import Not Implemented", "Please select a .tar file to import.")}>
+            <Button variant="outline" onClick={() => handleAction("Import Not Implemented", "This feature requires a native file picker, which is not yet implemented.")}>
               <Upload className="mr-2 h-4 w-4" /> Import Image
             </Button>
           </div>
@@ -133,7 +133,7 @@ export default function ImagesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleAction("Export Not Implemented", `Export for ${image.repository}:${image.tag} is not ready.`)}>
+                          <DropdownMenuItem onClick={() => handleAction("Export Not Implemented", "This feature requires a native file picker, which is not yet implemented.")}>
                             <Download className="mr-2 h-4 w-4" />
                             <span>Export (.tar)</span>
                           </DropdownMenuItem>

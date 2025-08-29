@@ -133,53 +133,94 @@ function parseSharedApps(output) {
 function parseSearchableApps(output, packageManager) {
     const lines = output.trim().split('\n').filter(line => line.trim() !== '');
     return lines.map((line, index) => {
-        const parts = line.split(/\s+/);
-        if (parts.length < 1) return null;
-
         let name, version = 'N/A', description = '';
 
         try {
-          switch (packageManager) {
-              case 'apt': // for dpkg -l
-              case 'dpkg':
-                  if (parts[0] !== 'ii') return null;
-                  name = parts[1].split(':')[0]; // handle arch like code:amd64
-                  version = parts[2];
-                  description = parts.slice(3).join(' ');
-                  break;
-              case 'dnf': // for dnf list installed
-              case 'rpm': // for rpm -qa
-                  if (line.includes('.snap')) return null; // Exclude snap packages often listed by dnf
-                  name = parts[0].split('.').slice(0, -1).join('.'); // remove .arch
-                  version = parts[1];
-                  description = parts.slice(2).join(' ');
-                  break;
-              case 'pacman': // for pacman -Q
-                  name = parts[0];
-                  version = parts[1];
-                  description = 'N/A';
-                  break;
-              case 'apk': // for apk info
-                  name = parts[0];
-                  version = 'N/A';
-                  description = 'N/A';
-                  break;
-               case 'flatpak':
-                  name = parts[0];
-                  version = parts[1];
-                  description = `ID: ${parts[3]}`;
-                  break;
-               case 'snap':
-                  name = parts[0];
-                  version = parts[1];
-                  description = parts.slice(3).join(' ');
-                  break;
-              default:
-                  return null;
-          }
+            const parts = line.split(/\s+/);
+            if (parts.length < 1) return null;
+
+            switch (packageManager) {
+                case 'dpkg': // for dpkg -l
+                    if (parts[0] !== 'ii') return null;
+                    name = parts[1].split(':')[0]; // handle arch like code:amd64
+                    version = parts[2];
+                    description = parts.slice(3).join(' ');
+                    break;
+                case 'rpm': // for rpm -qa
+                    if (line.includes('.snap')) return null;
+                    const nameParts = parts[0].split('-');
+                    version = nameParts.pop();
+                    name = nameParts.join('-');
+                    description = 'N/A';
+                    break;
+                case 'dnf': // for dnf list installed
+                    if (line.includes('.snap')) return null;
+                    name = parts[0].split('.').slice(0, -1).join('.'); // remove .arch
+                    version = parts[1];
+                    description = parts.slice(2).join(' ');
+                    break;
+                case 'yum': // for yum list installed
+                     name = parts[0].split('.')[0];
+                     version = parts[1];
+                     description = parts.slice(2).join(' ');
+                     break;
+                case 'pacman': // for pacman -Q
+                    name = parts[0];
+                    version = parts[1];
+                    description = 'N/A';
+                    break;
+                case 'zypper': // zypper se -i
+                    if(parts[0] !== 'i' && parts[0] !== 'i+') return null;
+                    name = parts[2];
+                    version = parts[4];
+                    description = parts.slice(6).join(' ');
+                    break;
+                case 'apk': // for apk info
+                    if (line.startsWith('Description:')) return null;
+                    if (line.startsWith('Homepage:')) return null;
+                    name = line.split('-')[0];
+                    version = line.split('-').slice(1).join('-').split(' ')[0];
+                    description = `Installed package`;
+                    break;
+                case 'equery': // gentoo
+                    name = parts[0];
+                    version = 'N/A';
+                    description = line;
+                    break;
+                case 'xbps-query': // void
+                    name = parts[0].split('-')[0];
+                    version = parts[0].split('-')[1];
+                    description = parts.slice(1).join(' ');
+                    break;
+                case 'nix-env':
+                case 'guix':
+                case 'slack':
+                     name = parts[0];
+                     version = 'N/A';
+                     description = line;
+                     break;
+                 case 'eopkg':
+                     name = parts[0];
+                     version = "N/A";
+                     description = parts.slice(1).join(' ');
+                     break;
+                case 'flatpak':
+                    name = parts[1];
+                    version = parts[2];
+                    description = `ID: ${parts[0]}`;
+                    break;
+                case 'snap':
+                    if (line.startsWith('Name')) return null; // header
+                    name = parts[0];
+                    version = parts[1];
+                    description = parts.slice(3).join(' ');
+                    break;
+                default:
+                    return null;
+            }
         } catch (e) {
-          console.error(`Error parsing line for ${packageManager}: "${line}"`, e);
-          return null;
+            console.error(`Error parsing line for ${packageManager}: "${line}"`, e);
+            return null;
         }
 
         if (!name || name.trim() === '') return null;
@@ -290,9 +331,12 @@ ipcMain.handle('list-containers', async () => {
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
+    // Using `distrobox enter` with a non-interactive command is a reliable way to start a container
     await execAsync(`distrobox enter ${containerName} -- true`);
     return { success: true };
   } catch (error) {
+    // If the container is already running, `distrobox enter` might still exit with an error,
+    // but the setup messages indicate success.
     if (error.stderr && (error.stderr.includes("is already running") || error.stderr.includes("Container Setup Complete"))) {
         return { success: true };
     }
@@ -392,28 +436,53 @@ ipcMain.handle('list-shared-apps', async (event, containerName) => {
 
 ipcMain.handle('search-container-apps', async (event, { containerName, packageManager, query }) => {
   let searchCommand;
+  const escapedQuery = query.replace(/"/g, '\\"');
+  
   switch (packageManager) {
-    case 'apt':
     case 'dpkg':
-      searchCommand = `dpkg -l | grep -i ${query}`;
-      break;
-    case 'dnf':
-      searchCommand = `dnf list installed | grep -i ${query}`;
+      searchCommand = `dpkg -l | grep -i "${escapedQuery}"`;
       break;
     case 'rpm':
-        searchCommand = `rpm -qa | grep -i ${query}`
+        searchCommand = `rpm -qa | grep -i "${escapedQuery}"`;
         break;
+    case 'dnf':
+      searchCommand = `dnf list installed | grep -i "${escapedQuery}"`;
+      break;
+    case 'yum':
+      searchCommand = `yum list installed | grep -i "${escapedQuery}"`;
+      break;
     case 'pacman':
-      searchCommand = `pacman -Q | grep -i ${query}`;
+      searchCommand = `pacman -Q | grep -i "${escapedQuery}"`;
+      break;
+    case 'zypper':
+      searchCommand = `zypper se -i ${escapedQuery}`;
       break;
     case 'apk':
-        searchCommand = `apk info | grep -i ${query}`;
+        searchCommand = `apk info | grep -i "${escapedQuery}"`;
+        break;
+    case 'equery':
+        searchCommand = `equery list "*" | grep -i "${escapedQuery}"`;
+        break;
+    case 'xbps-query':
+        searchCommand = `xbps-query -l | grep -i "${escapedQuery}"`;
+        break;
+    case 'nix-env':
+        searchCommand = `nix-env -q | grep -i "${escapedQuery}"`;
+        break;
+    case 'guix':
+        searchCommand = `guix package --list-installed | grep -i "${escapedQuery}"`;
+        break;
+    case 'slack':
+        searchCommand = `ls /var/log/packages | grep -i "${escapedQuery}"`;
+        break;
+    case 'eopkg':
+        searchCommand = `eopkg li | grep -i "${escapedQuery}"`;
         break;
     case 'flatpak':
-        searchCommand = `flatpak list | grep -i ${query}`;
+        searchCommand = `flatpak list | grep -i "${escapedQuery}"`;
         break;
     case 'snap':
-        searchCommand = `snap list | grep -i ${query}`;
+        searchCommand = `snap list | grep -i "${escapedQuery}"`;
         break;
     default:
       throw new Error(`Unsupported package manager: ${packageManager}`);

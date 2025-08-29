@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Upload, Loader, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Container, SearchableApp } from "@/lib/types";
@@ -20,10 +19,19 @@ interface FindAppsPanelProps {
 const packageManagers = [
     { value: 'dpkg', label: 'dpkg (Debian/Ubuntu)' },
     { value: 'rpm', label: 'rpm (Fedora/RHEL)' },
+    { value: 'dnf', label: 'dnf (Fedora)' },
+    { value: 'yum', label: 'yum (RHEL)' },
     { value: 'pacman', label: 'pacman (Arch)' },
+    { value: 'zypper', label: 'zypper (openSUSE)' },
     { value: 'apk', label: 'apk (Alpine)' },
-    { value: 'flatpak', label: 'Flatpak' },
-    { value: 'snap', label: 'Snap' },
+    { value: 'equery', label: 'equery (Gentoo)' },
+    { value: 'xbps-query', label: 'xbps (Void)' },
+    { value: 'nix-env', label: 'nix-env (NixOS)' },
+    { value: 'guix', label: 'guix (Guix)' },
+    { value: 'slack', label: 'slack (Slackware)' },
+    { value: 'eopkg', label: 'eopkg (Solus)' },
+    { value: 'snap', label: 'snap' },
+    { value: 'flatpak', label: 'flatpak' },
 ];
 
 export function FindAppsPanel({ container }: FindAppsPanelProps) {
