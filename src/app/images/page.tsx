@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Upload, Trash2, Download, RefreshCw, Loader, HardDrive, PlusCircle } from "lucide-react";
+import { Upload, Trash2, Download, RefreshCw, Loader, HardDrive, PlusCircle, Layers, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { listLocalImages, deleteImage, exportImage, importImage } from "@/lib/distrobox";
 import type { LocalImage } from "@/lib/types";
@@ -117,6 +117,31 @@ export default function ImagesPage() {
     }
   }
 
+  const ImageCard = ({ image }: { image: LocalImage }) => (
+    <div className="p-4 border rounded-lg flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+            <i className={cn(getDistroIcon(image.repository), "text-3xl")}></i>
+            <div className="flex flex-col overflow-hidden">
+                <span className="font-semibold truncate">{image.repository}</span>
+                <span className="text-sm text-muted-foreground">Tag: {image.tag}</span>
+            </div>
+        </div>
+        <div className="text-xs text-muted-foreground space-y-2">
+            <div className="flex items-center gap-2"><Layers className="h-3 w-3" /> <span>Size: {image.size}</span></div>
+            <div className="flex items-center gap-2"><Clock className="h-3 w-3" /> <span>Created: {image.created}</span></div>
+            <div className="font-mono flex items-center gap-2 truncate"><HardDrive className="h-3 w-3"/><span>ID: {image.imageID.substring(0, 12)}</span></div>
+        </div>
+        <div className="flex justify-end gap-2 pt-3 border-t">
+            <Button variant="outline" size="sm" onClick={() => handleExport(image)}>
+                <Download className="mr-2 h-4 w-4" /> Export
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => handleDeleteConfirm(image)}>
+                {isDeleting === image.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />} Delete
+            </Button>
+        </div>
+    </div>
+  )
+
   return (
     <>
       <Card>
@@ -138,93 +163,98 @@ export default function ImagesPage() {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[calc(100vh-250px)]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Repository</TableHead>
-                  <TableHead className="hidden sm:table-cell">Tag</TableHead>
-                  <TableHead className="hidden md:table-cell">Image ID</TableHead>
-                  <TableHead className="hidden sm:table-cell">Size</TableHead>
-                  <TableHead className="hidden lg:table-cell">Created</TableHead>
-                  <TableHead className="text-right w-[120px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
+            <div className="hidden md:block">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                        <Loader className="h-6 w-6 animate-spin" />
-                        <span>Loading local images...</span>
-                      </div>
-                    </TableCell>
+                    <TableHead>Repository</TableHead>
+                    <TableHead>Tag</TableHead>
+                    <TableHead>Image ID</TableHead>
+                    <TableHead>Size</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right w-[120px]">Actions</TableHead>
                   </TableRow>
-                ) : filteredImages.length > 0 ? (
-                  filteredImages.map((image) => (
-                    <TableRow key={image.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                            <i className={cn(getDistroIcon(image.repository), "text-2xl")}></i>
-                            <div className="flex flex-col">
-                                <span>{image.repository}</span>
-                                <span className="text-muted-foreground sm:hidden text-xs">{image.tag}</span>
-                                <span className="text-muted-foreground sm:hidden text-xs">{image.size}</span>
-                            </div>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <Loader className="h-6 w-6 animate-spin" />
+                          <span>Loading local images...</span>
                         </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">{image.tag}</TableCell>
-                      <TableCell className="hidden md:table-cell font-mono text-xs">{image.imageID.substring(0, 12)}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{image.size}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-muted-foreground">{image.created}</TableCell>
-                      <TableCell className="text-right">
-                        <TooltipProvider>
-                          <div className="flex justify-end gap-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" onClick={() => handleExport(image)}>
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Export (.tar)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteConfirm(image)}>
-                                    {isDeleting === image.id ? <Loader className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                </Button>
-                               </TooltipTrigger>
-                               <TooltipContent>
-                                <p>Delete Image</p>
-                               </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-48 text-center">
-                      <div className="flex flex-col items-center justify-center gap-4 text-center">
-                        <HardDrive className="h-12 w-12 text-muted-foreground" />
-                        <div>
-                          <h3 className="font-semibold">No local images found</h3>
-                          <p className="text-muted-foreground">{searchTerm ? "No images match your search." : "Pull an image to get started."}</p>
-                        </div>
-                        <Button asChild>
-                          <Link href="/download">
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Download an Image
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  ) : filteredImages.length > 0 ? (
+                    filteredImages.map((image) => (
+                      <TableRow key={image.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                              <i className={cn(getDistroIcon(image.repository), "text-2xl")}></i>
+                              <span>{image.repository}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{image.tag}</TableCell>
+                        <TableCell className="font-mono text-xs">{image.imageID.substring(0, 12)}</TableCell>
+                        <TableCell>{image.size}</TableCell>
+                        <TableCell className="text-muted-foreground">{image.created}</TableCell>
+                        <TableCell className="text-right">
+                          <TooltipProvider>
+                            <div className="flex justify-end gap-2">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => handleExport(image)}>
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Export (.tar)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                 <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDeleteConfirm(image)}>
+                                      {isDeleting === image.id ? <Loader className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                  </Button>
+                                 </TooltipTrigger>
+                                 <TooltipContent>
+                                  <p>Delete Image</p>
+                                 </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : null}
+                </TableBody>
+              </Table>
+            </div>
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+                 {loading ? (
+                    <div className="col-span-full h-24 flex items-center justify-center text-muted-foreground">
+                        <Loader className="h-6 w-6 animate-spin" />
+                        <span className="ml-2">Loading local images...</span>
+                    </div>
+                ) : filteredImages.length > 0 ? (
+                    filteredImages.map(image => <ImageCard key={image.id} image={image} />)
+                ) : null}
+             </div>
+             {!loading && filteredImages.length === 0 && (
+                <div className="col-span-full h-48 flex flex-col items-center justify-center gap-4 text-center">
+                    <HardDrive className="h-12 w-12 text-muted-foreground" />
+                    <div>
+                        <h3 className="font-semibold">No local images found</h3>
+                        <p className="text-muted-foreground">{searchTerm ? "No images match your search." : "Pull an image to get started."}</p>
+                    </div>
+                    <Button asChild>
+                        <Link href="/download">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Download an Image
+                        </Link>
+                    </Button>
+                </div>
+            )}
           </ScrollArea>
         </CardContent>
       </Card>
@@ -249,3 +279,5 @@ export default function ImagesPage() {
     </>
   );
 }
+
+    

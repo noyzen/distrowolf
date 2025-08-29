@@ -15,7 +15,6 @@ import { pullImage } from "@/lib/distrobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 
 const imageCategories = {
     "Featured": [
@@ -186,7 +185,7 @@ export default function DownloadPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Custom Image URL</FormLabel>
-                     <div className="flex gap-4">
+                     <div className="flex flex-col sm:flex-row gap-4">
                         <FormControl>
                             <Input 
                             placeholder="docker.io/library/ubuntu:latest" 
@@ -215,7 +214,7 @@ export default function DownloadPage() {
             </div>
 
             <Tabs defaultValue="featured" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
                 <TabsTrigger value="featured"><Star className="w-4 h-4 mr-2"/>Featured</TabsTrigger>
                 <TabsTrigger value="general"><Boxes className="w-4 h-4 mr-2"/>General</TabsTrigger>
                 <TabsTrigger value="enterprise"><Factory className="w-4 h-4 mr-2"/>Enterprise</TabsTrigger>
