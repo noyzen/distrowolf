@@ -16,12 +16,12 @@ body {
     --popover-foreground: 0 0% 98%;
     --primary: 120 60% 60%; /* Greener Light Green */
     --primary-foreground: 120 25% 10%;
-    --secondary: 180 50% 80%; /* #AFEEEE - Pale Turquoise */
-    --secondary-foreground: 180 25% 15%;
+    --secondary: 220 10% 30%; /* Neutral Gray for secondary elements */
+    --secondary-foreground: 0 0% 98%;
     --muted: 220 10% 25%;
     --muted-foreground: 210 5% 65%;
-    --accent: 180 50% 80%; /* #AFEEEE - Pale Turquoise */
-    --accent-foreground: 180 25% 15%;
+    --accent: 120 60% 60%; /* Use primary green for accents */
+    --accent-foreground: 120 25% 10%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 10% 25%;
@@ -51,12 +51,12 @@ body {
     --popover-foreground: 0 0% 98%;
     --primary: 120 60% 60%; /* Greener Light Green */
     --primary-foreground: 120 25% 10%;
-    --secondary: 180 50% 80%; /* #AFEEEE - Pale Turquoise */
-    --secondary-foreground: 180 25% 15%;
+    --secondary: 220 10% 30%; /* Neutral Gray for secondary elements */
+    --secondary-foreground: 0 0% 98%;
     --muted: 220 10% 25%;
     --muted-foreground: 210 5% 65%;
-    --accent: 180 50% 80%; /* #AFEEEE - Pale Turquoise */
-    --accent-foreground: 180 25% 15%;
+    --accent: 120 60% 60%; /* Use primary green for accents */
+    --accent-foreground: 120 25% 10%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 10% 25%;
