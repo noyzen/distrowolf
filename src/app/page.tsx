@@ -354,7 +354,7 @@ export default function Home() {
             transition={{ duration: 0.3 }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
-            <FindAppsPanel container={selectedContainer} sharedApps={sharedApps} onAppShared={fetchSharedApps} />
+            <FindAppsPanel container={selectedContainer} onAppShared={fetchSharedApps} />
             <SharedAppsPanel container={selectedContainer} sharedApps={sharedApps} onAppUnshared={fetchSharedApps} />
           </motion.div>
         );
@@ -424,11 +424,11 @@ export default function Home() {
                         onClick={() => handleRowClick(container)}
                         className={cn(
                             "cursor-pointer transition-colors duration-200", 
-                            selectedContainer?.id === container.id && "bg-primary/10"
+                            selectedContainer?.id === container.id && "bg-primary/10 ring-2 ring-primary"
                         )}
                         data-state={selectedContainer?.id === container.id ? 'selected' : undefined}
                     >
-                      <TableCell className={cn("rounded-l-lg", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>
+                      <TableCell>
                         <Badge
                           variant={
                             container.status === "running" ? "default" : "secondary"
@@ -443,13 +443,13 @@ export default function Home() {
                           {container.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className={cn(selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>{container.name}</TableCell>
-                      <TableCell className={cn("flex items-center gap-2", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>
+                      <TableCell>{container.name}</TableCell>
+                      <TableCell className="flex items-center gap-2">
                         <i className={cn(getDistroIcon(container.image), "text-2xl")}></i>
                         <span>{container.image}</span>
                       </TableCell>
-                      <TableCell className={cn("font-mono text-xs", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>{container.id}</TableCell>
-                      <TableCell className={cn("text-right rounded-r-lg", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>
+                      <TableCell className="font-mono text-xs">{container.id}</TableCell>
+                      <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>

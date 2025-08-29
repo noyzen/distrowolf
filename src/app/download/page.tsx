@@ -15,6 +15,7 @@ import { pullImage } from "@/lib/distrobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 const imageCategories = {
     "Featured": [
@@ -178,6 +179,41 @@ export default function DownloadPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="p-4 border rounded-lg bg-background/50">
+              <FormField
+                control={form.control}
+                name="imageName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Custom Image URL</FormLabel>
+                     <div className="flex gap-4">
+                        <FormControl>
+                            <Input 
+                            placeholder="docker.io/library/ubuntu:latest" 
+                            {...field} 
+                            onChange={handleInputChange}
+                            />
+                        </FormControl>
+                        <Button type="submit" className="flex-shrink-0" disabled={isDownloading || !form.getValues("imageName")}>
+                            {isDownloading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                            Download
+                        </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or select from a list</span>
+              </div>
+            </div>
+
             <Tabs defaultValue="featured" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="featured"><Star className="w-4 h-4 mr-2"/>Featured</TabsTrigger>
@@ -185,15 +221,15 @@ export default function DownloadPage() {
                 <TabsTrigger value="enterprise"><Factory className="w-4 h-4 mr-2"/>Enterprise</TabsTrigger>
                 <TabsTrigger value="specialized"><Globe className="w-4 h-4 mr-2"/>Specialized</TabsTrigger>
               </TabsList>
-              <ScrollArea className="h-[450px] pr-4">
-                <TabsContent value="featured" className="pt-4">
+              <ScrollArea className="h-[450px] pr-4 pt-4">
+                <TabsContent value="featured" className="mt-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {imageCategories["Featured"].map((item) => (
                             <FeaturedImageCard key={item.image} name={item.name} image={item.image} description={item.description} onSelect={handleImageSelect} isSelected={selectedImage === item.image} />
                         ))}
                     </div>
                 </TabsContent>
-                <TabsContent value="general" className="pt-4 space-y-6">
+                <TabsContent value="general" className="mt-0 space-y-6">
                     {Object.entries(imageCategories["General Purpose"]).map(([distro, images]) => (
                         <div key={distro}>
                             <h3 className="font-semibold text-lg mb-2">{distro}</h3>
@@ -205,7 +241,7 @@ export default function DownloadPage() {
                         </div>
                     ))}
                 </TabsContent>
-                <TabsContent value="enterprise" className="pt-4 space-y-6">
+                <TabsContent value="enterprise" className="mt-0 space-y-6">
                     {Object.entries(imageCategories["Enterprise & Stable"]).map(([distro, images]) => (
                         <div key={distro}>
                             <h3 className="font-semibold text-lg mb-2">{distro}</h3>
@@ -217,7 +253,7 @@ export default function DownloadPage() {
                         </div>
                     ))}
                 </TabsContent>
-                <TabsContent value="specialized" className="pt-4 space-y-6">
+                <TabsContent value="specialized" className="mt-0 space-y-6">
                     {Object.entries(imageCategories["Specialized & Immutable"]).map(([distro, images]) => (
                         <div key={distro}>
                             <h3 className="font-semibold text-lg mb-2">{distro}</h3>
@@ -231,40 +267,11 @@ export default function DownloadPage() {
                 </TabsContent>
               </ScrollArea>
             </Tabs>
-            
-            <div className="relative pt-4">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or</span>
-              </div>
-            </div>
-
-            <FormField
-              control={form.control}
-              name="imageName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Custom Image URL</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="docker.io/library/ubuntu:latest" 
-                      {...field} 
-                      onChange={handleInputChange}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isDownloading || !form.getValues("imageName")}>
-              {isDownloading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              Download Image
-            </Button>
           </CardContent>
         </form>
       </Form>
     </Card>
   );
 }
+
+    

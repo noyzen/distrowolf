@@ -215,40 +215,42 @@ export default function CreateContainerPage() {
                 <FormItem>
                   <FormLabel>Base Image</FormLabel>
                   <FormDescription>Select a pre-downloaded image for your container.</FormDescription>
-                  <ScrollArea className="h-72 pr-4 pt-2 border rounded-lg">
-                    <FormControl>
-                        <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                        >
-                            {loadingImages ? (
-                               Array.from({ length: 4 }).map((_, i) => (
-                                   <Skeleton key={i} className="h-24 w-full rounded-lg" />
-                               ))
-                            ) : localImages.length > 0 ? (
-                                localImages.map((img) => (
-                                    <FormItem key={img.id} className="relative">
-                                        <FormControl>
-                                            <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
-                                        </FormControl>
-                                        <FormLabel htmlFor={img.id} className={cn(
-                                            "flex items-center gap-4 rounded-lg border-2 border-muted bg-card p-4 h-24 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
-                                            "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
-                                        )}>
-                                            <i className={cn(getDistroIcon(img.repository), "text-4xl")}></i>
-                                            <div className="flex flex-col items-start overflow-hidden w-full text-left">
-                                                <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
-                                                <p className="text-sm text-muted-foreground truncate w-full" title={img.tag}>{img.tag}</p>
-                                            </div>
-                                            <CheckCircle className={cn("h-5 w-5 text-primary opacity-0 transition-opacity", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
-                                        </FormLabel>
-                                    </FormItem>
-                                ))
-                            ) : null}
-                        </RadioGroup>
-                    </FormControl>
-                  </ScrollArea>
+                  <div className="rounded-lg border bg-background/50 p-4">
+                    <ScrollArea className="h-72 pr-4">
+                        <FormControl>
+                            <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                            >
+                                {loadingImages ? (
+                                   Array.from({ length: 4 }).map((_, i) => (
+                                       <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                                   ))
+                                ) : localImages.length > 0 ? (
+                                    localImages.map((img) => (
+                                        <FormItem key={img.id} className="relative">
+                                            <FormControl>
+                                                <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
+                                            </FormControl>
+                                            <FormLabel htmlFor={img.id} className={cn(
+                                                "flex items-center gap-4 rounded-lg border-2 border-muted bg-card p-4 h-24 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
+                                                "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
+                                            )}>
+                                                <i className={cn(getDistroIcon(img.repository), "text-4xl")}></i>
+                                                <div className="flex flex-col items-start overflow-hidden w-full text-left">
+                                                    <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
+                                                    <p className="text-sm text-muted-foreground truncate w-full" title={img.tag}>{img.tag}</p>
+                                                </div>
+                                                <CheckCircle className={cn("h-5 w-5 text-primary opacity-0 transition-opacity", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
+                                            </FormLabel>
+                                        </FormItem>
+                                    ))
+                                ) : null}
+                            </RadioGroup>
+                        </FormControl>
+                    </ScrollArea>
+                  </div>
                   {localImages.length === 0 && !loadingImages && (
                         <div className="text-center col-span-full p-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
                            <HardDrive className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -262,7 +264,7 @@ export default function CreateContainerPage() {
               )}
             />
             
-            <div className="space-y-2">
+            <div className="space-y-4">
                  <FormLabel>Flags</FormLabel>
                  <FormDescription>Common flags for container creation.</FormDescription>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -270,15 +272,18 @@ export default function CreateContainerPage() {
                         control={form.control}
                         name="init"
                         render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <FormLabel htmlFor="init-flag" className="mb-0">Use Init</FormLabel>
-                            <FormControl>
-                            <Switch
-                                id="init-flag"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
-                            </FormControl>
+                        <FormItem className="flex flex-col rounded-lg border p-4">
+                            <div className="flex flex-row items-center justify-between">
+                                <FormLabel htmlFor="init-flag" className="mb-0">Use Init</FormLabel>
+                                <FormControl>
+                                <Switch
+                                    id="init-flag"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                </FormControl>
+                            </div>
+                            <FormDescription className="pt-2">Enables an init system (like systemd) inside the container.</FormDescription>
                         </FormItem>
                         )}
                     />
@@ -286,15 +291,18 @@ export default function CreateContainerPage() {
                         control={form.control}
                         name="nvidia"
                         render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <FormLabel htmlFor="nvidia-gpu" className="mb-0">Nvidia GPU</FormLabel>
-                            <FormControl>
-                            <Switch
-                                id="nvidia-gpu"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
-                            </FormControl>
+                        <FormItem className="flex flex-col rounded-lg border p-4">
+                             <div className="flex flex-row items-center justify-between">
+                                <FormLabel htmlFor="nvidia-gpu" className="mb-0">Nvidia GPU</FormLabel>
+                                <FormControl>
+                                <Switch
+                                    id="nvidia-gpu"
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                </FormControl>
+                            </div>
+                            <FormDescription className="pt-2">Share the host's Nvidia GPU drivers with the container.</FormDescription>
                         </FormItem>
                         )}
                     />
@@ -330,3 +338,5 @@ export default function CreateContainerPage() {
     </Form>
   );
 }
+
+    

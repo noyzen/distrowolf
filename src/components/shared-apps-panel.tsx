@@ -3,7 +3,6 @@
 
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { XCircle, Loader, RefreshCw, Info, AppWindow, Terminal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -69,7 +68,7 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
     <Card>
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
-            <CardTitle className="font-headline">Shared Apps from {container.name}</CardTitle>
+            <CardTitle className="font-headline">Shared Items from {container.name}</CardTitle>
             <CardDescription>
             Applications and binaries from this container available on the host.
             </CardDescription>
@@ -86,65 +85,51 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[300px] border rounded-lg">
-            <Table>
-            <TableHeader className="sticky top-0 bg-card z-10">
-                <TableRow>
-                <TableHead>Application</TableHead>
-                <TableHead className="text-right w-[150px]">Action</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TooltipProvider>
-            <TableBody>
+            <div className="divide-y divide-border">
                 {isLoading && sharedApps.length === 0 ? (
-                    <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center">
-                             <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                                <Loader className="h-6 w-6 animate-spin" />
-                                <span>Loading shared apps...</span>
-                            </div>
-                        </TableCell>
-                    </TableRow>
+                    <div className="flex items-center justify-center h-24 gap-2 text-muted-foreground">
+                        <Loader className="h-6 w-6 animate-spin" />
+                        <span>Loading shared items...</span>
+                    </div>
                 ) : filteredApps.length > 0 ? (
                     filteredApps.map((app) => (
-                        <TableRow key={app.id}>
-                            <TableCell className="font-medium flex items-center gap-2">
-                               {app.type === 'app' ? <AppWindow className="h-4 w-4 text-primary" /> : <Terminal className="h-4 w-4 text-muted-foreground" />}
-                               <span>{app.name}</span>
-                               <Tooltip>
-                                 <TooltipTrigger asChild>
-                                    <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                 </TooltipTrigger>
-                                 <TooltipContent>
-                                    <p className="font-mono">{app.binaryPath}</p>
-                                 </TooltipContent>
-                               </Tooltip>
-                            </TableCell>
-                            <TableCell className="text-right">
+                        <div key={app.id} className="p-3 flex items-center justify-between hover:bg-accent/50">
+                            <div className="flex items-center gap-3">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger>
+                                            {app.type === 'app' ? <AppWindow className="h-5 w-5 text-primary" /> : <Terminal className="h-5 w-5 text-muted-foreground" />}
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="capitalize">{app.type}</p>
+                                            <p className="font-mono text-xs">{app.binaryPath}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                               <span className="font-medium">{app.name}</span>
+                            </div>
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className={cn("text-red-400 border-red-500/30 hover:bg-red-900/40 hover:border-red-500/50 hover:text-red-300")}
+                                className="text-red-400 border-red-500/30 hover:bg-red-900/40 hover:border-red-500/50 hover:text-red-300"
                                 onClick={() => handleUnshare(app)}
                                 disabled={!!isUnsharing}
                             >
                                 {isUnsharing === app.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
                                 Unshare
                             </Button>
-                            </TableCell>
-                        </TableRow>
+                        </div>
                     ))
                 ) : (
-                    <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                        No applications {showBinaries ? '' : 'or binaries '}shared from {container.name}.
-                        </TableCell>
-                    </TableRow>
+                    <div className="flex items-center justify-center h-24 text-muted-foreground">
+                        No {showBinaries ? 'items' : 'applications'} shared from {container.name}.
+                    </div>
                 )}
-            </TableBody>
-            </TooltipProvider>
-            </Table>
+            </div>
         </ScrollArea>
       </CardContent>
     </Card>
   );
 }
+
+    

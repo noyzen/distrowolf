@@ -169,7 +169,6 @@ function parseSearchableApps(output, packageManager, query) {
     
     let allPackages = [];
 
-    // First, parse all packages from the output
     if (packageManager === 'dpkg') {
         let currentPackage = null;
         for (let i = 0; i < lines.length; i++) {
@@ -505,7 +504,6 @@ ipcMain.handle('list-shared-apps', async (event, containerName) => {
 
     return [...apps, ...binaries];
   } catch (error) {
-    // This can fail if there are no shared apps, which is not an error state.
     if (error.stderr && (error.stderr.includes("No apps exported") || error.stderr.includes("No binaries exported"))) {
         return [];
     }
@@ -536,7 +534,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
       searchCommand = `zypper se -i -s '${escapedQuery}'`; 
       break;
     case 'apk':
-        searchCommand = `apk info -e '*${escapedQuery}*'`;
+        searchCommand = `apk info -e '*${escapedQuery}*' | grep -i "${escapedQuery}"`;
         break;
     case 'equery':
         searchCommand = `equery list "*${escapedQuery}*" | grep -i "${escapedQuery}"`;
@@ -564,7 +562,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 ipcMain.handle('export-app', async (event, { containerName, appName, type }) => {
   try {
     const flag = type === 'app' ? '--app' : '--bin';
-    const exportPath = type === 'app' ? '' : `--export-path "${app.getPath('home')}/.local/bin"`;
+    const exportPath = type === 'binary' ? `--export-path "${app.getPath('home')}/.local/bin"` : '';
     const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${appName}" ${exportPath}`;
     await execAsync(command);
     return { success: true };
@@ -577,7 +575,7 @@ ipcMain.handle('export-app', async (event, { containerName, appName, type }) => 
 ipcMain.handle('unshare-app', async (event, { containerName, appName, type }) => {
   try {
     const flag = type === 'app' ? '--app' : '--bin';
-    const exportPath = type === 'app' ? '' : `--export-path "${app.getPath('home')}/.local/bin"`;
+    const exportPath = type === 'binary' ? `--export-path "${app.getPath('home')}/.local/bin"` : '';
     const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${appName}" ${exportPath} --delete`;
     await execAsync(command);
     return { success: true };
@@ -600,3 +598,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    

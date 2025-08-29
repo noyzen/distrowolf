@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import { Badge } from "./ui/badge";
 
 interface FindAppsPanelProps {
     container: Container;
-    sharedApps: SharedApp[];
     onAppShared: () => void;
 }
 
@@ -39,15 +38,16 @@ const allPackageManagers = [
     { value: 'snap', label: 'snap' },
 ];
 
-export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPanelProps) {
+export function FindAppsPanel({ container, onAppShared }: FindAppsPanelProps) {
   const { toast } = useToast();
   const [selectedPM, setSelectedPM] = useState<string>("dpkg");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchableApp[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
-
-  const sharedAppNames = sharedApps.map(app => app.name);
+  
+  // This state is just to trigger re-renders when an app is shared
+  const [sharedAppsCount, setSharedAppsCount] = useState(0);
 
   const handleSearch = async () => {
     if (!searchQuery || !selectedPM) return;
@@ -95,6 +95,7 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
             description: `"${appName}" has been shared with the host.`,
         });
         onAppShared(); // Notify parent to refresh shared apps
+        setSharedAppsCount(c => c + 1); // Force re-render of this component
     } catch (error: any) {
         toast({
             variant: "destructive",
@@ -171,17 +172,10 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
                                 <div className="flex-1">
                                     <h4 className="font-semibold">{app.name} <span className="text-sm font-normal text-muted-foreground">{app.version}</span></h4>
                                 </div>
-                                { sharedAppNames.includes(app.name) ? (
-                                    <Badge variant="secondary" className="gap-1.5 h-fit">
-                                        <CheckCircle className="h-4 w-4"/>
-                                        Shared
-                                    </Badge>
-                                ) : (
-                                    <Button variant="outline" size="sm" onClick={() => handleExport(app.name, app.type)} disabled={!!isExporting}>
-                                        {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                        Share
-                                    </Button>
-                                )}
+                                <Button variant="outline" size="sm" onClick={() => handleExport(app.name, app.type)} disabled={!!isExporting}>
+                                    {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                    Share
+                                </Button>
                             </div>
                             <p className="text-sm text-muted-foreground">{app.description}</p>
                         </div>
@@ -197,3 +191,5 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
     </Card>
   );
 }
+
+    

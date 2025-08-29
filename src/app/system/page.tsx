@@ -75,6 +75,10 @@ export default function SystemPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+            <div className="text-center text-md text-muted-foreground flex items-center justify-center gap-2">
+                <Code className="h-4 w-4"/>
+                <span>Forged by Noyzen in the full-vibe AI coding flames of firebase.studio.</span>
+            </div>
             <div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground/90">DistroWolf Statistics</h3>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -121,11 +125,6 @@ export default function SystemPage() {
             </Link>
         </CardContent>
       </Card>
-
-      <div className="text-center text-xs text-muted-foreground/50 flex items-center justify-center gap-2">
-        <Code className="h-4 w-4"/>
-        <span>designed by Noyzen, in firebase.studio full vibe ai coding.</span>
-      </div>
     </div>
   );
 }
