@@ -103,7 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-background/50 backdrop-blur-sm px-6 sticky top-0 z-30">
-          <SidebarTrigger className="md:hidden" />
+          <SidebarTrigger className="md:hidden text-primary" />
           <div className="flex-1">
             <h1 className="font-headline text-xl font-semibold">
               {currentPage?.label || "Dashboard"}

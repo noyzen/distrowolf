@@ -96,6 +96,16 @@ const SidebarProvider = React.forwardRef<
         ? setOpenMobile((open) => !open)
         : setOpen((open) => !open)
     }, [isMobile, setOpen, setOpenMobile])
+    
+    // Sync state between mobile and desktop when window is resized
+    React.useEffect(() => {
+      if (isMobile) {
+        setOpenMobile(open)
+      } else {
+        setOpen(openMobile)
+      }
+    }, [isMobile])
+
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -762,4 +772,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-

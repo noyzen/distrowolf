@@ -31,10 +31,11 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { createContainer, listLocalImages } from "@/lib/distrobox";
-import { HardDrive, Loader, CheckCircle } from "lucide-react";
+import { HardDrive, Loader, CheckCircle, Package, Tag, Clock } from "lucide-react";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -234,15 +235,30 @@ export default function CreateContainerPage() {
                                                 <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
                                             </FormControl>
                                             <FormLabel htmlFor={img.id} className={cn(
-                                                "flex items-center gap-4 rounded-lg border-2 border-muted bg-card p-4 h-24 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
+                                                "flex flex-col items-start gap-4 rounded-lg border-2 border-muted bg-card p-4 h-full hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
                                                 "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
                                             )}>
-                                                <i className={cn(getDistroIcon(img.repository), "text-4xl")}></i>
-                                                <div className="flex flex-col items-start overflow-hidden w-full text-left">
-                                                    <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
-                                                    <p className="text-sm text-muted-foreground truncate w-full" title={img.tag}>{img.tag}</p>
+                                                <div className="flex items-center gap-4 w-full">
+                                                    <i className={cn(getDistroIcon(img.repository), "text-4xl")}></i>
+                                                    <div className="flex flex-col items-start overflow-hidden w-full text-left">
+                                                        <div className="flex items-center gap-2">
+                                                          <Package className="h-4 w-4 text-muted-foreground"/>
+                                                          <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                          <Tag className="h-4 w-4 text-muted-foreground"/>
+                                                          <p className="text-sm text-muted-foreground truncate w-full" title={img.tag}>{img.tag}</p>
+                                                        </div>
+                                                    </div>
+                                                    <CheckCircle className={cn("h-5 w-5 text-primary opacity-0 transition-opacity ml-auto", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
                                                 </div>
-                                                <CheckCircle className={cn("h-5 w-5 text-primary opacity-0 transition-opacity", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
+                                                <div className="flex items-center justify-between w-full text-xs text-muted-foreground mt-2">
+                                                    <Badge variant="outline" className="font-mono">{img.size}</Badge>
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        <span>{img.created}</span>
+                                                    </div>
+                                                </div>
                                             </FormLabel>
                                         </FormItem>
                                     ))
@@ -338,5 +354,3 @@ export default function CreateContainerPage() {
     </Form>
   );
 }
-
-    
