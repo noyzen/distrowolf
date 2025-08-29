@@ -64,19 +64,22 @@ import { SetupWizard } from "@/components/setup-wizard";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ContainerInfoPanel } from "@/components/container-info-panel";
+
+type PanelMode = "apps" | "info";
 
 export default function Home() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [dependencies, setDependencies] = useState<{ distroboxInstalled: boolean, podmanInstalled: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isInfoDialogOpen, setInfoDialogOpen] = useState(false);
   const [isEnterDialogOpen, setEnterDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", message: "" });
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
+  const [selectedContainerInfo, setSelectedContainerInfo] = useState<any | null>(null);
   const [containerToDelete, setContainerToDelete] = useState<Container | null>(null);
   const [actioningContainerId, setActioningContainerId] = useState<string | null>(null);
+  const [activePanel, setActivePanel] = useState<PanelMode>("apps");
   const { toast } = useToast();
   const { searchTerm } = useSearch();
 
@@ -102,7 +105,12 @@ export default function Home() {
       setContainers(fetchedContainers);
       if (selectedContainer) {
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
-        setSelectedContainer(updatedSelected || null);
+        if (!updatedSelected) {
+          setSelectedContainer(null);
+          setSelectedContainerInfo(null);
+        } else {
+          setSelectedContainer(updatedSelected);
+        }
       }
     } catch (error: any) {
       console.error("Failed to list containers:", error);
@@ -179,6 +187,7 @@ export default function Home() {
       });
       if (selectedContainer?.id === containerToDelete.id) {
          setSelectedContainer(null); 
+         setSelectedContainerInfo(null);
       }
     } catch (error: any) {
       toast({
@@ -197,15 +206,11 @@ export default function Home() {
   const handleEnterContainer = async (containerName: string) => {
     try {
       const result = await enterContainer(containerName);
-      if (result.success && result.message) {
-        setDialogContent({
-          title: `Enter Container: ${containerName}`,
-          message: result.message
-        });
-        setEnterDialogOpen(true);
-      } else {
-        throw new Error("Could not get enter command.");
-      }
+      setDialogContent({
+        title: `Enter Container: ${containerName}`,
+        message: result.message!
+      });
+      setEnterDialogOpen(true);
     } catch(error: any) {
       toast({
         variant: "destructive",
@@ -215,21 +220,26 @@ export default function Home() {
     }
   }
   
-  const handleInfoContainer = async (containerName: string) => {
-    try {
-        const res = await infoContainer(containerName);
-        setDialogContent({
-            title: `Container Info: ${containerName}`,
-            message: res.message || "No information returned."
-        });
-        setInfoDialogOpen(true);
-    } catch(error: any) {
-        toast({
-            variant: "destructive",
-            title: "Failed to get container info",
-            description: error.message,
-        });
+  const handleInfoContainer = async (container: Container) => {
+    // If it's the same container and info is already open, do nothing special
+    // Otherwise, fetch new info
+    if (selectedContainer?.id !== container.id || !selectedContainerInfo) {
+      try {
+          const res = await infoContainer(container.name);
+          setSelectedContainerInfo(JSON.parse(res.message || '{}'));
+      } catch(error: any) {
+          toast({
+              variant: "destructive",
+              title: "Failed to get container info",
+              description: error.message,
+          });
+          setSelectedContainerInfo(null);
+      }
     }
+    // Set the view mode to 'info'
+    setActivePanel("info");
+    // Ensure the container is selected
+    setSelectedContainer(container);
   }
 
   const handleSaveImage = async (container: Container) => {
@@ -280,9 +290,12 @@ export default function Home() {
   
   const handleRowClick = (container: Container) => {
     if (selectedContainer?.id === container.id) {
-        setSelectedContainer(null);
+      setSelectedContainer(null);
+      setSelectedContainerInfo(null);
     } else {
-        setSelectedContainer(container);
+      setSelectedContainer(container);
+      setActivePanel("apps"); // Default to apps view on new selection
+      setSelectedContainerInfo(null); // Clear old info
     }
   }
 
@@ -298,6 +311,30 @@ export default function Home() {
   if (dependencies && (!dependencies.distroboxInstalled || !dependencies.podmanInstalled)) {
       return <SetupWizard dependencies={dependencies} />;
   }
+
+  const renderActivePanel = () => {
+    if (!selectedContainer) return null;
+
+    switch (activePanel) {
+      case "info":
+        return <ContainerInfoPanel info={selectedContainerInfo} onBack={() => setActivePanel("apps")} />;
+      case "apps":
+      default:
+        return (
+          <motion.div
+            key="apps-panels"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            <FindAppsPanel container={selectedContainer} />
+            <SharedAppsPanel container={selectedContainer} />
+          </motion.div>
+        );
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -360,7 +397,7 @@ export default function Home() {
                         key={container.id} 
                         onClick={() => handleRowClick(container)}
                         className={cn("cursor-pointer transition-colors duration-300", 
-                            selectedContainer?.id === container.id && "bg-primary/10 ring-2 ring-primary ring-inset shadow-lg"
+                            selectedContainer?.id === container.id && "bg-primary/10"
                         )}
                     >
                       <TableCell>
@@ -410,7 +447,7 @@ export default function Home() {
                               <Terminal className="mr-2 h-4 w-4" />
                               <span>Enter</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleInfoContainer(container.name)}>
+                            <DropdownMenuItem onClick={() => handleInfoContainer(container)}>
                               <Info className="mr-2 h-4 w-4" />
                               <span>Info</span>
                             </DropdownMenuItem>
@@ -451,19 +488,16 @@ export default function Home() {
         </CardContent>
       </Card>
 
-      <AnimatePresence>
-        {selectedContainer && (
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-            >
-                <FindAppsPanel container={selectedContainer} />
-                <SharedAppsPanel container={selectedContainer} />
-            </motion.div>
-        )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activePanel}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+        >
+          {renderActivePanel()}
+        </motion.div>
       </AnimatePresence>
       
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -508,33 +542,6 @@ export default function Home() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <AlertDialog open={isInfoDialogOpen} onOpenChange={setInfoDialogOpen}>
-        <AlertDialogContent className="max-w-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-                Full container details from Podman inspect.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-            <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
-                <pre><code className="text-xs">{dialogContent.message}</code></pre>
-            </ScrollArea>
-          <AlertDialogFooter>
-            <Button variant="outline" onClick={() => {
-                copyToClipboard(dialogContent.message);
-                toast({ title: "Copied!", description: "JSON output copied to clipboard." });
-            }}>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy JSON
-            </Button>
-            <AlertDialogAction onClick={() => setInfoDialogOpen(false)}>Close</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
     </div>
   );
 }
-
-    
