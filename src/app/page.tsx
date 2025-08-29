@@ -62,6 +62,134 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 type PanelMode = "apps" | "info";
 
+const FlagBadge = React.memo(({ icon, text, enabled }: { icon: React.ElementType, text: string, enabled: boolean }) => {
+  if (!enabled) return null;
+  return (
+      <TooltipProvider>
+          <Tooltip>
+              <TooltipTrigger asChild>
+                  <Badge variant="secondary" className="gap-1.5 font-normal">
+                      {React.createElement(icon, { className: "h-3 w-3" })}
+                      <span className="hidden xl:inline">{text}</span>
+                  </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                  <p>{text}</p>
+              </TooltipContent>
+          </Tooltip>
+      </TooltipProvider>
+  );
+});
+FlagBadge.displayName = 'FlagBadge';
+
+const ContainerRow = React.memo(({ container, onSelect, isSelected, actioningContainerId, handlers }: { container: Container, onSelect: (c: Container) => void, isSelected: boolean, actioningContainerId: string | null, handlers: any }) => {
+  const { handleToggleContainerStatus, handleEnterContainer, handleInfoContainer, handleSaveImage, handleToggleAutostart, handleDeleteConfirm } = handlers;
+  
+  return (
+      <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+          layout
+          onClick={() => onSelect(container)}
+          className={cn(
+              "relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg transition-all duration-200 cursor-pointer hover:bg-muted/50",
+              isSelected && "ring-2 ring-primary ring-inset bg-primary/10"
+          )}
+      >
+          <div className="flex items-center gap-4 flex-1 min-w-0 w-full">
+               <TooltipProvider>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                           <div className="flex items-center justify-center">
+                              <span className={cn("h-3 w-3 rounded-full flex-shrink-0", container.status === 'running' ? 'bg-green-400 animate-pulse' : 'bg-red-400')}></span>
+                          </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                         <p className="capitalize">{container.status}</p>
+                      </TooltipContent>
+                  </Tooltip>
+              </TooltipProvider>
+
+              <div className="flex flex-col min-w-0">
+                  <span className="font-semibold truncate">{container.name}</span>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                     <i className={cn(getDistroIcon(container.image), "text-lg")}></i>
+                     <span className="truncate">{container.image}</span>
+                  </div>
+              </div>
+          </div>
+          <div className="flex items-center gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0 self-end sm:self-center">
+               <div className="flex items-center gap-2">
+                  <FlagBadge icon={Home} text="Isolated Home" enabled={container.home.type === 'Isolated'} />
+                  <FlagBadge icon={Power} text="Autostart" enabled={container.autostart} />
+               </div>
+               <TooltipProvider>
+                  <Tooltip>
+                      <TooltipTrigger asChild>
+                          <Button
+                              variant={container.status === 'running' ? "destructive" : "default"}
+                              size="sm"
+                              className="w-24 flex-shrink-0"
+                              onClick={(e) => { e.stopPropagation(); handleToggleContainerStatus(container); }}
+                              disabled={!!actioningContainerId}
+                          >
+                              {actioningContainerId === container.id ? <Loader className="animate-spin" /> : (
+                                  <>
+                                      {container.status === 'running' ? <StopCircle /> : <Play />}
+                                      <span className="ml-2">{container.status === 'running' ? 'Stop' : 'Start'}</span>
+                                  </>
+                              )}
+                          </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                          <p>{container.status === 'running' ? `Stop ${container.name}` : `Start ${container.name}`}</p>
+                      </TooltipContent>
+                  </Tooltip>
+               </TooltipProvider>
+               <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem onClick={() => handleEnterContainer(container.name)}>
+                      <Terminal className="mr-2 h-4 w-4" />
+                      <span>Enter</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleInfoContainer(container)}>
+                      <Info className="mr-2 h-4 w-4" />
+                      <span>Info</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleSaveImage(container)}>
+                      <Save className="mr-2 h-4 w-4" />
+                      <span>Save as Image</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleToggleAutostart(container)}>
+                      {container.autostart ? <PowerOff className="mr-2 h-4 w-4" /> : <Power className="mr-2 h-4 w-4" />}
+                      <span>{container.autostart ? "Disable Autostart" : "Enable Autostart"}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                      className="text-destructive focus:text-destructive-foreground focus:bg-destructive"
+                      onClick={() => handleDeleteConfirm(container)}
+                      disabled={!!actioningContainerId}
+                  >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span>Delete</span>
+                  </DropdownMenuItem>
+                  </DropdownMenuContent>
+              </DropdownMenu>
+          </div>
+      </motion.div>
+  );
+});
+ContainerRow.displayName = 'ContainerRow';
+
 export default function HomePage() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,7 +268,7 @@ export default function HomePage() {
   }, [selectedContainer, fetchSharedApps]);
 
 
-  const handleToggleContainerStatus = async (container: Container) => {
+  const handleToggleContainerStatus = useCallback(async (container: Container) => {
     const isRunning = container.status === "running";
     const action = isRunning ? stopContainer : startContainer;
     const actionName = isRunning ? "Stopping" : "Starting";
@@ -169,14 +297,14 @@ export default function HomePage() {
         await fetchContainers(); 
         setActioningContainerId(null);
     }
-  };
+  }, [fetchContainers, toast]);
 
-  const handleDeleteConfirm = (container: Container) => {
+  const handleDeleteConfirm = useCallback((container: Container) => {
     setContainerToDelete(container);
     setDeleteDialogOpen(true);
-  };
+  }, []);
   
-  const handleDeleteContainer = async () => {
+  const handleDeleteContainer = useCallback(async () => {
     if (!containerToDelete) return;
     
     toast({
@@ -207,9 +335,9 @@ export default function HomePage() {
         await fetchContainers();
         setActioningContainerId(null);
     }
-  };
+  }, [containerToDelete, fetchContainers, selectedContainer?.id, toast]);
 
-  const handleEnterContainer = async (containerName: string) => {
+  const handleEnterContainer = useCallback(async (containerName: string) => {
     try {
       const result = await enterContainer(containerName);
       setDialogContent({
@@ -224,9 +352,9 @@ export default function HomePage() {
         description: error.message,
       });
     }
-  }
+  }, [toast]);
   
-  const handleInfoContainer = async (container: Container) => {
+  const handleInfoContainer = useCallback(async (container: Container) => {
     if (selectedContainer?.id !== container.id || !selectedContainerInfo) {
       try {
           const res = await infoContainer(container.name);
@@ -242,9 +370,9 @@ export default function HomePage() {
     }
     setActivePanel("info");
     setSelectedContainer(container);
-  }
+  }, [selectedContainer?.id, selectedContainerInfo, toast]);
 
-  const handleSaveImage = async (container: Container) => {
+  const handleSaveImage = useCallback(async (container: Container) => {
     toast({
         title: "Saving Image...",
         description: `Creating an image from container "${container.name}". This may take a moment.`,
@@ -266,9 +394,9 @@ export default function HomePage() {
             description: error.message,
         });
     }
-  }
+  }, [toast]);
 
-  const handleToggleAutostart = async (container: Container) => {
+  const handleToggleAutostart = useCallback(async (container: Container) => {
     const newAutostartState = !container.autostart;
     toast({
         title: newAutostartState ? "Enabling Autostart..." : "Disabling Autostart...",
@@ -288,9 +416,9 @@ export default function HomePage() {
             description: error.message,
         });
     }
-  }
+  }, [fetchContainers, toast]);
   
-  const handleRowClick = (container: Container) => {
+  const handleRowClick = useCallback((container: Container) => {
     if (selectedContainer?.id === container.id) {
       setSelectedContainer(null);
       setSelectedContainerInfo(null);
@@ -299,7 +427,17 @@ export default function HomePage() {
       setActivePanel("apps"); 
       setSelectedContainerInfo(null);
     }
-  }
+  }, [selectedContainer?.id]);
+
+  const rowHandlers = useMemo(() => ({
+    handleToggleContainerStatus,
+    handleEnterContainer,
+    handleInfoContainer,
+    handleSaveImage,
+    handleToggleAutostart,
+    handleDeleteConfirm,
+  }), [handleToggleContainerStatus, handleEnterContainer, handleInfoContainer, handleSaveImage, handleToggleAutostart, handleDeleteConfirm]);
+
 
   if (loading) {
     return (
@@ -334,125 +472,6 @@ export default function HomePage() {
     }
   };
   
-  const FlagBadge = ({ icon, text, enabled }: { icon: React.ElementType, text: string, enabled: boolean }) => {
-    if (!enabled) return null;
-    return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Badge variant="secondary" className="gap-1.5 font-normal">
-                        {React.createElement(icon, { className: "h-3 w-3" })}
-                        <span className="hidden xl:inline">{text}</span>
-                    </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>{text}</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-    );
-  };
-  
-  const ContainerRow = ({ container, onSelect, isSelected }: { container: Container, onSelect: (c: Container) => void, isSelected: boolean }) => {
-    return (
-        <div
-            onClick={() => onSelect(container)}
-            className={cn(
-                "relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg transition-all duration-200 cursor-pointer hover:bg-muted/50",
-                isSelected && "ring-2 ring-primary ring-inset bg-primary/10"
-            )}
-        >
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                             <div className="flex items-center justify-center">
-                                <span className={cn("h-3 w-3 rounded-full", container.status === 'running' ? 'bg-green-400 animate-pulse' : 'bg-red-400')}></span>
-                            </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p className="capitalize">{container.status}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-
-                <div className="flex flex-col min-w-0">
-                    <span className="font-semibold truncate">{container.name}</span>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                       <i className={cn(getDistroIcon(container.image), "text-lg")}></i>
-                       <span className="truncate">{container.image}</span>
-                    </div>
-                </div>
-            </div>
-            <div className="flex items-center gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0 self-end sm:self-center">
-                 <div className="flex items-center gap-2">
-                    <FlagBadge icon={Home} text="Isolated Home" enabled={container.home.type === 'Isolated'} />
-                    <FlagBadge icon={Power} text="Autostart" enabled={container.autostart} />
-                 </div>
-                 <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
-                                variant={container.status === 'running' ? "destructive" : "default"}
-                                size="sm"
-                                className="w-24"
-                                onClick={(e) => { e.stopPropagation(); handleToggleContainerStatus(container); }}
-                                disabled={!!actioningContainerId}
-                            >
-                                {actioningContainerId === container.id ? <Loader className="animate-spin" /> : (
-                                    <>
-                                        {container.status === 'running' ? <StopCircle /> : <Play />}
-                                        <span className="ml-2">{container.status === 'running' ? 'Stop' : 'Start'}</span>
-                                    </>
-                                )}
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>{container.status === 'running' ? `Stop ${container.name}` : `Start ${container.name}`}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                 </TooltipProvider>
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem onClick={() => handleEnterContainer(container.name)}>
-                        <Terminal className="mr-2 h-4 w-4" />
-                        <span>Enter</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleInfoContainer(container)}>
-                        <Info className="mr-2 h-4 w-4" />
-                        <span>Info</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleSaveImage(container)}>
-                        <Save className="mr-2 h-4 w-4" />
-                        <span>Save as Image</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleToggleAutostart(container)}>
-                        {container.autostart ? <PowerOff className="mr-2 h-4 w-4" /> : <Power className="mr-2 h-4 w-4" />}
-                        <span>{container.autostart ? "Disable Autostart" : "Enable Autostart"}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        className="text-destructive focus:text-destructive-foreground focus:bg-destructive"
-                        onClick={() => handleDeleteConfirm(container)}
-                        disabled={!!actioningContainerId}
-                    >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Delete</span>
-                    </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-        </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -496,14 +515,18 @@ export default function HomePage() {
                       )}
                   </div>
               ) : (
-              filteredContainers.map((container) => (
-                  <ContainerRow 
-                      key={container.id} 
-                      container={container}
-                      onSelect={handleRowClick}
-                      isSelected={selectedContainer?.id === container.id}
-                  />
-              ))
+                <AnimatePresence>
+                  {filteredContainers.map((container) => (
+                      <ContainerRow 
+                          key={container.id} 
+                          container={container}
+                          onSelect={handleRowClick}
+                          isSelected={selectedContainer?.id === container.id}
+                          actioningContainerId={actioningContainerId}
+                          handlers={rowHandlers}
+                      />
+                  ))}
+                </AnimatePresence>
               )}
             </div>
           </ScrollArea>

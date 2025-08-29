@@ -90,11 +90,15 @@
       "buildResources": "resources",
       "output": "dist"
     },
+    "asarUnpack": [
+      "**/node_modules/electron-is-dev/**/*"
+    ],
     "win": {
       "target": "nsis"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "compression": "maximum"
     },
     "mac": {
       "target": "dmg"

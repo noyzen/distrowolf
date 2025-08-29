@@ -2,10 +2,11 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const { ipcMain } = require('electron');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 const Store = require('electron-store');
 const clipboard = require('electron').clipboard;
+const fs = require('fs');
 
 const execAsync = promisify(exec);
 const store = new Store();
@@ -74,7 +75,7 @@ async function parseListOutput(output) {
             const entry = env.find(e => e.startsWith(`${key}=`));
             return entry ? entry.split('=')[1] : null;
         };
-
+        
         const distroboxHostHome = findEnvValue('DISTROBOX_HOST_HOME');
         const containerHome = findEnvValue('HOME');
         
@@ -250,20 +251,125 @@ function parseSearchableApps(output, packageManager) {
     }).filter(Boolean);
 }
 
+function getDistroInfo() {
+    if (!fs.existsSync('/etc/os-release')) {
+        return { id: 'unknown', name: 'Unknown Linux' };
+    }
+    const osRelease = fs.readFileSync('/etc/os-release', 'utf-8');
+    const lines = osRelease.split('\n');
+    const info = {};
+    lines.forEach(line => {
+        if (line) {
+            const [key, value] = line.split('=');
+            if (key && value) {
+                info[key.trim()] = value.trim().replace(/"/g, '');
+            }
+        }
+    });
+    return { id: info.ID || 'unknown', name: info.PRETTY_NAME || 'Unknown Linux' };
+}
+
 
 ipcMain.handle('check-dependencies', async () => {
-  const checkCmd = async (cmd) => {
-    try {
-      await execAsync(`command -v ${cmd}`);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-  const distroboxInstalled = await checkCmd('distrobox');
-  const podmanInstalled = await checkCmd('podman');
-  return { distroboxInstalled, podmanInstalled };
+    const checkCmd = async (cmd) => {
+        try {
+            await execAsync(`command -v ${cmd}`);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    };
+    const distroboxInstalled = await checkCmd('distrobox');
+    const podmanInstalled = await checkCmd('podman');
+    const dockerInstalled = await checkCmd('docker');
+    const distroInfo = getDistroInfo();
+
+    return {
+        distroboxInstalled,
+        podmanInstalled,
+        dockerInstalled,
+        distroInfo,
+    };
 });
+
+function runCommandWithPkexec(command) {
+    return new Promise((resolve, reject) => {
+        const child = spawn('pkexec', ['sh', '-c', command], {
+            stdio: ['ignore', 'pipe', 'pipe'] // stdin, stdout, stderr
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout.on('data', (data) => {
+            stdout += data.toString();
+            console.log(`[pkexec stdout]: ${data}`);
+        });
+
+        child.stderr.on('data', (data) => {
+            stderr += data.toString();
+            console.error(`[pkexec stderr]: ${data}`);
+        });
+
+        child.on('close', (code) => {
+            if (code === 0) {
+                resolve({ success: true, stdout });
+            } else {
+                 if (stderr.includes('polkit-agent-helper-1') || code === 126 || code === 127) {
+                     reject(new Error('Authentication failed or was cancelled by the user.'));
+                } else {
+                     reject(new Error(`Command failed with exit code ${code}: ${stderr || 'Unknown error'}`));
+                }
+            }
+        });
+        
+        child.on('error', (err) => {
+            console.error('[pkexec spawn error]:', err);
+            reject(new Error(`Failed to start pkexec. Is polkit configured correctly? Error: ${err.message}`));
+        });
+    });
+}
+
+ipcMain.handle('install-podman', async () => {
+    const { id } = getDistroInfo();
+    let command;
+
+    switch (id) {
+        case 'ubuntu':
+        case 'debian':
+        case 'pop':
+        case 'linuxmint':
+            command = 'apt-get update && apt-get install -y podman';
+            break;
+        case 'fedora':
+        case 'rocky':
+        case 'almalinux':
+        case 'centos':
+            command = 'dnf install -y podman';
+            break;
+        case 'arch':
+        case 'manjaro':
+        case 'endeavouros':
+        case 'garuda':
+            command = 'pacman -S --noconfirm podman';
+            break;
+        case 'opensuse-tumbleweed':
+        case 'opensuse-leap':
+            command = 'zypper install -y podman';
+            break;
+        default:
+            throw new Error(`Unsupported distribution for automatic Podman installation: ${id}`);
+    }
+
+    return runCommandWithPkexec(command);
+});
+
+
+ipcMain.handle('install-distrobox', async () => {
+    const command = 'curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sh';
+    return runCommandWithPkexec(command);
+});
+
 
 ipcMain.handle('get-system-info', async () => {
     const getInfo = async (cmd, parser) => {
@@ -329,7 +435,7 @@ ipcMain.handle('import-image', async () => {
     const filePath = filePaths[0];
     try {
         const { stdout, stderr } = await execAsync(`podman load -i "${filePath}"`);
-        if (stderr.toLowerCase().includes('already exists')) {
+        if (stderr && stderr.toLowerCase().includes('already exists')) {
              return { success: false, cancelled: false, error: 'Image already exists.' };
         }
         return { success: true, cancelled: false, path: filePath };
