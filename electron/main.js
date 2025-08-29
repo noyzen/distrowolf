@@ -46,36 +46,45 @@ async function createWindow() {
 }
 
 function parseListOutput(output) {
-  const lines = output.trim().split('\n');
-  if (lines.length <= 1) {
-    return [];
-  }
+    const lines = output.trim().split('\n');
+    if (lines.length < 2) {
+        console.log('DEBUG: No container data lines found.');
+        return [];
+    }
 
-  // Remove header and separator lines
-  const dataLines = lines.slice(2);
+    // Skip header line
+    const dataLines = lines.slice(1);
 
-  return dataLines.map(line => {
-    // Split by '|' and trim whitespace
-    const parts = line.split('|').map(p => p.trim());
-    
-    // Ensure the line has the expected number of parts
-    if (parts.length < 5) return null;
+    return dataLines.map(line => {
+        const parts = line.split('|').map(p => p.trim());
+        
+        if (parts.length < 4) {
+            console.log(`DEBUG: Skipping invalid line: "${line}" (expected 4 parts, got ${parts.length})`);
+            return null;
+        }
+        
+        // The status can be complex, e.g., "Up 2 hours" or "Exited (0) 5 minutes ago".
+        // We just need to know if it's running or not. "Up" is a good indicator.
+        const status = parts[2].toLowerCase().startsWith('up') ? 'running' : 'stopped';
 
-    return {
-      id: parts[0],
-      name: parts[1],
-      status: parts[3].toLowerCase(),
-      image: parts[4],
-      // These are placeholders for now as 'distrobox list' doesn't provide them
-      size: 'N/A', 
-      autostart: false, 
-      sharedHome: false,
-      init: false,
-      nvidia: false,
-      volumes: [],
-    };
-  }).filter(Boolean); // Filter out any null entries from invalid lines
+        const container = {
+            id: parts[0],
+            name: parts[1],
+            status: status,
+            image: parts[3],
+            // These are placeholders for now
+            size: 'N/A', 
+            autostart: false, 
+            sharedHome: false,
+            init: false,
+            nvidia: false,
+            volumes: [],
+        };
+        console.log(`DEBUG: Parsed container: ${JSON.stringify(container)}`);
+        return container;
+    }).filter(Boolean); // Filter out any null entries
 }
+
 
 ipcMain.handle('list-containers', async () => {
   console.log('DEBUG: Received "list-containers" event.');
