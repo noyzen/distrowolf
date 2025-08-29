@@ -81,17 +81,32 @@ function parseListOutput(output) {
 function parseLocalImages(output) {
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
+    const headerLine = lines[0];
     const dataLines = lines.slice(1);
+
+    const repositoryIndex = headerLine.indexOf("REPOSITORY");
+    const tagIndex = headerLine.indexOf("TAG");
+    const idIndex = headerLine.indexOf("IMAGE ID");
+    const createdIndex = headerLine.indexOf("CREATED");
+    const sizeIndex = headerLine.indexOf("SIZE");
+
+
     return dataLines.map((line, index) => {
-        const parts = line.split(/\s{2,}/); // Split on 2+ spaces
-        if (parts.length < 3) return null;
+        const repository = line.substring(repositoryIndex, tagIndex).trim();
+        const tag = line.substring(tagIndex, idIndex).trim();
+        const imageID = line.substring(idIndex, createdIndex).trim();
+        const created = line.substring(createdIndex, sizeIndex).trim();
+        const size = line.substring(sizeIndex).trim();
+        
+        if (!repository || !imageID) return null;
+
         return {
-            id: `img-${parts[2].substring(0,12)}`, // Use image ID for a more stable unique key
-            repository: parts[0],
-            tag: parts[1],
-            imageID: parts[2],
-            created: parts[3],
-            size: parts[4],
+            id: `img-${imageID.substring(0,12)}`,
+            repository,
+            tag,
+            imageID,
+            created,
+            size,
         };
     }).filter(Boolean);
 }
@@ -122,7 +137,7 @@ ipcMain.handle('get-system-info', async () => {
     };
 
     const distro = await getInfo("grep '^PRETTY_NAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", val => val);
-    const distroboxVersion = await getInfo("distrobox --version", val => val.split(': ')[1]);
+    const distroboxVersion = await getInfo("distrobox --version", val => val);
     const podmanVersion = await getInfo("podman --version", val => val.split('version ')[1]);
     
     return { distro, distroboxVersion, podmanVersion };
@@ -138,13 +153,25 @@ ipcMain.handle('list-local-images', async () => {
     }
 });
 
-ipcMain.handle('create-container', async (event, { name, image, sharedHome, init, nvidia, volumes }) => {
-    let command = `distrobox create --name ${name} --image ${image}`;
-    if (sharedHome) command += ' --home /home/$USER'; // Example, adjust as needed for your setup
+
+ipcMain.handle('pull-image', async (event, imageName) => {
+    try {
+        console.log(`Pulling image: ${imageName}`);
+        await execAsync(`podman pull ${imageName}`);
+        return { success: true };
+    } catch (error) {
+        console.error(`Error pulling image ${imageName}:`, error);
+        throw error;
+    }
+});
+
+ipcMain.handle('create-container', async (event, { name, image, home, init, nvidia, volumes }) => {
+    let command = `distrobox create --name ${name} --image "${image}"`;
+    if (home) command += ` --home "${home}"`;
     if (init) command += ' --init';
     if (nvidia) command += ' --nvidia';
     volumes.forEach(volume => {
-        command += ` --volume ${volume}`;
+        command += ` --volume "${volume}"`;
     });
 
     try {

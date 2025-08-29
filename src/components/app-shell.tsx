@@ -35,21 +35,17 @@ const navItems = [
   { href: "/", label: "My Containers", icon: Boxes },
   { href: "/images", label: "Local Images", icon: HardDrive },
   { href: "/download", label: "Download Images", icon: Download },
+  { href: "/system", label: "System", icon: Wrench },
 ];
 
-const systemNavItems = [
-    { href: "/system", label: "System", icon: Wrench },
-]
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  const allNavItems = [...navItems, ...systemNavItems];
-  const currentPage = allNavItems.find((item) => {
+  const currentPage = navItems.find((item) => {
     if (item.href === '/') return pathname === '/';
-    // Handle cases where the current path is a sub-path of a nav item
     return pathname.startsWith(item.href) && (pathname.length === item.href.length || pathname[item.href.length] === '/');
-  }) ?? allNavItems.find(item => item.href === '/'); // Default to "My Containers"
+  }) ?? navItems.find(item => item.href === '/'); // Default to "My Containers"
 
   return (
     <SidebarProvider>
@@ -64,11 +60,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             </h1>
           </div>
         </SidebarHeader>
-        <SidebarContent>
+        <SidebarContent className="p-2">
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href} legacyBehavior={false}>
+                <Link href={item.href}>
                   <SidebarMenuButton
                     isActive={currentPage?.href === item.href}
                     tooltip={item.label}
@@ -81,39 +77,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
-         <SidebarFooter className="p-4 space-y-4 mt-auto">
-           <SidebarMenu>
-             {systemNavItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href} legacyBehavior={false}>
-                  <SidebarMenuButton
-                    isActive={currentPage?.href === item.href}
-                    tooltip={item.label}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-           </SidebarMenu>
-          <SidebarSeparator />
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src="https://picsum.photos/100" data-ai-hint="profile picture" alt="User" />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col overflow-hidden">
-              <span className="font-semibold truncate">User</span>
-              <span className="text-xs text-muted-foreground truncate">
-                user@distrowolf.dev
-              </span>
-            </div>
-            <Button variant="ghost" size="icon" className="ml-auto flex-shrink-0">
-              <Settings className="h-5 w-5" />
-            </Button>
-          </div>
-        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-background/50 backdrop-blur-sm px-6 sticky top-0 z-30">

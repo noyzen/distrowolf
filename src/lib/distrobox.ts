@@ -1,10 +1,10 @@
 
-import type { Container, LocalImage } from './types';
+import type { Container, LocalImage, SystemInfo } from './types';
 
 type CreateContainerOptions = {
   name: string;
   image: string;
-  sharedHome: boolean;
+  home: string;
   init: boolean;
   nvidia: boolean;
   volumes: string[];
@@ -14,7 +14,7 @@ declare global {
   interface Window {
     electron: {
       checkDependencies: () => Promise<{ distroboxInstalled: boolean, podmanInstalled: boolean }>;
-      getSystemInfo: () => Promise<{ distro: string, distroboxVersion: string, podmanVersion: string }>;
+      getSystemInfo: () => Promise<SystemInfo>;
       
       listContainers: () => Promise<Container[]>;
       createContainer: (options: CreateContainerOptions) => Promise<{ success: boolean }>;
@@ -26,6 +26,7 @@ declare global {
       saveContainerAsImage: (containerName: string) => Promise<{ success: boolean, imageName?: string, error?: string }>;
       
       listLocalImages: () => Promise<LocalImage[]>;
+      pullImage: (imageName: string) => Promise<{ success: boolean }>;
     }
   }
 }
@@ -36,7 +37,7 @@ export async function checkDependencies() {
     return { distroboxInstalled: false, podmanInstalled: false };
 }
 
-export async function getSystemInfo() {
+export async function getSystemInfo(): Promise<SystemInfo> {
     if (window.electron) return window.electron.getSystemInfo();
     console.warn("Electron API not available.");
     return { distro: 'N/A', distroboxVersion: 'N/A', podmanVersion: 'N/A' };
@@ -52,6 +53,12 @@ export async function listLocalImages(): Promise<LocalImage[]> {
   if (window.electron) return window.electron.listLocalImages();
   console.warn("Electron API not available.");
   return [];
+}
+
+export async function pullImage(imageName: string): Promise<{ success: boolean }> {
+  if (window.electron) return window.electron.pullImage(imageName);
+  console.warn("Electron API not available.");
+  return { success: false };
 }
 
 export async function createContainer(options: CreateContainerOptions): Promise<{ success: boolean }> {

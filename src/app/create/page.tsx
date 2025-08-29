@@ -16,13 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { LocalImage } from "@/lib/types";
@@ -37,15 +31,26 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { createContainer, listLocalImages } from "@/lib/distrobox";
-import { Loader } from "lucide-react";
+import { HardDrive, Loader } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
   image: z.string().min(1, "Please select an image."),
-  sharedHome: z.boolean().default(false),
+  homeMode: z.enum(["shared", "isolated"]).default("shared"),
+  customHome: z.string().optional(),
   init: z.boolean().default(false),
   nvidia: z.boolean().default(false),
   volumes: z.string().optional(),
+}).refine(data => {
+    if (data.homeMode === 'isolated') {
+        return !!data.customHome && data.customHome.length > 0;
+    }
+    return true;
+}, {
+    message: "A custom home path is required for isolated mode.",
+    path: ["customHome"],
 });
 
 export default function CreateContainerPage() {
@@ -54,6 +59,22 @@ export default function CreateContainerPage() {
   const [isSubmitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      image: "",
+      homeMode: "shared",
+      customHome: "",
+      init: false,
+      nvidia: false,
+      volumes: "",
+    },
+  });
+
+  const homeMode = form.watch("homeMode");
+
 
   useEffect(() => {
     async function fetchImages() {
@@ -74,22 +95,28 @@ export default function CreateContainerPage() {
     fetchImages();
   }, [toast]);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      image: "",
-      sharedHome: true,
-      init: false,
-      nvidia: false,
-      volumes: "",
-    },
-  });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setSubmitting(true);
     const volumesArray = values.volumes ? values.volumes.split("\n").filter((v:string) => v.trim() !== "") : [];
-    const newContainerData = { ...values, volumes: volumesArray };
+    
+    let homePath = "";
+    if (values.homeMode === 'isolated') {
+        homePath = values.customHome || "";
+    } else {
+        // Find user home to construct shared path
+        // This is a simplification; a more robust solution might be needed
+        homePath = '/home/user'; // This is a placeholder
+    }
+
+    const newContainerData = { 
+        name: values.name,
+        image: values.image,
+        home: homePath,
+        init: values.init,
+        nvidia: values.nvidia,
+        volumes: volumesArray 
+    };
 
     toast({
       title: "Creating container...",
@@ -139,60 +166,100 @@ export default function CreateContainerPage() {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="image"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Base Image</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={loadingImages || localImages.length === 0}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={loadingImages ? "Loading local images..." : "Select an image"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {localImages.length > 0 ? localImages.map((img) => (
-                        <SelectItem
-                          key={img.id}
-                          value={`${img.repository}:${img.tag}`}
-                        >
-                          {img.repository}:{img.tag} ({img.size})
-                        </SelectItem>
-                      )) : (
-                        <SelectItem value="none" disabled>No local images found. Go to 'Download Images' first.</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>The container image to build from. Images must be available locally.</FormDescription>
+                  <FormControl>
+                    <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+                    >
+                        {loadingImages ? (
+                           Array.from({ length: 4 }).map((_, i) => (
+                               <Skeleton key={i} className="h-24 w-full" />
+                           ))
+                        ) : localImages.length > 0 ? (
+                            localImages.map((img) => (
+                                <FormItem key={img.id} className="relative">
+                                    <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
+                                    <FormLabel htmlFor={img.id} className={cn(
+                                        "flex flex-col items-start justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
+                                        "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
+                                    )}>
+                                        <h3 className="font-semibold text-foreground truncate w-full">{img.repository}:{img.tag}</h3>
+                                        <p className="text-sm text-muted-foreground">{img.size}</p>
+                                        <p className="text-xs text-muted-foreground">{img.created}</p>
+                                    </FormLabel>
+                                </FormItem>
+                            ))
+                        ) : null}
+                    </RadioGroup>
+                  </FormControl>
+                  {localImages.length === 0 && !loadingImages && (
+                        <div className="text-center col-span-full p-8 border-2 border-dashed rounded-lg">
+                           <HardDrive className="mx-auto h-12 w-12 text-muted-foreground" />
+                           <h3 className="mt-4 text-lg font-semibold">No Local Images Found</h3>
+                           <p className="text-muted-foreground">Go to the "Download Images" page to pull an image first.</p>
+                        </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="homeMode"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Home Directory</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2">
+                        <RadioGroupItem value="shared" id="r1" />
+                        <FormLabel htmlFor="r1">Share Host Home</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2">
+                        <RadioGroupItem value="isolated" id="r2" />
+                        <FormLabel htmlFor="r2">Isolated Home</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {homeMode === 'isolated' && (
+                 <FormField
+                    control={form.control}
+                    name="customHome"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Custom Home Path</FormLabel>
+                        <FormControl>
+                            <Input placeholder="/path/on/host/for/container/home" {...field} />
+                        </FormControl>
+                        <FormDescription>The path on your host machine to be mounted as the home directory inside the container.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                 />
+            )}
+            
             <div className="space-y-2">
                  <FormLabel>Flags</FormLabel>
                  <FormDescription>Common flags for container creation.</FormDescription>
-                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                    <FormField
-                        control={form.control}
-                        name="sharedHome"
-                        render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <FormLabel htmlFor="shared-home">Shared Home</FormLabel>
-                            <FormControl>
-                            <Switch
-                                id="shared-home"
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                            />
-                            </FormControl>
-                        </FormItem>
-                        )}
-                    />
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     <FormField
                         control={form.control}
                         name="init"
@@ -240,7 +307,7 @@ export default function CreateContainerPage() {
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>One volume mount per line.</FormDescription>
+                  <FormDescription>One volume mount per line. Your home directory is handled above.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

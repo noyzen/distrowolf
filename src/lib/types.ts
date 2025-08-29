@@ -16,6 +16,7 @@ export interface LocalImage {
   id: string;
   repository: string;
   tag: string;
+  imageID: string;
   size: string;
   created: string;
 }

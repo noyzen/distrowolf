@@ -18,4 +18,5 @@ contextBridge.exposeInMainWorld('electron', {
 
   // Image Management
   listLocalImages: () => ipcRenderer.invoke('list-local-images'),
+  pullImage: (imageName) => ipcRenderer.invoke('pull-image', imageName),
 });
