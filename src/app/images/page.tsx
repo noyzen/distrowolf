@@ -2,10 +2,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Upload, Trash2, Download, RefreshCw, Loader, HardDrive } from "lucide-react";
+import { Upload, Trash2, Download, RefreshCw, Loader, HardDrive, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { listLocalImages, deleteImage, exportImage, importImage } from "@/lib/distrobox";
 import type { LocalImage } from "@/lib/types";
@@ -143,7 +144,7 @@ export default function ImagesPage() {
                   <TableHead>Repository</TableHead>
                   <TableHead className="hidden sm:table-cell">Tag</TableHead>
                   <TableHead className="hidden md:table-cell">Image ID</TableHead>
-                  <TableHead>Size</TableHead>
+                  <TableHead className="hidden sm:table-cell">Size</TableHead>
                   <TableHead className="hidden lg:table-cell">Created</TableHead>
                   <TableHead className="text-right w-[120px]">Actions</TableHead>
                 </TableRow>
@@ -167,12 +168,13 @@ export default function ImagesPage() {
                             <div className="flex flex-col">
                                 <span>{image.repository}</span>
                                 <span className="text-muted-foreground sm:hidden text-xs">{image.tag}</span>
+                                <span className="text-muted-foreground sm:hidden text-xs">{image.size}</span>
                             </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{image.tag}</TableCell>
                       <TableCell className="hidden md:table-cell font-mono text-xs">{image.imageID.substring(0, 12)}</TableCell>
-                      <TableCell>{image.size}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{image.size}</TableCell>
                       <TableCell className="hidden lg:table-cell text-muted-foreground">{image.created}</TableCell>
                       <TableCell className="text-right">
                         <TooltipProvider>
@@ -204,13 +206,19 @@ export default function ImagesPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      <div className="flex flex-col items-center gap-4">
+                    <TableCell colSpan={6} className="h-48 text-center">
+                      <div className="flex flex-col items-center justify-center gap-4 text-center">
                         <HardDrive className="h-12 w-12 text-muted-foreground" />
-                        <div className="text-center">
+                        <div>
                           <h3 className="font-semibold">No local images found</h3>
-                          <p className="text-muted-foreground">{searchTerm ? "No images match your search." : "Download an image or pull one using podman."}</p>
+                          <p className="text-muted-foreground">{searchTerm ? "No images match your search." : "Pull an image to get started."}</p>
                         </div>
+                        <Button asChild>
+                          <Link href="/download">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Download an Image
+                          </Link>
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

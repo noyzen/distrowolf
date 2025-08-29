@@ -168,7 +168,7 @@ function parseSharedBinaries(output, containerName) {
     }).filter(Boolean);
 }
 
-function parseSearchableApps(output, packageManager, query) {
+function parseSearchableApps(output, packageManager) {
     console.log(`[DEBUG] Raw output for ${packageManager}:`, `\n---\n${output}\n---`);
     const lines = output.trim().split('\n').filter(line => line.trim() !== '');
     if (lines.length === 0) return [];
@@ -196,7 +196,7 @@ function parseSearchableApps(output, packageManager, query) {
                     break;
                 case 'pacman':
                     if (parts.length < 2) return null;
-                    name = parts[0];
+                    name = parts[0].split('/')[1] || parts[0]; // handles 'local/firefox'
                     version = parts[1];
                     break;
                 case 'zypper':
@@ -207,12 +207,8 @@ function parseSearchableApps(output, packageManager, query) {
                     description = zypperParts[2];
                     break;
                 case 'apk':
-                     if (line.includes(query)) {
-                        name = parts[0].replace(/-\d.*/, '');
-                        version = parts[0].substring(name.length + 1) || 'N/A';
-                     } else {
-                        return null;
-                     }
+                    name = parts[0].replace(/-\d.*/, '');
+                    version = parts[0].substring(name.length + 1) || 'N/A';
                     break;
                 case 'snap':
                     if (parts.length < 2 || line.toLowerCase().startsWith('name')) return null; // Skip header
@@ -232,7 +228,7 @@ function parseSearchableApps(output, packageManager, query) {
                      version = name.split('-').pop() || 'N/A';
                      name = name.replace(`-${version}`, '');
                      break;
-                default:
+                default: // Generic fallback for grep-based results
                     name = parts[0];
                     version = parts[1] || 'N/A';
             }
@@ -538,7 +534,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
   try {
     const { stdout } = await execAsync(fullCommand);
-    return parseSearchableApps(stdout, packageManager, escapedQuery);
+    return parseSearchableApps(stdout, packageManager);
   } catch (error) {
     if (error.code === 1 && error.stdout === '') {
         return [];

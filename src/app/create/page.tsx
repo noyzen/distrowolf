@@ -30,11 +30,12 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { createContainer, listLocalImages } from "@/lib/distrobox";
-import { HardDrive, Loader, CheckCircle, Package, Tag, Clock, Layers } from "lucide-react";
+import { HardDrive, Loader, CheckCircle, Package, Tag, Clock, Layers, Download } from "lucide-react";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -262,7 +263,12 @@ export default function CreateContainerPage() {
                            <HardDrive className="mx-auto h-12 w-12 text-muted-foreground" />
                            <h3 className="mt-4 text-lg font-semibold">No Local Images Found</h3>
                            <p className="text-muted-foreground">Go to the "Download Images" page to pull an image first.</p>
-                           <Button variant="outline" className="mt-4" onClick={() => router.push('/download')}>Go to Downloads</Button>
+                           <Button asChild variant="outline" className="mt-4">
+                            <Link href="/download">
+                                <Download className="mr-2 h-4 w-4" />
+                                Go to Downloads
+                            </Link>
+                           </Button>
                         </div>
                   )}
                   <FormMessage />

@@ -33,8 +33,9 @@ import {
   Box,
   Copy,
   PlusCircle,
-  Home as HomeIcon,
+  Home,
   AppWindow,
+  RefreshCcw,
 } from "lucide-react";
 import type { Container, SharedApp } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -407,9 +408,32 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0 self-end sm:self-center">
                  <div className="flex items-center gap-2">
-                    <FlagBadge icon={HomeIcon} text="Isolated Home" enabled={container.home === 'Isolated'} />
+                    <FlagBadge icon={Home} text="Isolated Home" enabled={container.home === 'Isolated'} />
                     <FlagBadge icon={Power} text="Autostart" enabled={container.autostart} />
                  </div>
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={container.status === 'running' ? "destructive" : "default"}
+                                size="sm"
+                                className="w-24"
+                                onClick={(e) => { e.stopPropagation(); handleToggleContainerStatus(container); }}
+                                disabled={!!actioningContainerId}
+                            >
+                                {actioningContainerId === container.id ? <Loader className="animate-spin" /> : (
+                                    <>
+                                        {container.status === 'running' ? <StopCircle /> : <Play />}
+                                        <span className="ml-2">{container.status === 'running' ? 'Stop' : 'Start'}</span>
+                                    </>
+                                )}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>{container.status === 'running' ? `Stop ${container.name}` : `Start ${container.name}`}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                 </TooltipProvider>
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
@@ -418,13 +442,6 @@ export default function HomePage() {
                     </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem
-                        onClick={() => handleToggleContainerStatus(container)}
-                        disabled={!!actioningContainerId}
-                    >
-                        {container.status === "running" ? <StopCircle className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-                        <span>{container.status === "running" ? "Stop" : "Start"}</span>
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleEnterContainer(container.name)}>
                         <Terminal className="mr-2 h-4 w-4" />
                         <span>Enter</span>
