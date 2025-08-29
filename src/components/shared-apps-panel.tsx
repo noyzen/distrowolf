@@ -72,18 +72,16 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
             Applications and binaries from this container available on the host.
             </CardDescription>
         </div>
-        <div className="flex items-center gap-2 pt-1">
-            <div className="flex items-center space-x-2">
-                <Checkbox id="show-binaries" checked={showBinaries} onCheckedChange={(checked) => setShowBinaries(!!checked)} />
-                <Label htmlFor="show-binaries" className="text-sm font-normal text-muted-foreground whitespace-nowrap">Show Binaries</Label>
-            </div>
-            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
-                {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            </Button>
-        </div>
+        <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading} className="flex-shrink-0">
+            {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+        </Button>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] border rounded-lg p-2">
+        <div className="flex items-center space-x-2 mb-4">
+            <Checkbox id="show-binaries" checked={showBinaries} onCheckedChange={(checked) => setShowBinaries(!!checked)} />
+            <Label htmlFor="show-binaries" className="text-sm font-normal text-muted-foreground whitespace-nowrap cursor-pointer">Show exported binaries</Label>
+        </div>
+        <ScrollArea className="h-[270px] border rounded-lg p-2">
             <div className="space-y-2">
                 {isLoading && sharedApps.length === 0 ? (
                     <div className="flex items-center justify-center h-24 gap-2 text-muted-foreground">

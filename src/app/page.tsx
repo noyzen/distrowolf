@@ -36,6 +36,7 @@ import {
   Cpu,
   Rocket,
   Home as HomeIcon,
+  AppWindow,
 } from "lucide-react";
 import type { Container, SharedApp } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +63,7 @@ import Link from "next/link";
 import { useSearch } from "@/hooks/use-search";
 import { ContainerInfoPanel } from "@/components/container-info-panel";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type PanelMode = "apps" | "info";
 
@@ -359,10 +361,19 @@ export default function HomePage() {
   const FlagBadge = ({ icon, text, enabled }: { icon: React.ElementType, text: string, enabled: boolean }) => {
     if (!enabled) return null;
     return (
-        <Badge variant="secondary" className="gap-1.5 font-normal">
-            {React.createElement(icon, { className: "h-3 w-3" })}
-            {text}
-        </Badge>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Badge variant="secondary" className="gap-1.5 font-normal">
+                        {React.createElement(icon, { className: "h-3 w-3" })}
+                        <span className="hidden xl:inline">{text}</span>
+                    </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{text}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     );
   };
   
@@ -376,17 +387,19 @@ export default function HomePage() {
             )}
         >
             <div className="flex items-center gap-4 flex-1 min-w-0">
-                <Badge
-                    variant={container.status === "running" ? "default" : "secondary"}
-                    className="capitalize w-24 justify-center flex-shrink-0"
-                >
-                    {actioningContainerId === container.id ? (
-                        <Loader className="mr-2 h-3 w-3 animate-spin"/>
-                    ) : (
-                        <span className={cn("h-2 w-2 rounded-full mr-2", container.status === 'running' ? 'bg-green-400' : 'bg-red-400')}></span>
-                    )}
-                    {container.status}
-                </Badge>
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <div className="flex items-center justify-center">
+                                <span className={cn("h-3 w-3 rounded-full", container.status === 'running' ? 'bg-green-400 animate-pulse' : 'bg-red-400')}></span>
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p className="capitalize">{container.status}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+
                 <div className="flex flex-col min-w-0">
                     <span className="font-semibold truncate">{container.name}</span>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -396,7 +409,7 @@ export default function HomePage() {
                 </div>
             </div>
             <div className="flex items-center gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0 self-end sm:self-center">
-                 <div className="hidden md:flex items-center gap-2">
+                 <div className="flex items-center gap-2">
                     <FlagBadge icon={Rocket} text="Init" enabled={container.init} />
                     <FlagBadge icon={Cpu} text="Nvidia" enabled={container.nvidia} />
                     <FlagBadge icon={HomeIcon} text="Isolated Home" enabled={container.home === 'Isolated'} />
@@ -453,8 +466,8 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
+          <div className="flex-grow">
             <CardTitle className="font-headline">My Containers</CardTitle>
             <CardDescription>
               Select a container to manage its applications, or create a new one.

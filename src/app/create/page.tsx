@@ -235,22 +235,18 @@ export default function CreateContainerPage() {
                                                 <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
                                             </FormControl>
                                             <FormLabel htmlFor={img.id} className={cn(
-                                                "flex flex-col items-start gap-4 rounded-lg border-2 border-muted bg-card p-4 h-full hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
+                                                "flex flex-col items-start justify-between gap-4 rounded-lg border-2 border-muted bg-card p-4 h-full hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
                                                 "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
                                             )}>
-                                                <div className="flex items-center gap-4 w-full">
-                                                    <i className={cn(getDistroIcon(img.repository), "text-4xl")}></i>
+                                                <div className="flex items-start gap-4 w-full">
+                                                    <i className={cn(getDistroIcon(img.repository), "text-4xl text-muted-foreground pt-1")}></i>
                                                     <div className="flex flex-col items-start overflow-hidden w-full text-left">
-                                                        <div className="flex items-center gap-2">
-                                                          <Package className="h-4 w-4 text-muted-foreground"/>
-                                                          <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                          <Tag className="h-4 w-4 text-muted-foreground"/>
-                                                          <p className="text-sm text-muted-foreground truncate w-full" title={img.tag}>{img.tag}</p>
-                                                        </div>
+                                                        <p className="text-xs text-muted-foreground">Repository</p>
+                                                        <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
+                                                        <p className="text-xs text-muted-foreground mt-1">Tag</p>
+                                                        <p className="font-mono text-sm text-foreground truncate w-full" title={img.tag}>{img.tag}</p>
                                                     </div>
-                                                    <CheckCircle className={cn("h-5 w-5 text-primary opacity-0 transition-opacity ml-auto", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
+                                                    <CheckCircle className={cn("h-5 w-5 text-primary opacity-0 transition-opacity flex-shrink-0", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
                                                 </div>
                                                 <div className="flex items-center justify-between w-full text-xs text-muted-foreground mt-2">
                                                     <Badge variant="outline" className="font-mono">{img.size}</Badge>

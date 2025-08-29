@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -119,8 +119,8 @@ export default function ImagesPage() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
+          <div className="flex-grow">
             <CardTitle className="font-headline">Local Images</CardTitle>
             <CardDescription>
               Manage container images available on your local machine.
@@ -141,10 +141,10 @@ export default function ImagesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Repository</TableHead>
-                  <TableHead>Tag</TableHead>
-                  <TableHead>Image ID</TableHead>
+                  <TableHead className="hidden sm:table-cell">Tag</TableHead>
+                  <TableHead className="hidden md:table-cell">Image ID</TableHead>
                   <TableHead>Size</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead className="hidden lg:table-cell">Created</TableHead>
                   <TableHead className="text-right w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -161,14 +161,19 @@ export default function ImagesPage() {
                 ) : filteredImages.length > 0 ? (
                   filteredImages.map((image) => (
                     <TableRow key={image.id}>
-                      <TableCell className="font-medium flex items-center gap-2">
-                        <i className={cn(getDistroIcon(image.repository), "text-2xl")}></i>
-                        <span>{image.repository}</span>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                            <i className={cn(getDistroIcon(image.repository), "text-2xl")}></i>
+                            <div className="flex flex-col">
+                                <span>{image.repository}</span>
+                                <span className="text-muted-foreground sm:hidden text-xs">{image.tag}</span>
+                            </div>
+                        </div>
                       </TableCell>
-                      <TableCell>{image.tag}</TableCell>
-                      <TableCell className="font-mono text-xs">{image.imageID.substring(0, 12)}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{image.tag}</TableCell>
+                      <TableCell className="hidden md:table-cell font-mono text-xs">{image.imageID.substring(0, 12)}</TableCell>
                       <TableCell>{image.size}</TableCell>
-                      <TableCell className="text-muted-foreground">{image.created}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground">{image.created}</TableCell>
                       <TableCell className="text-right">
                         <TooltipProvider>
                           <div className="flex justify-end gap-2">
