@@ -198,7 +198,7 @@ function parseSearchableApps(output, packageManager, query) {
                       description = 'RPM Package';
                       break;
                   case 'dnf': case 'yum':
-                       name = parts[0].split('.').slice(0, -1).join('.');
+                       name = parts[0].split('.').slice(0, -1).join('.').toLowerCase();
                        version = parts[1];
                        description = parts.length > 2 ? `Repo: ${parts[2]}` : 'Installed package';
                        break;
@@ -490,7 +490,6 @@ ipcMain.handle('list-shared-apps', async (event, containerName) => {
 
 ipcMain.handle('search-container-apps', async (event, { containerName, packageManager, query }) => {
   let searchCommand;
-  // Escape only shell-special characters for security
   const escapedQuery = query.replace(/(["'$`\\])/g, '\\$1');
 
   switch (packageManager) {
@@ -498,28 +497,28 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
       searchCommand = `dpkg-query -l '*${escapedQuery}*'`;
       break;
     case 'rpm':
-      searchCommand = `rpm -qa '*${escapedQuery}*'`;
+      searchCommand = `rpm -qa --queryformat '%{NAME}\n' | grep -i "${escapedQuery}"`;
       break;
     case 'dnf':
-      searchCommand = `dnf list installed '*${escapedQuery}*'`;
+      searchCommand = `dnf list installed | grep -i "${escapedQuery}"`;
       break;
     case 'yum':
-      searchCommand = `yum list installed '*${escapedQuery}*'`;
+      searchCommand = `yum list installed | grep -i "${escapedQuery}"`;
       break;
     case 'pacman':
-      searchCommand = `pacman -Qs "${escapedQuery}"`; // -s for search
+      searchCommand = `pacman -Qsi "${escapedQuery}"`; // -s for search, -i for case-insensitive
       break;
     case 'zypper':
-      searchCommand = `zypper se -i '*${escapedQuery}*'`;
+      searchCommand = `zypper se -i -i '*${escapedQuery}*'`; // one -i for installed, one for case-insensitive
       break;
     case 'apk':
-        searchCommand = `apk info -e '*${escapedQuery}*'`; // -e for exact match with wildcards
+        searchCommand = `apk info -e '*${escapedQuery}*' | grep -i "${escapedQuery}"`;
         break;
     case 'equery':
         searchCommand = `equery list "*${escapedQuery}*"`;
         break;
     case 'xbps-query':
-        searchCommand = `xbps-query -Rs "${escapedQuery}"`; // -R for repository search
+        searchCommand = `xbps-query -iRs "${escapedQuery}"`; // -i for case-insensitive
         break;
     case 'nix-env':
         searchCommand = `nix-env -q | grep -i "${escapedQuery}"`;
@@ -561,7 +560,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
 ipcMain.handle('export-app', async (event, { containerName, appName }) => {
   try {
-    await execAsync(`distrobox enter ${containerName} -- sudo distrobox-export --app ${appName}`);
+    await execAsync(`distrobox enter ${containerName} -- distrobox-export --app ${appName}`);
     return { success: true };
   } catch (error) {
     console.error(`Error exporting app ${appName} from ${containerName}:`, error);
@@ -571,7 +570,7 @@ ipcMain.handle('export-app', async (event, { containerName, appName }) => {
 
 ipcMain.handle('unshare-app', async (event, { containerName, appName }) => {
   try {
-    await execAsync(`distrobox enter ${containerName} -- sudo distrobox-export --app ${appName} --delete`);
+    await execAsync(`distrobox enter ${containerName} -- distrobox-export --app ${appName} --delete`);
     return { success: true };
   } catch (error) {
     console.error(`Error unsharing app ${appName} from ${containerName}:`, error);
@@ -592,3 +591,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    
