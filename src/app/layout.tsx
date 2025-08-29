@@ -1,44 +1,17 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import '../../fontlogodistro/font-logos.css'; // Import the distro font logos
+import '../../fontlogodistro/font-logos.css';
 import { Toaster } from '@/components/ui/toaster';
-import { AppShell } from '@/components/app-shell';
 import { SearchProvider } from '@/hooks/use-search';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import { SystemCheckProvider, useSystemCheck } from '@/hooks/use-system-check';
-import SetupPage from '@/components/setup-wizard';
-import { Loader, Shield } from 'lucide-react';
-import { type ReactNode } from 'react';
+import { SystemCheckProvider } from '@/hooks/use-system-check';
+import { AppInitializer } from '@/components/app-initializer';
 
 export const metadata: Metadata = {
   title: 'DistroWolf',
   description: 'A GUI for managing Distrobox containers.',
 };
-
-function AppInitializer({ children }: { children: ReactNode }) {
-  "use client";
-  const { dependenciesReady, checkingDependencies } = useSystemCheck();
-
-  if (checkingDependencies) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground">
-        <div className="flex flex-col items-center gap-4">
-          <Shield className="h-12 w-12 text-primary animate-pulse" />
-          <h1 className="text-xl font-headline">DistroWolf</h1>
-          <p className="text-muted-foreground">Checking system dependencies...</p>
-          <Loader className="animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!dependenciesReady) {
-    return <SetupPage />;
-  }
-
-  return <AppShell>{children}</AppShell>;
-}
 
 export default function RootLayout({
   children,

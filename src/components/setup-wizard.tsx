@@ -119,6 +119,4 @@ export function SetupWizard() {
   );
 }
 
-export default SetupPage;
-
-    
+export default SetupWizard;
