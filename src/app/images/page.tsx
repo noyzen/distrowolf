@@ -5,8 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Upload, Trash2, Download, RefreshCw, Loader, HardDrive, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Upload, Trash2, Download, RefreshCw, Loader, HardDrive } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { listLocalImages, deleteImage, exportImage, importImage } from "@/lib/distrobox";
 import type { LocalImage } from "@/lib/types";
@@ -15,6 +14,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useSearch } from "@/hooks/use-search";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function ImagesPage() {
   const { toast } = useToast();
@@ -145,7 +145,7 @@ export default function ImagesPage() {
                   <TableHead>Image ID</TableHead>
                   <TableHead>Size</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead className="text-right w-[100px]">Action</TableHead>
+                  <TableHead className="text-right w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -170,25 +170,30 @@ export default function ImagesPage() {
                       <TableCell>{image.size}</TableCell>
                       <TableCell className="text-muted-foreground">{image.created}</TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleExport(image)}>
-                              <Download className="mr-2 h-4 w-4" />
-                              <span>Export (.tar)</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive" onClick={() => handleDeleteConfirm(image)}>
-                              {isDeleting === image.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                              <span>Delete Image</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <TooltipProvider>
+                          <div className="flex justify-end gap-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handleExport(image)}>
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Export (.tar)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                               <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteConfirm(image)}>
+                                    {isDeleting === image.id ? <Loader className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                </Button>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                <p>Delete Image</p>
+                               </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   ))

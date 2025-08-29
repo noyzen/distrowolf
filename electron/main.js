@@ -501,7 +501,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     case 'pacman':
       // Using -Ss for searching available packages as well which is more common user intent.
       // -i for case-insensitive search
-      searchCommand = `pacman -Ss | grep -i "${escapedQuery}"`; 
+      searchCommand = `pacman -Q | grep -i "${escapedQuery}"`; 
       break;
     case 'zypper':
       searchCommand = `zypper se -i -s '${escapedQuery}'`; 
