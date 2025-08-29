@@ -51,28 +51,19 @@ function parseListOutput(output) {
         console.log('DEBUG: No container data lines found.');
         return [];
     }
-
-    // Skip header line
     const dataLines = lines.slice(1);
-
     return dataLines.map(line => {
         const parts = line.split('|').map(p => p.trim());
-        
         if (parts.length < 4) {
             console.log(`DEBUG: Skipping invalid line: "${line}" (expected 4 parts, got ${parts.length})`);
             return null;
         }
-        
-        // The status can be complex, e.g., "Up 2 hours" or "Exited (0) 5 minutes ago".
-        // We just need to know if it's running or not. "Up" is a good indicator.
         const status = parts[2].toLowerCase().startsWith('up') ? 'running' : 'stopped';
-
         const container = {
             id: parts[0],
             name: parts[1],
             status: status,
             image: parts[3],
-            // These are placeholders for now
             size: 'N/A', 
             autostart: false, 
             sharedHome: false,
@@ -82,37 +73,30 @@ function parseListOutput(output) {
         };
         console.log(`DEBUG: Parsed container: ${JSON.stringify(container)}`);
         return container;
-    }).filter(Boolean); // Filter out any null entries
+    }).filter(Boolean);
 }
 
 
 ipcMain.handle('list-containers', async () => {
   console.log('DEBUG: Received "list-containers" event.');
   try {
-    // --no-color is important to ensure consistent output for parsing
     const { stdout, stderr } = await execAsync('distrobox list --no-color');
-    
     if (stderr) {
       console.error('DEBUG: "distrobox list" stderr:', stderr);
     }
-    
     console.log('DEBUG: Raw "distrobox list" stdout:\n---START---\n' + stdout + '---END---');
-    
     const containers = parseListOutput(stdout);
     console.log('DEBUG: Parsed containers:', JSON.stringify(containers, null, 2));
-
     return containers;
   } catch (error) {
     console.error('DEBUG: Error listing distrobox containers:', error);
-    // Forward the error message to the renderer process
     throw error;
   }
 });
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
-    // A simple, non-interactive command to ensure the container starts
-    await execAsync(`distrobox enter ${containerName} -- "true"`); 
+    await execAsync(`distrobox start ${containerName}`);
     return { success: true };
   } catch (error) {
     console.error(`Error starting container ${containerName}:`, error);
@@ -122,7 +106,7 @@ ipcMain.handle('start-container', async (event, containerName) => {
 
 ipcMain.handle('stop-container', async (event, containerName) => {
   try {
-    await execAsync(`distrobox stop -f ${containerName}`); // Use -f to force stop
+    await execAsync(`distrobox stop -f ${containerName}`);
     return { success: true };
   } catch (error) {
     console.error(`Error stopping container ${containerName}:`, error);
@@ -132,7 +116,6 @@ ipcMain.handle('stop-container', async (event, containerName) => {
 
 ipcMain.handle('delete-container', async (event, containerName) => {
   try {
-    // Use -f to force deletion without interactive prompts
     await execAsync(`distrobox rm -f ${containerName}`);
     return { success: true };
   } catch (error) {

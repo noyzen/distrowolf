@@ -40,6 +40,7 @@ import {
   Wrench,
   ShieldCheck,
   Loader,
+  RefreshCw,
 } from "lucide-react";
 import type { Container } from "@/lib/types";
 import { CreateContainerDialog } from "@/components/create-container-dialog";
@@ -199,10 +200,16 @@ export default function Home() {
               Manage your Distrobox containers.
             </CardDescription>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Create Container
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={fetchContainers}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Container
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -347,5 +354,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
