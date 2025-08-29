@@ -581,45 +581,51 @@ ipcMain.handle('enter-container', async (event, containerName) => {
         terminal = 'wezterm';
     }
     
-    let command;
     const enterCommand = `distrobox enter ${containerName}`;
+    let finalCommand;
 
     if (terminal) {
         switch (terminal) {
             case 'wezterm':
-                command = `wezterm start -- ${enterCommand}`;
+                finalCommand = `wezterm start -- ${enterCommand}`;
                 break;
             case 'konsole':
-                command = `konsole -e ${enterCommand}`;
+                finalCommand = `konsole -e ${enterCommand}`;
                 break;
             case 'gnome-terminal':
             case 'mate-terminal':
             case 'xfce4-terminal':
             case 'lxterminal':
-                command = `${terminal} -- ${enterCommand}`;
+                finalCommand = `${terminal} -- ${enterCommand}`;
                 break;
             case 'terminator':
             case 'tilix':
-                command = `${terminal} -e "${enterCommand}"`;
+                finalCommand = `${terminal} -e "${enterCommand}"`;
                 break;
             case 'alacritty':
-                 command = `alacritty -e ${enterCommand}`;
+                 finalCommand = `alacritty -e ${enterCommand}`;
                  break;
             default:
-                command = enterCommand; // Fallback for unknown but detected terminals
+                finalCommand = enterCommand; // Fallback for unknown but detected terminals
                 break;
         }
         try {
-            console.log(`[DEBUG] Executing terminal command: ${command}`);
-            exec(command); // Use non-async exec to launch and forget
+            console.log(`[DEBUG] Executing terminal command: ${finalCommand}`);
+            // Use spawn with detached option to launch the terminal as a separate process
+            const child = spawn('sh', ['-c', finalCommand], {
+                detached: true,
+                stdio: 'ignore'
+            });
+            child.unref(); // Allow parent process to exit independently
             return { success: true, launched: true };
         } catch (error) {
-             console.error(`Failed to launch terminal with command: ${command}`, error);
+             console.error(`Failed to launch terminal with command: ${finalCommand}`, error);
              // Fallback to showing command
              return { success: true, launched: false, message: enterCommand };
         }
     }
 
+    // Fallback if no terminal is found
     return { success: true, launched: false, message: enterCommand };
 });
 
