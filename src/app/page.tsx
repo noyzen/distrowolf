@@ -423,8 +423,8 @@ export default function Home() {
                         key={container.id} 
                         onClick={() => handleRowClick(container)}
                         className={cn(
-                            "cursor-pointer transition-all duration-300", 
-                            selectedContainer?.id === container.id && "bg-primary/10 shadow-lg shadow-primary/20"
+                            "cursor-pointer transition-colors duration-200", 
+                            selectedContainer?.id === container.id && "bg-primary/10"
                         )}
                         data-state={selectedContainer?.id === container.id ? 'selected' : undefined}
                     >

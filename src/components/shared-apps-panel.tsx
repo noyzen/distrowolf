@@ -107,7 +107,7 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
                             <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="text-red-400 hover:text-red-300 hover:bg-red-900/20" 
+                                className="text-red-500 hover:text-red-400 hover:bg-red-500/10" 
                                 onClick={() => handleUnshare(app.name)}
                                 disabled={!!isUnsharing}
                             >

@@ -169,8 +169,7 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
                         <div key={app.id} className="p-3 border rounded-lg flex flex-col gap-2 bg-background/50">
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
-                                    <h4 className="font-semibold">{app.name}</h4>
-                                    <p className="text-xs text-muted-foreground">{app.version}</p>
+                                    <h4 className="font-semibold">{app.name} <span className="text-sm font-normal text-muted-foreground">{app.version}</span></h4>
                                 </div>
                                 { sharedAppNames.includes(app.name) ? (
                                     <Badge variant="secondary" className="gap-1.5 h-fit">
