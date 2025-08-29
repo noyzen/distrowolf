@@ -13,6 +13,7 @@ import { exportApp, searchContainerApps } from "@/lib/distrobox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FindAppsPanelProps {
     container: Container;
@@ -145,14 +146,14 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
             <Info className="h-4 w-4"/>
             <span>Searching with: {selectedPM || 'None selected'}</span>
         </div>
-        <div className="h-[300px] overflow-y-auto">
+        <ScrollArea className="h-[300px] border rounded-md">
             <Table>
-            <TableHeader className="sticky top-0 bg-card">
+            <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                <TableHead>Application</TableHead>
-                <TableHead>Version</TableHead>
+                <TableHead className="w-[150px]">Application</TableHead>
+                <TableHead className="w-[120px]">Version</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-right w-[180px]">Action</TableHead>
+                <TableHead className="text-right w-[150px]">Action</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -168,9 +169,9 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                 ) : searchResults.length > 0 ? (
                 searchResults.map((app) => (
                 <TableRow key={app.id}>
-                    <TableCell className="font-medium truncate max-w-xs">{app.name}</TableCell>
-                    <TableCell className="truncate">{app.version}</TableCell>
-                    <TableCell className="text-muted-foreground truncate max-w-sm">{app.description}</TableCell>
+                    <TableCell className="font-medium truncate" title={app.name}>{app.name}</TableCell>
+                    <TableCell className="truncate" title={app.version}>{app.version}</TableCell>
+                    <TableCell className="text-muted-foreground truncate" title={app.description}>{app.description}</TableCell>
                     <TableCell className="text-right">
                     <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
                         {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
@@ -188,7 +189,7 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                 )}
             </TableBody>
             </Table>
-        </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );
