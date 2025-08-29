@@ -39,6 +39,7 @@ import {
   Loader,
   RefreshCw,
   Box,
+  Copy,
 } from "lucide-react";
 import type { Container } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +52,8 @@ import {
   infoContainer,
   saveContainerAsImage,
   checkDependencies,
+  toggleAutostart as apiToggleAutostart,
+  copyToClipboard,
 } from "@/lib/distrobox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn, getDistroIcon } from "@/lib/utils";
@@ -192,22 +195,19 @@ export default function Home() {
   const handleEnterContainer = async (containerName: string) => {
     try {
       const result = await enterContainer(containerName);
-      if(result.success) {
-          toast({
-            title: "Opening Terminal",
-            description: `Entering container "${containerName}" in a new terminal.`
-          });
+      if (result.success && result.message) {
+        setInfoDialogContent({
+          title: `Enter Container: ${containerName}`,
+          message: result.message
+        });
+        setInfoDialogOpen(true);
       } else {
-         setInfoDialogContent({
-            title: "Could Not Open Terminal",
-            message: result.message || "An unknown error occurred."
-         });
-         setInfoDialogOpen(true);
+        throw new Error("Could not get enter command.");
       }
     } catch(error: any) {
       toast({
         variant: "destructive",
-        title: "Failed to enter container",
+        title: "Failed to get enter command",
         description: error.message,
       });
     }
@@ -253,16 +253,26 @@ export default function Home() {
     }
   }
 
-  const handleToggleAutostart = (container: Container) => {
-    const updatedContainers = containers.map(c => 
-        c.id === container.id ? { ...c, autostart: !c.autostart } : c
-    );
-    setContainers(updatedContainers);
-
+  const handleToggleAutostart = async (container: Container) => {
+    const newAutostartState = !container.autostart;
     toast({
-        title: "Autostart Toggled (Visual Only)",
-        description: `Autostart for "${container.name}" is now ${!container.autostart ? 'enabled' : 'disabled'}. Backend not implemented.`,
+        title: newAutostartState ? "Enabling Autostart..." : "Disabling Autostart...",
+        description: `Setting autostart for "${container.name}" to ${newAutostartState}.`,
     });
+    try {
+        await apiToggleAutostart(container.name, newAutostartState);
+        toast({
+            title: "Success!",
+            description: `Autostart for "${container.name}" has been ${newAutostartState ? 'enabled' : 'disabled'}.`,
+        });
+        await fetchContainers(); // Refresh to show the new state
+    } catch(error: any) {
+        toast({
+            variant: "destructive",
+            title: "Failed to Toggle Autostart",
+            description: error.message,
+        });
+    }
   }
   
   const handleRowClick = (container: Container) => {
@@ -478,8 +488,15 @@ export default function Home() {
           <AlertDialogHeader>
             <AlertDialogTitle>{infoDialogContent.title}</AlertDialogTitle>
             <AlertDialogDescription>
-                <div className="mt-4 bg-background/50 p-4 rounded-lg">
+                Run the following command in your terminal:
+                <div className="mt-4 bg-background/50 p-4 rounded-lg flex items-center justify-between">
                     <code className="font-mono text-foreground">{infoDialogContent.message}</code>
+                    <Button variant="ghost" size="icon" onClick={() => {
+                        copyToClipboard(infoDialogContent.message);
+                        toast({ title: "Copied!", description: "Command copied to clipboard." });
+                    }}>
+                        <Copy className="h-4 w-4" />
+                    </Button>
                 </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -492,5 +509,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

@@ -15,6 +15,9 @@ contextBridge.exposeInMainWorld('electron', {
   enterContainer: (containerName) => ipcRenderer.invoke('enter-container', containerName),
   infoContainer: (containerName) => ipcRenderer.invoke('info-container', containerName),
   saveContainerAsImage: (containerName) => ipcRenderer.invoke('save-as-image', containerName),
+  toggleAutostart: (containerName, autostart) => ipcRenderer.invoke('toggle-autostart', containerName, autostart),
+  copyToClipboard: (text) => ipcRenderer.invoke('copy-to-clipboard', text),
+
 
   // Image Management
   listLocalImages: () => ipcRenderer.invoke('list-local-images'),

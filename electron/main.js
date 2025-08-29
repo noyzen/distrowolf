@@ -5,6 +5,7 @@ const { ipcMain } = require('electron');
 const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 const Store = require('electron-store');
+const clipboard = require('electron').clipboard;
 
 const execAsync = promisify(exec);
 const store = new Store();
@@ -45,33 +46,45 @@ async function createWindow() {
   }
 }
 
-function parseListOutput(output) {
+async function parseListOutput(output) {
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
     
     const dataLines = lines.slice(1);
-    const containers = dataLines.map(line => {
+    const containers = await Promise.all(dataLines.map(async line => {
         const parts = line.split('|').map(p => p.trim());
         if (parts.length < 4) return null;
         
         const status = parts[2].toLowerCase().startsWith('up') ? 'running' : 'stopped';
+        const name = parts[1];
+
+        let autostart = false;
+        try {
+            const { stdout } = await execAsync(`podman inspect ${name}`);
+            const info = JSON.parse(stdout);
+            if (info && info.length > 0) {
+                autostart = info[0]?.HostConfig?.RestartPolicy?.Name === 'always';
+            }
+        } catch (e) {
+            console.warn(`Could not inspect container ${name} for autostart status:`, e.message);
+        }
         
         const container = {
             id: parts[0],
-            name: parts[1],
+            name: name,
             status: status,
             image: parts[3],
             size: 'N/A', 
-            autostart: false, 
+            autostart: autostart, 
             sharedHome: false, 
             init: false, 
             nvidia: false, 
             volumes: [], 
         };
         return container;
-    }).filter(Boolean);
+    }));
 
-    return containers;
+    return containers.filter(Boolean);
 }
 
 function parseLocalImages(output) {
@@ -407,39 +420,14 @@ ipcMain.handle('delete-container', async (event, containerName) => {
 
 
 ipcMain.handle('enter-container', (event, containerName) => {
-  const command = `distrobox enter ${containerName}`;
-
-  const terminals = [
-    { cmd: 'gnome-terminal', args: ['--', 'bash', '-c', `${command}; exec bash`] },
-    { cmd: 'konsole', args: ['-e', command] },
-    { cmd: 'xfce4-terminal', args: ['-e', command] },
-    { cmd: 'xterm', args: ['-e', command] },
-    { cmd: 'x-terminal-emulator', args: ['-e', command] }
-  ];
-
-  let spawned = false;
-  for (const t of terminals) {
-    try {
-      const child = spawn(t.cmd, t.args, { detached: true, stdio: 'ignore' });
-      child.on('error', () => { /* Prevent crashing */ });
-      child.unref();
-      spawned = true;
-      console.log(`Successfully launched terminal with: ${t.cmd}`);
-      break; 
-    } catch (e) {
-      console.warn(`Could not launch terminal with ${t.cmd}, trying next.`);
-    }
-  }
-  
-  if (spawned) {
-    return { success: true };
-  } else {
-     const message = `Could not find a compatible terminal emulator on your system. Please run the command manually in your terminal:\n\n${command}`;
-     console.error(message);
-     return { success: false, message };
-  }
+    const command = `distrobox enter ${containerName}`;
+    return { success: true, message: command };
 });
 
+ipcMain.handle('copy-to-clipboard', (event, text) => {
+    clipboard.writeText(text);
+    return { success: true };
+});
 
 ipcMain.handle('info-container', async (event, containerName) => {
   try {
@@ -462,6 +450,18 @@ ipcMain.handle('save-as-image', async (event, containerName) => {
         throw error;
     }
 });
+
+ipcMain.handle('toggle-autostart', async (event, containerName, autostart) => {
+    const policy = autostart ? 'always' : 'no';
+    try {
+        await execAsync(`podman update --restart=${policy} ${containerName}`);
+        return { success: true };
+    } catch (error) {
+        console.error(`Error setting autostart for ${containerName}:`, error);
+        throw error;
+    }
+});
+
 
 ipcMain.handle('list-shared-apps', async (event, containerName) => {
   try {
@@ -570,5 +570,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-    

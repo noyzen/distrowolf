@@ -42,6 +42,8 @@ declare global {
       enterContainer: (containerName: string) => Promise<{ success: boolean, message?: string }>;
       infoContainer: (containerName: string) => Promise<{ success: boolean, message?: string }>;
       saveContainerAsImage: (containerName: string) => Promise<{ success: boolean, imageName?: string, error?: string }>;
+      toggleAutostart: (containerName: string, autostart: boolean) => Promise<{ success: boolean }>;
+      copyToClipboard: (text: string) => Promise<{ success: boolean }>;
       
       listLocalImages: () => Promise<LocalImage[]>;
       pullImage: (imageName: string) => Promise<{ success: boolean }>;
@@ -147,10 +149,16 @@ export async function saveContainerAsImage(containerName: string): Promise<{ suc
     return { success: false, error: "Electron API not available." };
 }
 
+export async function toggleAutostart(containerName: string, autostart: boolean): Promise<{ success: boolean }> {
+    if (window.electron) return window.electron.toggleAutostart(containerName, autostart);
+    console.warn("Electron API not available.");
+    return { success: false };
+}
 
-export async function toggleAutostart(containerName: string): Promise<{ success: boolean }> {
-    console.warn(`Autostart toggle for ${containerName} is not implemented in the backend yet.`);
-    return { success: true };
+export async function copyToClipboard(text: string): Promise<{ success: boolean }> {
+    if (window.electron) return window.electron.copyToClipboard(text);
+    console.warn("Electron API not available.");
+    return { success: false };
 }
 
 export async function listSharedApps(containerName: string): Promise<SharedApp[]> {
@@ -176,5 +184,3 @@ export async function unshareApp(options: AppActionOptions): Promise<{ success: 
     console.warn("Electron API not available.");
     return { success: false };
 }
-
-    
