@@ -198,7 +198,7 @@ export default function Home() {
         const res = await infoContainer(containerName);
         toast({
             title: "Container Info",
-            description: res.message || "No specific info available yet.",
+            description: <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4"><code className="text-white">{res.message}</code></pre>
         });
     } catch(error: any) {
         toast({

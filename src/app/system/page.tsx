@@ -3,8 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ShieldCheck, Wrench, Github, ExternalLink, Server, Box, Info } from "lucide-react";
+import { ShieldCheck, Github, ExternalLink, Server, Box, Info } from "lucide-react";
 import Link from "next/link";
 import { getSystemInfo } from "@/lib/distrobox";
 import type { SystemInfo } from "@/lib/types";
@@ -24,10 +23,6 @@ export default function SystemPage() {
     };
     fetchInfo();
   }, []);
-
-  const handleRunDiagnostics = () => {
-    alert("Running diagnostics...");
-  };
 
   const InfoRow = ({ icon, label, value }: { icon: React.ElementType, label: string, value: string | undefined }) => (
     <div className="flex items-center justify-between p-3 rounded-lg bg-background hover:bg-accent/50 transition-colors">
@@ -56,12 +51,6 @@ export default function SystemPage() {
             <InfoRow icon={Box} label="Distrobox Version" value={systemInfo?.distroboxVersion} />
             <InfoRow icon={Info} label="Podman Version" value={systemInfo?.podmanVersion} />
         </CardContent>
-        <CardFooter>
-            <Button variant="outline" onClick={handleRunDiagnostics}>
-                <Wrench className="mr-2 h-4 w-4" />
-                Run Diagnostics
-            </Button>
-        </CardFooter>
       </Card>
        <Card>
         <CardHeader>
