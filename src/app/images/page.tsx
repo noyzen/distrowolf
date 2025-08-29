@@ -14,7 +14,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useSearch } from "@/hooks/use-search";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tooltip, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function ImagesPage() {
   const { toast } = useToast();
