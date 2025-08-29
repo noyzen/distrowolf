@@ -3,7 +3,6 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   SidebarProvider,
@@ -22,7 +21,8 @@ import {
   HardDrive,
   Wrench,
   PlusCircle,
-  Search
+  Search,
+  Shield
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useSearch } from "@/hooks/use-search";
@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/20 rounded-lg">
-                <Image src="/dw.png" alt="DistroWolf Logo" width={24} height={24} className="h-6 w-6 text-primary" />
+                <Shield className="h-6 w-6 text-primary" />
             </div>
             <h1 className="font-headline text-2xl font-semibold text-primary">
               DistroWolf

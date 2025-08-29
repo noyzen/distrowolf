@@ -84,24 +84,20 @@
     "files": [
       "electron/**/*",
       "out/**/*",
-      "package.json",
-      "resources/**/*"
+      "package.json"
     ],
     "directories": {
       "buildResources": "resources",
       "output": "dist"
     },
     "win": {
-      "target": "nsis",
-      "icon": "resources/dw.png"
+      "target": "nsis"
     },
     "linux": {
-      "target": "AppImage",
-      "icon": "resources/dw.png"
+      "target": "AppImage"
     },
     "mac": {
-      "target": "dmg",
-      "icon": "resources/dw.png"
+      "target": "dmg"
     }
   }
 }
