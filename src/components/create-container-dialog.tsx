@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -22,8 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { MOCK_LOCAL_IMAGES } from "@/lib/mock-data";
-import type { Container } from "@/lib/types";
+import type { LocalImage } from "@/lib/types";
 import {
   Form,
   FormControl,
@@ -33,6 +33,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -46,13 +47,15 @@ const formSchema = z.object({
 type CreateContainerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreate: (data: Omit<Container, "id" | "size" | "status">) => void;
+  onCreate: (values: z.infer<typeof formSchema>) => void;
+  localImages: LocalImage[];
 };
 
 export function CreateContainerDialog({
   open,
   onOpenChange,
   onCreate,
+  localImages,
 }: CreateContainerDialogProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -66,21 +69,15 @@ export function CreateContainerDialog({
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      form.reset();
+    }
+  }, [open, form]);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const volumesArray = values.volumes
-      ? values.volumes.split("\n").filter((v) => v.trim() !== "")
-      : [];
-    onCreate({
-      name: values.name,
-      image: values.image,
-      autostart: false, // Default value
-      sharedHome: values.sharedHome,
-      init: values.init,
-      nvidia: values.nvidia,
-      volumes: volumesArray,
-    });
+    onCreate(values);
     onOpenChange(false);
-    form.reset();
   }
 
   return (
@@ -119,18 +116,20 @@ export function CreateContainerDialog({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select an image" />
+                        <SelectValue placeholder="Select an image from your local storage" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {MOCK_LOCAL_IMAGES.map((img) => (
+                      {localImages.length > 0 ? localImages.map((img) => (
                         <SelectItem
                           key={img.id}
                           value={`${img.repository}:${img.tag}`}
                         >
-                          {img.repository}:{img.tag}
+                          {img.repository}:{img.tag} ({img.size})
                         </SelectItem>
-                      ))}
+                      )) : (
+                        <SelectItem value="none" disabled>No local images found. Download one first.</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

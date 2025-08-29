@@ -24,15 +24,16 @@ import {
   Settings,
   Box,
   Wrench,
+  PlusCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
 
 const navItems = [
-  { href: "/", label: "Containers", icon: Boxes },
-  { href: "/images", label: "Images", icon: HardDrive },
-  { href: "/download", label: "Download", icon: Download },
+  { href: "/", label: "My Containers", icon: Boxes },
+  { href: "/images", label: "Local Images", icon: HardDrive },
+  { href: "/download", label: "Download Images", icon: Download },
 ];
 
 const systemNavItems = [

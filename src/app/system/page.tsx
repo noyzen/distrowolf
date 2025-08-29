@@ -1,16 +1,47 @@
 
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Wrench, Github, ExternalLink } from "lucide-react";
+import { ShieldCheck, Wrench, Github, ExternalLink, Loader, Server, Box, Info } from "lucide-react";
 import Link from "next/link";
+import { getSystemInfo } from "@/lib/distrobox";
+import type { SystemInfo } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SystemPage() {
+  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchInfo = async () => {
+      setLoading(true);
+      try {
+        const info = await getSystemInfo();
+        setSystemInfo(info);
+      } catch (error) {
+        console.error("Failed to get system info:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInfo();
+  }, []);
+
   const handleRunDiagnostics = () => {
-    // Placeholder for diagnostics logic
     alert("Running diagnostics...");
   };
+
+  const InfoRow = ({ icon, label, value }: { icon: React.ElementType, label: string, value: string | undefined }) => (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-background hover:bg-accent/50 transition-colors">
+      <div className="flex items-center gap-3">
+        {React.createElement(icon, { className: "h-5 w-5 text-muted-foreground" })}
+        <span className="font-medium">{label}</span>
+      </div>
+      {value ? <span className="font-mono text-sm text-primary">{value}</span> : <Skeleton className="h-5 w-24" />}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -21,23 +52,20 @@ export default function SystemPage() {
             <CardTitle className="font-headline">System Information</CardTitle>
           </div>
            <CardDescription>
-            Check the status of your environment and run diagnostics.
+            Core components and versions of your Distrobox environment.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-            <div>
-              <p className="font-semibold">Distrobox Status</p>
-              <p className="text-sm text-muted-foreground">
-                Distrobox and dependencies are installed and running correctly.
-              </p>
-            </div>
-            <Button variant="outline" onClick={handleRunDiagnostics}>
-              <Wrench className="mr-2 h-4 w-4" />
-              Run Diagnostics
-            </Button>
-          </div>
+        <CardContent className="space-y-2">
+            <InfoRow icon={Server} label="Operating System" value={systemInfo?.distro} />
+            <InfoRow icon={Box} label="Distrobox Version" value={systemInfo?.distroboxVersion} />
+            <InfoRow icon={Info} label="Podman Version" value={systemInfo?.podmanVersion} />
         </CardContent>
+        <CardFooter>
+            <Button variant="outline" onClick={handleRunDiagnostics}>
+                <Wrench className="mr-2 h-4 w-4" />
+                Run Diagnostics
+            </Button>
+        </CardFooter>
       </Card>
        <Card>
         <CardHeader>

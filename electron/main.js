@@ -47,53 +47,112 @@ async function createWindow() {
 
 function parseListOutput(output) {
     const lines = output.trim().split('\n');
-    if (lines.length < 2) {
-        console.log('DEBUG: No container data lines found.');
-        return [];
-    }
-    // Skip header line
+    if (lines.length < 2) return [];
     const dataLines = lines.slice(1);
     return dataLines.map(line => {
-        // Split by the pipe character
         const parts = line.split('|').map(p => p.trim());
-        // Expecting 4 parts: ID | NAME | STATUS | IMAGE
-        if (parts.length < 4) {
-            console.log(`DEBUG: Skipping invalid line: "${line}" (expected 4 parts, got ${parts.length})`);
-            return null;
-        }
+        if (parts.length < 4) return null;
         const status = parts[2].toLowerCase().startsWith('up') ? 'running' : 'stopped';
-        const container = {
+        return {
             id: parts[0],
             name: parts[1],
             status: status,
             image: parts[3],
-            // These properties are not available from `distrobox list` and need other commands
             size: 'N/A', 
-            autostart: false, // Placeholder
-            sharedHome: false, // Placeholder
-            init: false, // Placeholder
-            nvidia: false, // Placeholder
-            volumes: [], // Placeholder
+            autostart: false, 
+            sharedHome: false, 
+            init: false, 
+            nvidia: false, 
+            volumes: [], 
         };
-        console.log(`DEBUG: Parsed container: ${JSON.stringify(container)}`);
-        return container;
-    }).filter(Boolean); // Filter out any null entries from invalid lines
+    }).filter(Boolean);
 }
+
+function parseLocalImages(output) {
+    const lines = output.trim().split('\n');
+    if (lines.length < 2) return [];
+    const dataLines = lines.slice(1);
+    return dataLines.map((line, index) => {
+        const parts = line.split(/\s{2,}/); // Split on 2+ spaces
+        if (parts.length < 3) return null;
+        return {
+            id: `img-${index}`, // Podman doesn't provide a short ID here, so we generate one
+            repository: parts[0],
+            tag: parts[1],
+            imageID: parts[2], // Not directly used in UI but good to have
+            created: parts[3],
+            size: parts[4],
+        };
+    }).filter(Boolean);
+}
+
+ipcMain.handle('check-dependencies', async () => {
+  const checkCmd = async (cmd) => {
+    try {
+      await execAsync(`command -v ${cmd}`);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+  const distroboxInstalled = await checkCmd('distrobox');
+  const podmanInstalled = await checkCmd('podman');
+  return { distroboxInstalled, podmanInstalled };
+});
+
+ipcMain.handle('get-system-info', async () => {
+    const getInfo = async (cmd, parser) => {
+        try {
+            const { stdout } = await execAsync(cmd);
+            return parser(stdout.trim());
+        } catch (error) {
+            console.error(`Error getting info with command "${cmd}":`, error);
+            return 'Not available';
+        }
+    };
+
+    const distro = await getInfo("grep '^PRETTY_NAME=' /etc/os-release | cut -d'=' -f2 | tr -d '\"'", val => val);
+    const distroboxVersion = await getInfo("distrobox --version", val => val.split(': ')[1]);
+    const podmanVersion = await getInfo("podman --version", val => val.split('version ')[1]);
+    
+    return { distro, distroboxVersion, podmanVersion };
+});
+
+ipcMain.handle('list-local-images', async () => {
+    try {
+        const { stdout } = await execAsync('podman images');
+        return parseLocalImages(stdout);
+    } catch (error) {
+        console.error('Error listing podman images:', error);
+        throw error;
+    }
+});
+
+ipcMain.handle('create-container', async (event, { name, image, sharedHome, init, nvidia, volumes }) => {
+    let command = `distrobox create --name ${name} --image ${image}`;
+    if (sharedHome) command += ' --home /home/$USER'; // Example, adjust as needed for your setup
+    if (init) command += ' --init';
+    if (nvidia) command += ' --nvidia';
+    volumes.forEach(volume => {
+        command += ` --volume ${volume}`;
+    });
+
+    try {
+        await execAsync(command);
+        return { success: true };
+    } catch (error) {
+        console.error(`Error creating container ${name}:`, error);
+        throw error;
+    }
+});
 
 
 ipcMain.handle('list-containers', async () => {
-  console.log('DEBUG: Received "list-containers" event.');
   try {
-    const { stdout, stderr } = await execAsync('distrobox list --no-color');
-    if (stderr) {
-      console.error('DEBUG: "distrobox list" stderr:', stderr);
-    }
-    console.log('DEBUG: Raw "distrobox list" stdout:\n---START---\n' + stdout + '---END---');
-    const containers = parseListOutput(stdout);
-    console.log('DEBUG: Parsed containers:', JSON.stringify(containers, null, 2));
-    return containers;
+    const { stdout } = await execAsync('distrobox list --no-color');
+    return parseListOutput(stdout);
   } catch (error) {
-    console.error('DEBUG: Error listing distrobox containers:', error);
+    console.error('Error listing distrobox containers:', error);
     throw error;
   }
 });
@@ -141,10 +200,9 @@ ipcMain.handle('enter-container', (event, containerName) => {
     try {
       spawn(t.cmd, t.args, { detached: true, stdio: 'ignore' }).unref();
       spawned = true;
-      console.log(`Successfully launched with ${t.cmd}`);
       break; 
     } catch (e) {
-      console.log(`Failed to launch with ${t.cmd}, trying next.`);
+      // Ignore and try next
     }
   }
   
@@ -159,8 +217,6 @@ ipcMain.handle('enter-container', (event, containerName) => {
 
 
 ipcMain.handle('info-container', async (event, containerName) => {
-  // Placeholder for getting detailed info.
-  // We can eventually parse `podman inspect` or similar.
   console.log(`Info requested for ${containerName}`);
   return {
     success: true,
@@ -171,7 +227,6 @@ ipcMain.handle('info-container', async (event, containerName) => {
 ipcMain.handle('save-as-image', async (event, containerName) => {
     try {
         const imageName = `distrowolf-backup-${containerName}-${Date.now()}`;
-        // Using podman commit as it's the backend for distrobox
         await execAsync(`podman commit ${containerName} ${imageName}`);
         return { success: true, imageName };
     } catch (error) {

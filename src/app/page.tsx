@@ -39,8 +39,9 @@ import {
   PowerOff,
   Loader,
   RefreshCw,
+  Box,
 } from "lucide-react";
-import type { Container } from "@/lib/types";
+import type { Container, LocalImage } from "@/lib/types";
 import { CreateContainerDialog } from "@/components/create-container-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -51,15 +52,21 @@ import {
   enterContainer,
   infoContainer,
   saveContainerAsImage,
+  checkDependencies,
+  createContainer as apiCreateContainer,
+  listLocalImages,
 } from "@/lib/distrobox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { FindAppsPanel } from "@/components/find-apps-panel";
 import { SharedAppsPanel } from "@/components/shared-apps-panel";
 import { AnimatePresence, motion } from "framer-motion";
+import { SetupWizard } from "@/components/setup-wizard";
 
 export default function Home() {
   const [containers, setContainers] = useState<Container[]>([]);
+  const [localImages, setLocalImages] = useState<LocalImage[]>([]);
+  const [dependencies, setDependencies] = useState<{ distroboxInstalled: boolean, podmanInstalled: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -67,22 +74,29 @@ export default function Home() {
   const [actioningContainerId, setActioningContainerId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  const checkSystemDependencies = async () => {
+    const deps = await checkDependencies();
+    setDependencies(deps);
+    return deps;
+  }
+
   const fetchContainers = async () => {
     setLoading(true);
     setActioningContainerId(null);
     try {
-      const fetchedContainers = await listContainers();
+      const [fetchedContainers, fetchedImages] = await Promise.all([listContainers(), listLocalImages()]);
       setContainers(fetchedContainers);
+      setLocalImages(fetchedImages);
       if (selectedContainer) {
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
         setSelectedContainer(updatedSelected || null);
       }
     } catch (error: any) {
-      console.error("Failed to list containers:", error);
+      console.error("Failed to list containers or images:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: `Could not fetch Distrobox containers. Is Distrobox installed? (${error.message})`,
+        description: `Could not fetch Distrobox data. Is Distrobox installed? (${error.message})`,
       });
     } finally {
       setLoading(false);
@@ -90,7 +104,13 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchContainers();
+    checkSystemDependencies().then(deps => {
+        if (deps.distroboxInstalled && deps.podmanInstalled) {
+            fetchContainers();
+        } else {
+            setLoading(false);
+        }
+    });
   }, []);
 
   const handleToggleContainerStatus = async (container: Container) => {
@@ -142,11 +162,10 @@ export default function Home() {
     try {
       await removeContainer(selectedContainer.name);
       toast({
-        variant: "destructive",
         title: "Container deleted",
         description: `Container "${selectedContainer.name}" has been removed.`,
       });
-       setSelectedContainer(null); // Deselect after deletion
+       setSelectedContainer(null); 
       await fetchContainers();
     } catch (error: any) {
       toast({
@@ -156,7 +175,6 @@ export default function Home() {
       });
     } finally {
         setDeleteDialogOpen(false);
-        // setSelectedContainer(null);
         setActioningContainerId(null);
     }
   };
@@ -210,7 +228,6 @@ export default function Home() {
   }
 
   const handleToggleAutostart = (container: Container) => {
-    // This is just a visual toggle for now
     const updatedContainers = containers.map(c => 
         c.id === container.id ? { ...c, autostart: !c.autostart } : c
     );
@@ -222,27 +239,50 @@ export default function Home() {
     });
   }
 
-  const handleCreateContainer = (newContainerData: Omit<Container, "id" | "size" | "status">) => {
-    // This is a mock implementation. Real implementation would call a backend function.
-    const newContainer: Container = {
-      ...newContainerData,
-      id: `distrobox-${Math.random().toString(36).substring(7)}`,
-      size: `N/A`,
-      status: "stopped",
-    };
-    setContainers((prev) => [...prev, newContainer]);
+  const handleCreateContainer = async (values: any) => {
+    const volumesArray = values.volumes ? values.volumes.split("\n").filter((v:string) => v.trim() !== "") : [];
+    const newContainerData = { ...values, volumes: volumesArray };
+
     toast({
-      title: "Container created (mock)",
-      description: `New container "${newContainer.name}" has been added to the list.`,
+      title: "Creating container...",
+      description: `Request sent to create "${newContainerData.name}". This might take some time.`,
     });
+
+    try {
+      await apiCreateContainer(newContainerData);
+      toast({
+        title: "Container created successfully!",
+        description: `New container "${newContainerData.name}" is being set up.`,
+      });
+      await fetchContainers();
+    } catch(error: any) {
+        toast({
+            variant: "destructive",
+            title: "Failed to Create Container",
+            description: error.message,
+        });
+    }
   };
   
   const handleRowClick = (container: Container) => {
     if (selectedContainer?.id === container.id) {
-        setSelectedContainer(null); // Unselect if clicked again
+        setSelectedContainer(null);
     } else {
         setSelectedContainer(container);
     }
+  }
+
+  if (loading) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
+            <Loader className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-lg text-muted-foreground">Loading system status...</p>
+        </div>
+    )
+  }
+
+  if (dependencies && (!dependencies.distroboxInstalled || !dependencies.podmanInstalled)) {
+      return <SetupWizard dependencies={dependencies} />;
   }
 
   return (
@@ -250,9 +290,9 @@ export default function Home() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="font-headline">Containers</CardTitle>
+            <CardTitle className="font-headline">My Containers</CardTitle>
             <CardDescription>
-              Select a container to manage its applications.
+              Select a container to manage its applications, or create a new one.
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -267,12 +307,6 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
-          {loading && containers.length === 0 ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader className="h-8 w-8 animate-spin text-primary" />
-              <p className="ml-4 text-muted-foreground">Loading containers...</p>
-            </div>
-          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -287,7 +321,17 @@ export default function Home() {
                 {containers.length === 0 && !loading ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
-                      No containers found. Create one to get started!
+                       <div className="flex flex-col items-center gap-4">
+                            <Box className="h-12 w-12 text-muted-foreground" />
+                            <div className="text-center">
+                                <h3 className="font-semibold">No containers found</h3>
+                                <p className="text-muted-foreground">Create a container to get started!</p>
+                            </div>
+                            <Button onClick={() => setCreateDialogOpen(true)}>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Create Container
+                            </Button>
+                       </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -381,7 +425,6 @@ export default function Home() {
                 )}
               </TableBody>
             </Table>
-          )}
         </CardContent>
       </Card>
 
@@ -404,6 +447,7 @@ export default function Home() {
         open={isCreateDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onCreate={handleCreateContainer}
+        localImages={localImages}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

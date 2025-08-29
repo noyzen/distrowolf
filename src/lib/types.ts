@@ -1,9 +1,10 @@
+
 export interface Container {
   id: string;
   name: string;
   status: 'running' | 'stopped';
   image: string;
-  size: string; // This will be dynamic, maybe we remove it or calculate it later.
+  size: string;
   autostart: boolean;
   sharedHome: boolean;
   init: boolean;
@@ -31,4 +32,10 @@ export interface SearchableApp {
   name: string;
   version: string;
   description: string;
+}
+
+export interface SystemInfo {
+    distro: string;
+    distroboxVersion: string;
+    podmanVersion: string;
 }
