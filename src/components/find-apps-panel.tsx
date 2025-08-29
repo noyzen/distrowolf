@@ -82,14 +82,14 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
     }
   }
 
-  const handleExport = async (appName: string) => {
+  const handleExport = async (appName: string, type: 'app' | 'binary') => {
     setIsExporting(appName);
     toast({
         title: "Sharing Application",
         description: `"${appName}" from ${container.name} is being shared. This might require a password.`,
     });
     try {
-        await exportApp({containerName: container.name, appName});
+        await exportApp({containerName: container.name, appName, type });
         toast({
             title: "Share Successful",
             description: `"${appName}" has been shared with the host.`,
@@ -177,7 +177,7 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
                                         Shared
                                     </Badge>
                                 ) : (
-                                    <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
+                                    <Button variant="outline" size="sm" onClick={() => handleExport(app.name, app.type)} disabled={!!isExporting}>
                                         {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                                         Share
                                     </Button>

@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 interface SharedAppsPanelProps {
     container: Container;
@@ -120,9 +121,9 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
                             </TableCell>
                             <TableCell className="text-right">
                             <Button 
-                                variant="ghost" 
+                                variant="outline" 
                                 size="sm" 
-                                className="text-red-500 hover:text-red-400 hover:bg-red-900/20" 
+                                className={cn("text-red-400 border-red-500/30 hover:bg-red-900/40 hover:border-red-500/50 hover:text-red-300")}
                                 onClick={() => handleUnshare(app)}
                                 disabled={!!isUnsharing}
                             >
@@ -147,5 +148,3 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
     </Card>
   );
 }
-
-    

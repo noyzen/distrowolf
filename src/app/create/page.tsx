@@ -215,7 +215,7 @@ export default function CreateContainerPage() {
                 <FormItem>
                   <FormLabel>Base Image</FormLabel>
                   <FormDescription>Select a pre-downloaded image for your container.</FormDescription>
-                  <ScrollArea className="h-72 pr-4 pt-2">
+                  <ScrollArea className="h-72 pr-4 pt-2 border rounded-lg">
                     <FormControl>
                         <RadioGroup
                             onValueChange={field.onChange}
@@ -330,5 +330,3 @@ export default function CreateContainerPage() {
     </Form>
   );
 }
-
-    

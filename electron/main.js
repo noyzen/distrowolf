@@ -126,10 +126,11 @@ function parseSharedApps(output, containerName) {
   lines.forEach((line, index) => {
     if (line.trim()) {
       const parts = line.split(':');
+      if (parts.length < 2) return;
       const name = parts[0].trim();
-      const binaryPath = parts[1] ? parts[1].trim() : 'N/A';
+      const binaryPath = parts.slice(1).join(':').trim();
       apps.push({
-        id: `shared-app-${containerName}-${name}-${index}`,
+        id: `shared-app-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
         name: name,
         container: containerName,
         binaryPath: binaryPath,
@@ -146,10 +147,11 @@ function parseSharedBinaries(output, containerName) {
   lines.forEach((line, index) => {
     if (line.trim()) {
       const parts = line.split(':');
+      if (parts.length < 2) return;
       const name = parts[0].trim();
-      const binaryPath = parts[1] ? parts[1].trim() : 'N/A';
+      const binaryPath = parts.slice(1).join(':').trim();
       binaries.push({
-        id: `shared-bin-${containerName}-${name}-${index}`,
+        id: `shared-bin-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
         name: name,
         container: containerName,
         binaryPath: binaryPath,
@@ -181,6 +183,7 @@ function parseSearchableApps(output, packageManager, query) {
                     name: name,
                     version: parts[2],
                     description: parts.slice(3).join(' '),
+                    type: 'app'
                 };
             } else if (currentPackage && line.startsWith(' ')) {
                 currentPackage.description += ' ' + line.trim();
@@ -194,7 +197,7 @@ function parseSearchableApps(output, packageManager, query) {
         if (currentPackage) allPackages.push(currentPackage);
     } else {
         allPackages = lines.map((line, index) => {
-            let name, version = 'N/A', description = 'N/A';
+            let name, version = 'N/A', description = 'N/A', type = 'app';
             try {
                 const parts = line.trim().split(/\s+/);
                 if (parts.length === 0) return null;
@@ -260,6 +263,7 @@ function parseSearchableApps(output, packageManager, query) {
                 name: name.trim(),
                 version: (version || 'N/A').trim(),
                 description: (description || 'No description available.').trim(),
+                type: type,
             };
         }).filter(Boolean);
     }
@@ -516,17 +520,17 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
   switch (packageManager) {
     case 'dpkg':
-      searchCommand = `dpkg-query -W -f='\${binary:Package} \${Version} \${Description}\n' '*${escapedQuery}*' | grep -i "${escapedQuery}"`;
+      searchCommand = `dpkg-query -W -f='ii \${binary:Package} \${Version} \${Description}\\n' '*${escapedQuery}*' | grep -i "${escapedQuery}"`;
       break;
     case 'rpm':
-      searchCommand = `rpm -qa --queryformat '%{NAME} %{VERSION}-%{RELEASE} %{SUMMARY}\n' | grep -i "${escapedQuery}"`;
+      searchCommand = `rpm -qa --queryformat '%{NAME} %{VERSION}-%{RELEASE} %{SUMMARY}\\n' | grep -i "${escapedQuery}"`;
       break;
     case 'dnf':
     case 'yum':
       searchCommand = `dnf list installed | grep -i "${escapedQuery}"`;
       break;
     case 'pacman':
-      searchCommand = `pacman -Qi | grep -i -E '^Name *|Description *' | grep -B1 -i "${escapedQuery}"`;
+      searchCommand = `pacman -Q | grep -i "${escapedQuery}"`;
       break;
     case 'zypper':
       searchCommand = `zypper se -i -s '${escapedQuery}'`; 
@@ -596,5 +600,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-    

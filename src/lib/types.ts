@@ -34,6 +34,7 @@ export interface SearchableApp {
   name: string;
   version: string;
   description: string;
+  type: 'app' | 'binary';
 }
 
 export interface SystemInfo {
@@ -41,5 +42,3 @@ export interface SystemInfo {
     distroboxVersion: string;
     podmanVersion: string;
 }
-
-    
