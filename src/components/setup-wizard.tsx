@@ -25,7 +25,7 @@ export function SetupWizard() {
       <Card>
           <CardHeader className="text-center">
               <div className="mx-auto flex justify-center items-center gap-3 mb-4">
-                  <Logo className="h-10 w-10 text-primary" />
+                  <Logo className="h-14 w-14 text-primary" />
                   <CardTitle className="font-headline text-3xl">DistroWolf Setup</CardTitle>
               </div>
               <CardDescription>
@@ -91,7 +91,7 @@ export function SetupWizard() {
               </div>
               <Button onClick={handleManualInstallClick}>
                   <ExternalLink className="mr-2 h-4 w-4"/>
-                  Guide
+                  Installation Guide
               </Button>
           </CardFooter>
       </Card>

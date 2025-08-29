@@ -22,7 +22,7 @@ import {
   Wrench,
   PlusCircle,
   Search,
-  Shield,
+  PanelLeft,
   Loader
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ import { useSearch } from "@/hooks/use-search";
 import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Logo } from "@/components/ui/logo";
+import { Button } from "./ui/button";
 
 const navItems = [
   { href: "/create", label: "Create New", icon: PlusCircle },
@@ -45,7 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { searchTerm, setSearchTerm } = useSearch();
   const [isNavigating, setIsNavigating] = useState(false);
   const isMobile = useIsMobile();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, toggleSidebar } = useSidebar();
 
   useEffect(() => {
     if (pathname) {
@@ -73,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/20 rounded-lg">
-                <Logo className="h-6 w-6 text-primary" />
+                <Logo className="h-8 w-8 text-primary" />
             </div>
             <h1 className="font-headline text-2xl font-semibold text-primary">
               DistroWolf
@@ -102,7 +103,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sidebar>
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-background/50 backdrop-blur-sm px-6 sticky top-0 z-30">
-          <SidebarTrigger className="md:hidden text-primary" />
+           <div className="md:hidden">
+              <Button variant="ghost" onClick={toggleSidebar} className="px-2">
+                <PanelLeft className="h-5 w-5" />
+                <span className="ml-2">Menu</span>
+              </Button>
+            </div>
           <div className="flex-1">
             <h1 className="font-headline text-xl font-semibold">
               {currentPage?.label || "Dashboard"}

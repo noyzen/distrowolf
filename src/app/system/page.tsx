@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code, Terminal, Loader, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code, Terminal, Loader, AlertTriangle, Download } from "lucide-react";
 import Link from "next/link";
 import { getSystemInfo, listContainers, listLocalImages } from "@/lib/distrobox";
 import type { SystemInfo } from "@/lib/types";
@@ -129,7 +129,7 @@ export default function SystemPage() {
                     </div>
                 </div>
             </Link>
-            <Link href="https://github.com/noyzey/distrowolf" target="_blank" rel="noopener noreferrer" className="block p-4 border rounded-lg hover:bg-accent/20 transition-colors">
+            <Link href="https://github.com/noyzen/distrowolf" target="_blank" rel="noopener noreferrer" className="block p-4 border rounded-lg hover:bg-accent/20 transition-colors">
                  <div className="flex items-center gap-3">
                     <Github className="h-5 w-5 text-primary"/>
                     <div>
