@@ -45,7 +45,6 @@ import {
   enterContainer,
   infoContainer,
   saveContainerAsImage,
-  checkDependencies,
   toggleAutostart as apiToggleAutostart,
   copyToClipboard,
   listSharedApps,
@@ -55,7 +54,6 @@ import { cn, getDistroIcon } from "@/lib/utils";
 import { FindAppsPanel } from "@/components/find-apps-panel";
 import { SharedAppsPanel } from "@/components/shared-apps-panel";
 import { AnimatePresence, motion } from "framer-motion";
-import { SetupWizard } from "@/components/setup-wizard";
 import Link from "next/link";
 import { useSearch } from "@/hooks/use-search";
 import { ContainerInfoPanel } from "@/components/container-info-panel";
@@ -66,7 +64,6 @@ type PanelMode = "apps" | "info";
 
 export default function HomePage() {
   const [containers, setContainers] = useState<Container[]>([]);
-  const [dependencies, setDependencies] = useState<{ distroboxInstalled: boolean, podmanInstalled: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEnterDialogOpen, setEnterDialogOpen] = useState(false);
@@ -87,12 +84,6 @@ export default function HomePage() {
       container.image.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, containers]);
-
-  const checkSystemDependencies = async () => {
-    const deps = await checkDependencies();
-    setDependencies(deps);
-    return deps;
-  }
 
   const fetchContainers = useCallback(async () => {
     setLoading(true);
@@ -135,15 +126,8 @@ export default function HomePage() {
     }
   }, [selectedContainer]);
 
-
   useEffect(() => {
-    checkSystemDependencies().then(deps => {
-        if (deps.distroboxInstalled && deps.podmanInstalled) {
-            fetchContainers();
-        } else {
-            setLoading(false);
-        }
-    });
+    fetchContainers();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
@@ -317,17 +301,13 @@ export default function HomePage() {
     }
   }
 
-  if (loading && containers.length === 0 && dependencies) {
+  if (loading) {
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
             <Loader className="h-12 w-12 animate-spin text-primary" />
             <p className="mt-4 text-lg text-muted-foreground">Loading containers...</p>
         </div>
     )
-  }
-
-  if (dependencies && (!dependencies.distroboxInstalled || !dependencies.podmanInstalled)) {
-      return <SetupWizard dependencies={dependencies} />;
   }
 
   const renderActivePanel = () => {
@@ -587,3 +567,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

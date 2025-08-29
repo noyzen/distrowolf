@@ -2,10 +2,11 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const { ipcMain } = require('electron');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 const Store = require('electron-store');
 const clipboard = require('electron').clipboard;
+const fs = require('fs');
 
 const execAsync = promisify(exec);
 const store = new Store();
@@ -69,19 +70,20 @@ async function parseListOutput(output) {
             return null;
         }
 
-        const args = info.Config?.Cmd || [];
+        const env = info.Config?.Env || [];
+        const findEnvValue = (key) => {
+            const entry = env.find(e => e.startsWith(`${key}=`));
+            return entry ? entry.split('=')[1] : null;
+        };
+
+        const distroboxHostHome = findEnvValue('DISTROBOX_HOST_HOME');
+        const containerHome = findEnvValue('HOME');
         
-        const findArgValue = (arg) => {
-          const index = args.indexOf(arg);
-          return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
-        }
-        
-        const homeArg = findArgValue('--home');
-        let homeStatus = "Shared"; // Default to Shared
-        
-        // A home is isolated ONLY if a custom home path is provided AND it is NOT the same as the host's home path.
-        if (homeArg && homeArg.trim() !== "" && homeArg.trim() !== hostHome) {
-            homeStatus = "Isolated";
+        let homeInfo;
+        if (distroboxHostHome) {
+            homeInfo = { type: "Isolated", path: containerHome };
+        } else {
+            homeInfo = { type: "Shared", path: hostHome };
         }
 
         return {
@@ -90,7 +92,7 @@ async function parseListOutput(output) {
             status: status,
             image: parts[3],
             autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
-            home: homeStatus,
+            home: homeInfo,
         };
     }));
 
@@ -249,20 +251,122 @@ function parseSearchableApps(output, packageManager) {
     }).filter(Boolean);
 }
 
+function getDistroInfo() {
+    if (!fs.existsSync('/etc/os-release')) {
+        return { id: 'unknown', name: 'Unknown Linux' };
+    }
+    const osRelease = fs.readFileSync('/etc/os-release', 'utf-8');
+    const lines = osRelease.split('\n');
+    const info = {};
+    lines.forEach(line => {
+        if (line) {
+            const [key, value] = line.split('=');
+            if (key && value) {
+                info[key.trim()] = value.trim().replace(/"/g, '');
+            }
+        }
+    });
+    return { id: info.ID || 'unknown', name: info.PRETTY_NAME || 'Unknown Linux' };
+}
+
 
 ipcMain.handle('check-dependencies', async () => {
-  const checkCmd = async (cmd) => {
-    try {
-      await execAsync(`command -v ${cmd}`);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  };
-  const distroboxInstalled = await checkCmd('distrobox');
-  const podmanInstalled = await checkCmd('podman');
-  return { distroboxInstalled, podmanInstalled };
+    const checkCmd = async (cmd) => {
+        try {
+            await execAsync(`command -v ${cmd}`);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    };
+    const distroboxInstalled = await checkCmd('distrobox');
+    const podmanInstalled = await checkCmd('podman');
+    const dockerInstalled = await checkCmd('docker');
+    const distroInfo = getDistroInfo();
+
+    return {
+        distroboxInstalled,
+        podmanInstalled,
+        dockerInstalled,
+        distroInfo,
+    };
 });
+
+function runCommandWithPkexec(command) {
+    return new Promise((resolve, reject) => {
+        const child = spawn('pkexec', ['sh', '-c', command], {
+            stdio: 'pipe' 
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout.on('data', (data) => {
+            stdout += data.toString();
+            console.log(`stdout: ${data}`);
+        });
+
+        child.stderr.on('data', (data) => {
+            stderr += data.toString();
+            console.error(`stderr: ${data}`);
+        });
+
+        child.on('close', (code) => {
+            if (code === 0) {
+                resolve({ success: true, stdout });
+            } else {
+                 if (stderr.includes('polkit-agent-helper-1') || code === 126 || code === 127) {
+                     reject(new Error('Authentication failed or was cancelled by the user.'));
+                } else {
+                     reject(new Error(`Command failed with exit code ${code}: ${stderr}`));
+                }
+            }
+        });
+        
+        child.on('error', (err) => {
+            reject(err);
+        });
+    });
+}
+
+ipcMain.handle('install-podman', async () => {
+    const { id } = getDistroInfo();
+    let command;
+
+    switch (id) {
+        case 'ubuntu':
+        case 'debian':
+        case 'pop':
+        case 'mint':
+            command = 'apt-get update && apt-get install -y podman';
+            break;
+        case 'fedora':
+        case 'rocky':
+        case 'almalinux':
+            command = 'dnf install -y podman';
+            break;
+        case 'arch':
+        case 'manjaro':
+        case 'endeavouros':
+            command = 'pacman -S --noconfirm podman';
+            break;
+        case 'opensuse-tumbleweed':
+        case 'opensuse-leap':
+            command = 'zypper install -y podman';
+            break;
+        default:
+            throw new Error(`Unsupported distribution for automatic Podman installation: ${id}`);
+    }
+
+    return runCommandWithPkexec(command);
+});
+
+
+ipcMain.handle('install-distrobox', async () => {
+    const command = 'curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sh';
+    return runCommandWithPkexec(command);
+});
+
 
 ipcMain.handle('get-system-info', async () => {
     const getInfo = async (cmd, parser) => {
@@ -514,7 +618,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
       searchCommand = `zypper se -i '${escapedQuery}'`;
       break;
     case 'apk':
-        searchCommand = `apk info -I | grep -i '${escapedQuery}'`;
+        searchCommand = `apk info -e '*${escapedQuery}*'`;
         break;
     case 'snap':
         searchCommand = `snap list | grep -i '${escapedQuery}'`;
@@ -526,7 +630,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
         searchCommand = `equery list '*${escapedQuery}*'`;
         break;
     default:
-      return [];
+      return []; // Unsupported package manager
   }
   
   const fullCommand = `distrobox enter ${containerName} -- sh -c "${searchCommand}"`;
@@ -537,10 +641,10 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     return parseSearchableApps(stdout, packageManager);
   } catch (error) {
     if (error.code === 1 && error.stdout === '') {
-        return [];
+        return []; // Grep found no matches, not an error.
     }
     console.warn(`Error searching for apps in ${containerName} with ${packageManager}:`, error.message);
-    return [];
+    return []; // Return empty on other errors
   }
 });
 
@@ -548,8 +652,9 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 ipcMain.handle('export-app', async (event, { containerName, appName, type }) => {
   try {
     const flag = type === 'app' ? '--app' : '--bin';
+    const exportPath = type === 'binary' ? `--export-path "${app.getPath('home')}/.local/bin"` : '';
     const safeAppName = appName.replace(/"/g, '\\"');
-    const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${safeAppName}"`;
+    const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${safeAppName}" ${exportPath}`;
     console.log(`[DEBUG] Exporting with command: ${command}`);
     await execAsync(command);
     return { success: true };
@@ -562,8 +667,9 @@ ipcMain.handle('export-app', async (event, { containerName, appName, type }) => 
 ipcMain.handle('unshare-app', async (event, { containerName, appName, type }) => {
   try {
     const flag = type === 'app' ? '--app' : '--bin';
+    const exportPath = type === 'binary' ? `--export-path "${app.getPath('home')}/.local/bin"` : '';
     const safeAppName = appName.replace(/"/g, '\\"');
-    const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${safeAppName}" --delete`;
+    const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${safeAppName}" --delete ${exportPath}`;
     console.log(`[DEBUG] Unsharing with command: ${command}`);
     await execAsync(command);
     return { success: true };
@@ -586,3 +692,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    

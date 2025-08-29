@@ -1,5 +1,5 @@
 
-import type { Container, LocalImage, SystemInfo, SharedApp, SearchableApp } from './types';
+import type { Container, LocalImage, SystemInfo, SharedApp, SearchableApp, DependencyInfo } from './types';
 
 type CreateContainerOptions = {
   name: string;
@@ -30,8 +30,10 @@ type ImageActionResult = {
 declare global {
   interface Window {
     electron: {
-      checkDependencies: () => Promise<{ distroboxInstalled: boolean, podmanInstalled: boolean }>;
+      checkDependencies: () => Promise<DependencyInfo>;
       getSystemInfo: () => Promise<SystemInfo>;
+      installPodman: () => Promise<{ success: boolean }>;
+      installDistrobox: () => Promise<{ success: boolean }>;
       
       listContainers: () => Promise<Container[]>;
       createContainer: (options: CreateContainerOptions) => Promise<{ success: boolean }>;
@@ -58,10 +60,25 @@ declare global {
   }
 }
 
-export async function checkDependencies() {
+export async function checkDependencies(): Promise<DependencyInfo> {
     if (window.electron) return window.electron.checkDependencies();
     console.warn("Electron API not available.");
-    return { distroboxInstalled: false, podmanInstalled: false };
+    return { 
+        distroboxInstalled: false, 
+        podmanInstalled: false,
+        dockerInstalled: false,
+        distroInfo: { id: 'unknown', name: 'Not Found' }
+    };
+}
+
+export async function installPodman(): Promise<{ success: boolean }> {
+  if (window.electron) return window.electron.installPodman();
+  throw new Error("Electron API not available.");
+}
+
+export async function installDistrobox(): Promise<{ success: boolean }> {
+  if (window.electron) return window.electron.installDistrobox();
+  throw new Error("Electron API not available.");
 }
 
 export async function getSystemInfo(): Promise<SystemInfo> {
@@ -183,3 +200,5 @@ export async function unshareApp(options: AppActionOptions): Promise<{ success: 
     console.warn("Electron API not available.");
     return { success: false };
 }
+
+    

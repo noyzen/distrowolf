@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Box, CheckCircle, Clock, HardDrive, Hash, Home, Power, Server, XCircle, Shield, Cpu, Gpu } from 'lucide-react';
+import { ArrowLeft, Box, CheckCircle, Clock, HardDrive, Hash, Home, Power, Server, XCircle, Shield } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 import type { Container } from '@/lib/types';
@@ -53,7 +53,7 @@ export function ContainerInfoPanel({ info, container, onBack }: ContainerInfoPan
                !parts[1].startsWith('/sys') && 
                !parts[1].startsWith('/tmp') && 
                !parts[1].includes('.distrobox') && 
-               !bind.startsWith(container.home.path); // Also filter out the home mount itself
+               !bind.startsWith(container.home.path || 'a-very-unlikely-path-string'); // Also filter out the home mount itself
     }).map((bind: string) => {
         const parts = bind.split(':');
         return { host: parts[0], container: parts[1], options: parts.length > 2 ? parts[2] : 'rw' }
@@ -69,8 +69,6 @@ export function ContainerInfoPanel({ info, container, onBack }: ContainerInfoPan
       home: homeText,
       privileged: info.HostConfig?.Privileged || false,
       autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
-      init: container.init,
-      nvidia: container.nvidia,
       mounts: mounts,
     };
   }, [info, container]);
@@ -148,11 +146,11 @@ export function ContainerInfoPanel({ info, container, onBack }: ContainerInfoPan
                 <div className='flex gap-2 flex-wrap mt-1'>
                     <FlagBadge label="Privileged" enabled={parsedInfo.privileged} />
                     <FlagBadge label="Autostart" enabled={parsedInfo.autostart} />
-                    <FlagBadge label="Init" enabled={parsedInfo.init} />
-                    <FlagBadge label="Nvidia" enabled={parsedInfo.nvidia} />
                 </div>
             </InfoRow>
         </CardContent>
     </Card>
   );
 }
+
+    

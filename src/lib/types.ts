@@ -43,3 +43,15 @@ export interface SystemInfo {
     distroboxVersion: string;
     podmanVersion: string;
 }
+
+export interface DependencyInfo {
+  distroboxInstalled: boolean;
+  podmanInstalled: boolean;
+  dockerInstalled: boolean;
+  distroInfo: {
+    id: string;
+    name: string;
+  };
+}
+
+    

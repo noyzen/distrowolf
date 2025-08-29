@@ -3,7 +3,7 @@
 
 import React, { type ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Sidebar,
   SidebarHeader,
@@ -47,18 +47,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { setOpenMobile } = useSidebar();
 
   useEffect(() => {
-    // Start navigation loading state
-    setIsNavigating(true);
-
-    const timer = setTimeout(() => {
-      // End navigation loading state after a delay to ensure content loads
-      setIsNavigating(false);
-      if (isMobile) {
-        setOpenMobile(false);
-      }
-    }, 500); // Adjust delay as needed
-
-    return () => clearTimeout(timer);
+    if (pathname) {
+        setIsNavigating(true);
+        const timer = setTimeout(() => {
+            setIsNavigating(false);
+            if (isMobile) {
+                setOpenMobile(false);
+            }
+        }, 500); 
+        return () => clearTimeout(timer);
+    }
   }, [pathname, isMobile, setOpenMobile]);
 
   const currentPage = navItems.find((item) => {
@@ -67,7 +65,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   }) ?? navItems.find(item => item.href === '/'); 
 
   const isSearchablePage = pathname === '/' || pathname === '/images';
-
 
   return (
     <>
