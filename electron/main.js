@@ -11,7 +11,7 @@ const fs = require('fs');
 const execAsync = promisify(exec);
 const store = new Store();
 
-async function createWindow() {
+function createWindow() {
   const isDev = !app.isPackaged;
 
   const win = new BrowserWindow({
@@ -671,7 +671,7 @@ ipcMain.handle('export-app', async (event, { containerName, appName, type }) => 
     console.log(`[DEBUG] Exporting with command: ${command}`);
     await execAsync(command);
     return { success: true };
-  } catch (error)g
+  } catch (error) {
     console.error(`Error exporting app ${appName} from ${containerName}:`, error);
     throw error;
   }
