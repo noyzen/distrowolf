@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader, Search, Settings, Info, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -36,8 +36,8 @@ const allPackageManagers = [
     { value: 'guix', label: 'guix (Guix)' },
     { value: 'slack', label: 'slack (Slackware)' },
     { value: 'eopkg', label: 'eopkg (Solus)' },
-    { value: 'snap', label: 'snap' },
     { value: 'flatpak', label: 'flatpak' },
+    { value: 'snap', label: 'snap' },
 ];
 
 export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPanelProps) {
@@ -86,20 +86,20 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
   const handleExport = async (appName: string) => {
     setIsExporting(appName);
     toast({
-        title: "Exporting Application",
-        description: `"${appName}" from ${container.name} is being exported. It will appear in 'Shared Apps' shortly.`,
+        title: "Sharing Application",
+        description: `"${appName}" from ${container.name} is being shared. It will appear in 'Shared Apps' shortly.`,
     });
     try {
         await exportApp({containerName: container.name, appName});
         toast({
-            title: "Export Successful",
+            title: "Share Successful",
             description: `"${appName}" has been shared with the host.`,
         });
         onAppShared(); // Notify parent to refresh shared apps
     } catch (error: any) {
         toast({
             variant: "destructive",
-            title: "Export Failed",
+            title: "Share Failed",
             description: error.message,
         });
     } finally {
@@ -160,14 +160,6 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
         </div>
         <ScrollArea className="h-[300px] border rounded-lg">
             <Table>
-            <TableHeader className="sticky top-0 bg-card z-10">
-                <TableRow>
-                <TableHead className="w-[30%]">Application</TableHead>
-                <TableHead className="w-[20%]">Version</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right w-[120px]">Action</TableHead>
-                </TableRow>
-            </TableHeader>
             <TableBody>
                 {isSearching ? (
                     <TableRow>
@@ -180,24 +172,32 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
                     </TableRow>
                 ) : searchResults.length > 0 ? (
                 searchResults.map((app) => (
-                <TableRow key={app.id}>
-                    <TableCell className="font-medium truncate" title={app.name}>{app.name}</TableCell>
-                    <TableCell className="truncate" title={app.version}>{app.version}</TableCell>
-                    <TableCell className="text-muted-foreground truncate" title={app.description}>{app.description}</TableCell>
-                    <TableCell className="text-right">
-                    { sharedAppNames.includes(app.name) ? (
-                        <Badge variant="secondary" className="gap-1.5">
-                            <CheckCircle className="h-4 w-4"/>
-                            Shared
-                        </Badge>
-                    ) : (
-                        <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
-                            {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            Share
-                        </Button>
-                    )}
-                    </TableCell>
-                </TableRow>
+                    <React.Fragment key={app.id}>
+                        <TableRow>
+                            <TableCell className="font-medium">
+                                {app.name}
+                                <span className="font-normal text-muted-foreground ml-2">{app.version}</span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                            { sharedAppNames.includes(app.name) ? (
+                                <Badge variant="secondary" className="gap-1.5">
+                                    <CheckCircle className="h-4 w-4"/>
+                                    Shared
+                                </Badge>
+                            ) : (
+                                <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
+                                    {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                    Share
+                                </Button>
+                            )}
+                            </TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell colSpan={2} className="pt-0 pb-2 text-sm text-muted-foreground">
+                                {app.description}
+                            </TableCell>
+                        </TableRow>
+                    </React.Fragment>
                 ))
                 ) : (
                     <TableRow>
@@ -213,3 +213,5 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
     </Card>
   );
 }
+
+    

@@ -106,10 +106,14 @@ export default function Home() {
       const fetchedContainers = await listContainers();
       setContainers(fetchedContainers);
       
-      // If a container was selected, find its updated state in the new list
       if (selectedContainer) {
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
-        setSelectedContainer(updatedSelected || null);
+        if (updatedSelected) {
+          setSelectedContainer(updatedSelected);
+        } else {
+          // The selected container was deleted, so clear the selection
+          setSelectedContainer(null);
+        }
       }
 
     } catch (error: any) {
@@ -122,7 +126,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [toast]); // Removed selectedContainer from dependencies to prevent loop
+  }, [toast, selectedContainer?.id]);
 
   const fetchSharedApps = useCallback(async () => {
     if (!selectedContainer) {
@@ -146,7 +150,7 @@ export default function Home() {
             setLoading(false);
         }
     });
-  }, [fetchContainers]);
+  }, []); // Run only once on mount
   
   useEffect(() => {
     if (selectedContainer) {
@@ -244,8 +248,6 @@ export default function Home() {
   }
   
   const handleInfoContainer = async (container: Container) => {
-    // If it's the same container and info is already open, do nothing special
-    // Otherwise, fetch new info
     if (selectedContainer?.id !== container.id || !selectedContainerInfo) {
       try {
           const res = await infoContainer(container.name);
@@ -259,9 +261,7 @@ export default function Home() {
           setSelectedContainerInfo(null);
       }
     }
-    // Set the view mode to 'info'
     setActivePanel("info");
-    // Ensure the container is selected
     setSelectedContainer(container);
   }
 
@@ -322,7 +322,7 @@ export default function Home() {
     }
   }
 
-  if (loading && containers.length === 0) {
+  if (loading && containers.length === 0 && dependencies) {
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
             <Loader className="h-12 w-12 animate-spin text-primary" />
@@ -420,16 +420,11 @@ export default function Home() {
                         key={container.id} 
                         onClick={() => handleRowClick(container)}
                         className={cn(
-                            "cursor-pointer transition-all duration-200", 
+                            "cursor-pointer", 
                             selectedContainer?.id === container.id && "bg-primary/10"
                         )}
-                        style={selectedContainer?.id === container.id ? {
-                            outline: '2px solid hsl(var(--primary))',
-                            borderRadius: 'var(--radius)',
-                            boxShadow: '0 0 10px hsl(var(--primary) / 0.5)',
-                        }: {}}
                     >
-                      <TableCell>
+                      <TableCell className={cn(selectedContainer?.id === container.id && "rounded-l-lg")}>
                         <Badge
                           variant={
                             container.status === "running" ? "default" : "secondary"
@@ -450,7 +445,7 @@ export default function Home() {
                         <span>{container.image}</span>
                       </TableCell>
                       <TableCell className="font-mono text-xs">{container.id}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={cn("text-right", selectedContainer?.id === container.id && "rounded-r-lg")}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
