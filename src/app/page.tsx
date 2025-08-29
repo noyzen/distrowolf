@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -41,70 +41,105 @@ import {
   Loader,
 } from "lucide-react";
 import type { Container } from "@/lib/types";
-import { MOCK_CONTAINERS } from "@/lib/mock-data";
 import { CreateContainerDialog } from "@/components/create-container-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listContainers } from "@/lib/distrobox";
+import { listContainers, startContainer, stopContainer, deleteContainer as removeContainer } from "@/lib/distrobox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function Home() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    async function fetchContainers() {
-      try {
-        const fetchedContainers = await listContainers();
-        setContainers(fetchedContainers);
-      } catch (error) {
-        console.error("Failed to list containers:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Could not fetch Distrobox containers. Is Distrobox installed?",
-        });
-      } finally {
-        setLoading(false);
-      }
+  const fetchContainers = async () => {
+    setLoading(true);
+    try {
+      const fetchedContainers = await listContainers();
+      setContainers(fetchedContainers);
+    } catch (error: any) {
+      console.error("Failed to list containers:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Could not fetch Distrobox containers. Is Distrobox installed? (${error.message})`,
+      });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchContainers();
   }, []);
 
-  const toggleContainerStatus = (id: string) => {
-    let newStatus: "running" | "stopped" = "stopped";
-    setContainers((prev) =>
-      prev.map((c) => {
-        if (c.id === id) {
-          newStatus = c.status === "running" ? "stopped" : "running";
-          return {
-            ...c,
-            status: newStatus,
-          };
-        }
-        return c;
-      })
-    );
+  const handleToggleContainerStatus = async (container: Container) => {
+    const isRunning = container.status === "running";
+    const action = isRunning ? stopContainer : startContainer;
+    const actionName = isRunning ? "Stopping" : "Starting";
+    const newStatus = isRunning ? "stopped" : "running";
+
     toast({
-      title: "Container status changed",
-      description: `Container is now ${newStatus}.`,
+      title: `${actionName} container...`,
+      description: `Request sent to ${actionName.toLowerCase()} "${container.name}".`,
     });
+
+    try {
+      await action(container.name);
+      toast({
+        title: "Success",
+        description: `Container "${container.name}" is now ${newStatus}.`,
+      });
+      await fetchContainers(); // Refresh the list
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: `Failed to ${actionName.toLowerCase()} container`,
+        description: error.message,
+      });
+    }
+  };
+
+  const handleDeleteConfirm = (container: Container) => {
+    setSelectedContainer(container);
+    setDeleteDialogOpen(true);
   };
   
-  const deleteContainer = (id: string) => {
-    setContainers(prev => prev.filter(c => c.id !== id));
-     toast({
-      variant: "destructive",
-      title: "Container deleted",
-      description: "The container has been permanently removed.",
+  const handleDeleteContainer = async () => {
+    if (!selectedContainer) return;
+    
+    toast({
+      title: "Deleting container...",
+      description: `Request sent to delete "${selectedContainer.name}".`,
     });
-  }
+
+    try {
+      await removeContainer(selectedContainer.name);
+      toast({
+        variant: "destructive",
+        title: "Container deleted",
+        description: `Container "${selectedContainer.name}" has been removed.`,
+      });
+      setDeleteDialogOpen(false);
+      setSelectedContainer(null);
+      await fetchContainers(); // Refresh the list
+    } catch (error: any) {
+       toast({
+        variant: "destructive",
+        title: "Failed to delete container",
+        description: error.message,
+      });
+    }
+  };
 
   const handleCreateContainer = (newContainerData: Omit<Container, "id" | "size" | "status">) => {
+    // This part is still using mock data creation, will be replaced with real command later
     const newContainer: Container = {
       ...newContainerData,
       id: `distrobox-${Math.random().toString(36).substring(7)}`,
-      size: `${(Math.random() * 5 + 1).toFixed(1)} GB`,
+      size: `N/A`,
       status: "stopped",
     };
     setContainers((prev) => [...prev, newContainer]);
@@ -195,7 +230,7 @@ export default function Home() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => toggleContainerStatus(container.id)}
+                            onClick={() => handleToggleContainerStatus(container)}
                           >
                             {container.status === "running" ? (
                               <StopCircle className="mr-2 h-4 w-4" />
@@ -234,7 +269,7 @@ export default function Home() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive-foreground focus:bg-destructive"
-                            onClick={() => deleteContainer(container.id)}
+                            onClick={() => handleDeleteConfirm(container)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             <span>Delete</span>
@@ -254,6 +289,24 @@ export default function Home() {
         onOpenChange={setCreateDialogOpen}
         onCreate={handleCreateContainer}
       />
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              <span className="font-bold"> {selectedContainer?.name} </span>
+              container and all of its data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedContainer(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteContainer} className={buttonVariants({ variant: "destructive" })}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

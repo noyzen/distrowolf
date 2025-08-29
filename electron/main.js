@@ -74,6 +74,36 @@ ipcMain.handle('list-containers', async () => {
   }
 });
 
+ipcMain.handle('start-container', async (event, containerName) => {
+  try {
+    await execAsync(`distrobox enter ${containerName} -- "true"`); // A simple command to start it
+    return { success: true };
+  } catch (error) {
+    console.error(`Error starting container ${containerName}:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('stop-container', async (event, containerName) => {
+  try {
+    await execAsync(`distrobox stop ${containerName}`);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error stopping container ${containerName}:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('delete-container', async (event, containerName) => {
+  try {
+    await execAsync(`distrobox rm -f ${containerName}`);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error deleting container ${containerName}:`, error);
+    throw error;
+  }
+});
+
 
 app.whenReady().then(createWindow);
 
