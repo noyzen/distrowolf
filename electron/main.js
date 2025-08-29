@@ -140,58 +140,68 @@ function parseSharedApps(output, containerName) {
 }
 
 function parseSearchableApps(output, packageManager) {
-    const lines = output.trim().split('\n').filter(line => {
-        if (!line.trim()) return false;
-        const lowerLine = line.toLowerCase();
-        // Filter out common header lines
-        if (lowerLine.includes('installed packages') || lowerLine.startsWith('name')) return false;
-        if (lowerLine.includes('reading package lists')) return false;
-        return true;
-    });
+    const lines = output.trim().split('\n').filter(line => line.trim() !== '');
+    const packages = [];
 
+    if (packageManager === 'dpkg') {
+        let currentPackage = null;
+        for (const line of lines) {
+            if (line.startsWith('ii')) {
+                if (currentPackage) {
+                    packages.push(currentPackage);
+                }
+                const parts = line.split(/\s+/);
+                currentPackage = {
+                    id: `s-app-${parts[1]}-${packages.length}`,
+                    name: parts[1].split(':')[0],
+                    version: parts[2],
+                    description: parts.slice(4).join(' '),
+                };
+            } else if (currentPackage && line.startsWith('  ')) {
+                currentPackage.description += ' ' + line.trim();
+            }
+        }
+        if (currentPackage) {
+            packages.push(currentPackage);
+        }
+        return packages.filter(p => p.name && p.version);
+    }
+    
+    // Fallback for other package managers
     return lines.map((line, index) => {
         let name, version = 'N/A', description = 'N/A';
-
         try {
             const parts = line.split(/\s+/);
             if (parts.length < 1) return null;
-
             switch (packageManager) {
-                case 'dpkg': // for dpkg -l
-                    if (parts[0] !== 'ii') return null; // Only show installed packages
-                    name = parts[1].split(':')[0]; // handle arch like code:amd64
-                    version = parts[2];
-                    description = parts.slice(3).join(' ');
-                    break;
-                case 'rpm': // for rpm -qa
+                case 'rpm':
                     const rpmParts = line.split('-');
                     if (rpmParts.length < 3) {
-                       name = line; // Fallback for simple names
+                       name = line;
                     } else {
-                       version = rpmParts.pop(); // version
-                       rpmParts.pop(); // release
+                       version = rpmParts.pop();
+                       rpmParts.pop();
                        name = rpmParts.join('-');
                     }
                     description = 'RPM Package';
                     break;
-                case 'dnf': // for dnf list installed
-                case 'yum': // for yum list installed
-                     name = parts[0].split('.').slice(0, -1).join('.'); // remove .arch
+                case 'dnf': case 'yum':
+                     name = parts[0].split('.').slice(0, -1).join('.');
                      version = parts[1];
                      description = `From repo: ${parts[2]}`;
                      break;
-                case 'pacman': // for pacman -Q
+                case 'pacman':
                     name = parts[0];
                     version = parts[1];
                     description = 'Arch Package';
                     break;
-                case 'zypper': // zypper se -i
+                case 'zypper':
                     if(parts[0] !== 'i' && parts[0] !== 'i+') return null;
                     name = parts[2];
                     version = parts[4];
                     description = parts.slice(6).join(' ');
                     break;
-                case 'apk': // for apk info
+                case 'apk':
                     const apkLine = line.trim();
                     const lastDashIndex = apkLine.lastIndexOf('-');
                     const secondLastDashIndex = apkLine.lastIndexOf('-', lastDashIndex -1);
@@ -199,38 +209,22 @@ function parseSearchableApps(output, packageManager) {
                     version = apkLine.substring(secondLastDashIndex + 1);
                     description = `Installed package`;
                     break;
-                case 'equery': // gentoo
-                    name = parts[0];
-                    description = line;
-                    break;
-                case 'xbps-query': // void
+                case 'equery': name = parts[0]; description = line; break;
+                case 'xbps-query':
                     const xbpsParts = parts[0].split('-');
                     name = xbpsParts[0];
                     version = xbpsParts[1];
                     description = parts.slice(1).join(' ');
                     break;
-                case 'nix-env':
-                case 'guix':
-                case 'slack':
-                     name = parts[0];
-                     description = line;
-                     break;
+                case 'nix-env': case 'guix': case 'slack':
+                     name = parts[0]; description = line; break;
                  case 'eopkg':
-                     name = parts[0];
-                     description = parts.slice(1).join(' ');
-                     break;
+                     name = parts[0]; description = parts.slice(1).join(' '); break;
                 case 'flatpak':
-                    name = parts[1];
-                    version = parts[2];
-                    description = `ID: ${parts[0]}`;
-                    break;
+                    name = parts[1]; version = parts[2]; description = `ID: ${parts[0]}`; break;
                 case 'snap':
-                    name = parts[0];
-                    version = parts[1];
-                    description = parts.slice(3).join(' ');
-                    break;
-                default:
-                    return null;
+                    name = parts[0]; version = parts[1]; description = parts.slice(3).join(' '); break;
+                default: return null;
             }
         } catch (e) {
             console.error(`Error parsing line for ${packageManager}: "${line}"`, e);
@@ -326,12 +320,15 @@ ipcMain.handle('import-image', async () => {
 
     const filePath = filePaths[0];
     try {
-        const { stdout } = await execAsync(`podman load -i "${filePath}"`);
-        if (stdout.includes('already exists')) {
+        const { stdout, stderr } = await execAsync(`podman load -i "${filePath}"`);
+        if (stderr.toLowerCase().includes('already exists')) {
              return { success: false, cancelled: false, error: 'Image already exists.' };
         }
         return { success: true, cancelled: false, path: filePath };
     } catch (error) {
+        if (error.stderr && error.stderr.toLowerCase().includes('already exists')) {
+            return { success: false, cancelled: false, error: 'Image already exists.' };
+        }
         console.error(`Error loading image from ${filePath}:`, error);
         throw error;
     }

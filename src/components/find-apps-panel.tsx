@@ -146,14 +146,14 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
             <Info className="h-4 w-4"/>
             <span>Searching with: {selectedPM || 'None selected'}</span>
         </div>
-        <ScrollArea className="h-[300px] border rounded-md">
+        <ScrollArea className="h-[300px] border rounded-lg">
             <Table>
             <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                <TableHead className="w-[150px]">Application</TableHead>
-                <TableHead className="w-[120px]">Version</TableHead>
+                <TableHead className="w-[150px] max-w-[150px]">Application</TableHead>
+                <TableHead className="w-[120px] max-w-[120px]">Version</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-right w-[150px]">Action</TableHead>
+                <TableHead className="text-right w-[150px] max-w-[150px]">Action</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -175,7 +175,7 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                     <TableCell className="text-right">
                     <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
                         {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                        Export to Host
+                        Export
                     </Button>
                     </TableCell>
                 </TableRow>

@@ -397,7 +397,7 @@ export default function Home() {
                         key={container.id} 
                         onClick={() => handleRowClick(container)}
                         className={cn("cursor-pointer transition-colors duration-300", 
-                            selectedContainer?.id === container.id && "bg-primary/10"
+                            selectedContainer?.id === container.id && "bg-primary/10 ring-2 ring-primary"
                         )}
                     >
                       <TableCell>
