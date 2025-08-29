@@ -87,7 +87,6 @@ ipcMain.handle('list-containers', async () => {
     const { stdout, stderr } = await execAsync('distrobox list --no-color');
     if (stderr) {
       console.error('DEBUG: "distrobox list" stderr:', stderr);
-      // Don't throw here, as some info might still be in stdout
     }
     console.log('DEBUG: Raw "distrobox list" stdout:\n---START---\n' + stdout + '---END---');
     const containers = parseListOutput(stdout);
