@@ -37,8 +37,6 @@ import {
   Save,
   Power,
   PowerOff,
-  Wrench,
-  ShieldCheck,
   Loader,
   RefreshCw,
 } from "lucide-react";
@@ -52,9 +50,13 @@ import {
   deleteContainer as removeContainer,
   enterContainer,
   infoContainer,
+  saveContainerAsImage,
 } from "@/lib/distrobox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { FindAppsPanel } from "@/components/find-apps-panel";
+import { SharedAppsPanel } from "@/components/shared-apps-panel";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function Home() {
   const [containers, setContainers] = useState<Container[]>([]);
@@ -71,6 +73,10 @@ export default function Home() {
     try {
       const fetchedContainers = await listContainers();
       setContainers(fetchedContainers);
+      if (selectedContainer) {
+        const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
+        setSelectedContainer(updatedSelected || null);
+      }
     } catch (error: any) {
       console.error("Failed to list containers:", error);
       toast({
@@ -113,7 +119,6 @@ export default function Home() {
         title: `Failed to ${actionName.toLowerCase()} container`,
         description: error.message,
       });
-       // Refetch to get the real state even on failure
       await fetchContainers();
     } finally {
         setActioningContainerId(null);
@@ -141,6 +146,7 @@ export default function Home() {
         title: "Container deleted",
         description: `Container "${selectedContainer.name}" has been removed.`,
       });
+       setSelectedContainer(null); // Deselect after deletion
       await fetchContainers();
     } catch (error: any) {
       toast({
@@ -150,7 +156,7 @@ export default function Home() {
       });
     } finally {
         setDeleteDialogOpen(false);
-        setSelectedContainer(null);
+        // setSelectedContainer(null);
         setActioningContainerId(null);
     }
   };
@@ -179,6 +185,30 @@ export default function Home() {
     });
   }
 
+  const handleSaveImage = async (container: Container) => {
+    toast({
+        title: "Saving Image...",
+        description: `Creating an image from container "${container.name}". This may take a moment.`,
+    });
+    try {
+        const result = await saveContainerAsImage(container.name);
+        if(result.success) {
+            toast({
+                title: "Image Saved",
+                description: `Successfully created image: ${result.imageName}`,
+            });
+        } else {
+             throw new Error(result.error || "Unknown error occurred.");
+        }
+    } catch(error: any) {
+        toast({
+            variant: "destructive",
+            title: "Failed to Save Image",
+            description: error.message,
+        });
+    }
+  }
+
   const handleToggleAutostart = (container: Container) => {
     // This is just a visual toggle for now
     const updatedContainers = containers.map(c => 
@@ -193,6 +223,7 @@ export default function Home() {
   }
 
   const handleCreateContainer = (newContainerData: Omit<Container, "id" | "size" | "status">) => {
+    // This is a mock implementation. Real implementation would call a backend function.
     const newContainer: Container = {
       ...newContainerData,
       id: `distrobox-${Math.random().toString(36).substring(7)}`,
@@ -201,8 +232,8 @@ export default function Home() {
     };
     setContainers((prev) => [...prev, newContainer]);
     toast({
-      title: "Container created",
-      description: `New container "${newContainer.name}" has been created successfully.`,
+      title: "Container created (mock)",
+      description: `New container "${newContainer.name}" has been added to the list.`,
     });
   };
   
@@ -217,34 +248,11 @@ export default function Home() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-            <CardTitle className="font-headline">System Information</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg">
-            <div>
-              <p className="font-semibold">Distrobox Status</p>
-              <p className="text-sm text-muted-foreground">
-                Distrobox and dependencies are installed and running correctly.
-              </p>
-            </div>
-            <Button variant="outline">
-              <Wrench className="mr-2 h-4 w-4" />
-              Run Diagnostics
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="font-headline">Containers</CardTitle>
             <CardDescription>
-              Manage your Distrobox containers.
+              Select a container to manage its applications.
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -340,7 +348,7 @@ export default function Home() {
                               <span>Info</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSaveImage(container)}>
                               <Save className="mr-2 h-4 w-4" />
                               <span>Save as Image</span>
                             </DropdownMenuItem>
@@ -376,6 +384,22 @@ export default function Home() {
           )}
         </CardContent>
       </Card>
+
+      <AnimatePresence>
+        {selectedContainer && (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            >
+                <FindAppsPanel container={selectedContainer} />
+                <SharedAppsPanel container={selectedContainer} />
+            </motion.div>
+        )}
+      </AnimatePresence>
+
       <CreateContainerDialog
         open={isCreateDialogOpen}
         onOpenChange={setCreateDialogOpen}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,23 +10,28 @@ import { Label } from "@/components/ui/label";
 import { MOCK_SEARCHABLE_APPS } from "@/lib/mock-data";
 import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import type { Container } from "@/lib/types";
 
-export default function SharePage() {
+interface FindAppsPanelProps {
+    container: Container;
+}
+
+export function FindAppsPanel({ container }: FindAppsPanelProps) {
   const { toast } = useToast();
 
   const handleExport = (appName: string) => {
     toast({
       title: "Exporting Application",
-      description: `"${appName}" is being exported to the host.`,
+      description: `"${appName}" from ${container.name} is being exported to the host.`,
     });
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Find Applications to Share</CardTitle>
+        <CardTitle className="font-headline">Find Applications in {container.name}</CardTitle>
         <CardDescription>
-          Search for installed packages within a container and export them to your host system.
+          Search for packages and export them to your host system.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -52,7 +58,6 @@ export default function SharePage() {
             <TableRow>
               <TableHead>Application</TableHead>
               <TableHead>Version</TableHead>
-              <TableHead>Description</TableHead>
               <TableHead className="text-right w-[180px]">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -61,7 +66,6 @@ export default function SharePage() {
               <TableRow key={app.id}>
                 <TableCell className="font-medium">{app.name}</TableCell>
                 <TableCell>{app.version}</TableCell>
-                <TableCell className="text-muted-foreground">{app.description}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="outline" size="sm" onClick={() => handleExport(app.name)}>
                     <Upload className="mr-2 h-4 w-4" />

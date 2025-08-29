@@ -1,3 +1,4 @@
+
 import type { Container } from './types';
 
 declare global {
@@ -9,6 +10,7 @@ declare global {
       deleteContainer: (containerName: string) => Promise<{ success: boolean }>;
       enterContainer: (containerName: string) => Promise<{ success: boolean }>;
       infoContainer: (containerName: string) => Promise<{ success: boolean, message?: string }>;
+      saveContainerAsImage: (containerName: string) => Promise<{ success: boolean, imageName?: string, error?: string }>;
     }
   }
 }
@@ -69,6 +71,15 @@ export async function infoContainer(containerName: string): Promise<{ success: b
     console.warn("Electron API not available.");
     return { success: false, message: "Electron API not available." };
 }
+
+export async function saveContainerAsImage(containerName: string): Promise<{ success: boolean, imageName?: string, error?: string }> {
+    if (window.electron) {
+        return window.electron.saveContainerAsImage(containerName);
+    }
+    console.warn("Electron API not available.");
+    return { success: false, error: "Electron API not available." };
+}
+
 
 export async function toggleAutostart(containerName: string): Promise<{ success: boolean }> {
     // This is a placeholder. Real implementation requires `distrobox-generate-entry` and managing systemd services.

@@ -100,7 +100,6 @@ ipcMain.handle('list-containers', async () => {
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
-    // Using `distrobox enter` with a non-interactive command is a reliable way to start it
     await execAsync(`distrobox enter ${containerName} -- "true"`);
     return { success: true };
   } catch (error) {
@@ -111,7 +110,6 @@ ipcMain.handle('start-container', async (event, containerName) => {
 
 ipcMain.handle('stop-container', async (event, containerName) => {
   try {
-    // Use --yes to avoid interactive prompts
     await execAsync(`distrobox stop ${containerName} --yes`);
     return { success: true };
   } catch (error) {
@@ -131,20 +129,34 @@ ipcMain.handle('delete-container', async (event, containerName) => {
 });
 
 ipcMain.handle('enter-container', (event, containerName) => {
-  try {
-    // This is platform-specific. This example works for terminals like gnome-terminal,
-    // konsole, etc. It might need adjustments for other terminals or OSes.
-    const terminal = process.env.TERMINAL || 'gnome-terminal';
-    spawn(terminal, ['-e', `distrobox enter ${containerName}`], {
-      detached: true,
-      stdio: 'ignore'
-    }).unref();
+  const terminals = [
+    { cmd: 'gnome-terminal', args: ['--', 'distrobox', 'enter', containerName] },
+    { cmd: 'konsole', args: ['-e', 'distrobox', 'enter', containerName] },
+    { cmd: 'xfce4-terminal', args: ['-e', 'distrobox enter ' + containerName] },
+    { cmd: 'xterm', args: ['-e', 'distrobox', 'enter', containerName] },
+  ];
+
+  let spawned = false;
+  for (const t of terminals) {
+    try {
+      spawn(t.cmd, t.args, { detached: true, stdio: 'ignore' }).unref();
+      spawned = true;
+      console.log(`Successfully launched with ${t.cmd}`);
+      break; 
+    } catch (e) {
+      console.log(`Failed to launch with ${t.cmd}, trying next.`);
+    }
+  }
+  
+  if (spawned) {
     return { success: true };
-  } catch (error) {
-    console.error(`Error entering container ${containerName}:`, error);
-    throw error;
+  } else {
+     const error = new Error('Could not find a compatible terminal to open.');
+     console.error(error);
+     throw error;
   }
 });
+
 
 ipcMain.handle('info-container', async (event, containerName) => {
   // Placeholder for getting detailed info.
@@ -155,6 +167,19 @@ ipcMain.handle('info-container', async (event, containerName) => {
     message: `Info for ${containerName} is not yet implemented.`,
   };
 });
+
+ipcMain.handle('save-as-image', async (event, containerName) => {
+    try {
+        const imageName = `distrowolf-backup-${containerName}-${Date.now()}`;
+        // Using podman commit as it's the backend for distrobox
+        await execAsync(`podman commit ${containerName} ${imageName}`);
+        return { success: true, imageName };
+    } catch (error) {
+        console.error(`Error saving container ${containerName} as image:`, error);
+        throw error;
+    }
+});
+
 
 app.whenReady().then(createWindow);
 
