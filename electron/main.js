@@ -284,8 +284,10 @@ async function detectTerminal() {
         'konsole',
         'gnome-terminal',
         'xfce4-terminal',
-        'lxterminal',
         'mate-terminal',
+        'lxterminal',
+        'qterminal',
+        'io.elementary.terminal',
         'terminator',
         'tilix',
         'alacritty',
@@ -491,18 +493,27 @@ ipcMain.handle('enter-container', async (event, containerName) => {
             case 'ptyxis':
                 spawnArgs = ['ptyxis', '--new-window', '--', 'distrobox', 'enter', containerName];
                 break;
-            case 'wezterm':
-                spawnArgs = ['wezterm', 'start', '--', 'distrobox', 'enter', containerName];
-                break;
             case 'konsole':
-                spawnArgs = ['konsole', '-e', enterCommand];
+                spawnArgs = ['konsole', '--separate', '-e', 'distrobox', 'enter', containerName];
                 break;
             case 'gnome-terminal':
-            case 'mate-terminal':
+                 spawnArgs = ['gnome-terminal', '--window', '--', 'distrobox', 'enter', containerName];
+                 break;
             case 'xfce4-terminal':
+                 spawnArgs = ['xfce4-terminal', '--window', '--command', `distrobox enter ${containerName}`];
+                 break;
+            case 'mate-terminal':
+                 spawnArgs = ['mate-terminal', '--window', '--command', `distrobox enter ${containerName}`];
+                 break;
             case 'lxterminal':
-                spawnArgs = [terminal, '--', 'distrobox', 'enter', containerName];
-                break;
+                 spawnArgs = ['lxterminal', '--window', '-e', `distrobox enter ${containerName}`];
+                 break;
+            case 'qterminal':
+                 spawnArgs = ['qterminal', '--new-window', '-e', `distrobox enter ${containerName}`];
+                 break;
+            case 'io.elementary.terminal':
+                 spawnArgs = ['io.elementary.terminal', '--new-window', '-e', `distrobox enter ${containerName}`];
+                 break;
             case 'terminator':
             case 'tilix':
                 spawnArgs = [terminal, '-e', enterCommand];
@@ -694,3 +705,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    
