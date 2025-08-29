@@ -197,7 +197,7 @@ export default function CreateContainerPage() {
                                                 "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
                                             )}>
                                                 <div className="flex items-start gap-3 w-full">
-                                                    <i className={cn(getDistroIcon(img.repository), "text-3xl")}></i>
+                                                    <i className={cn(getDistroIcon(img.repository), "text-3xl text-muted-foreground")}></i>
                                                     <div className="flex flex-col items-start overflow-hidden w-full text-left">
                                                         <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
                                                         <Badge variant="outline" className="font-mono mt-1">{img.tag}</Badge>
@@ -391,5 +391,3 @@ export default function CreateContainerPage() {
     </Form>
   );
 }
-
-    

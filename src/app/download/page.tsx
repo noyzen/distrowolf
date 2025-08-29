@@ -96,7 +96,7 @@ const FeaturedImageCard = ({ name, image, description, onSelect, isSelected }: {
      return (
         <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative flex flex-col justify-between h-36", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
             <div className="flex items-center gap-3">
-                 <i className={cn(getDistroIcon(name), "text-4xl")}></i>
+                 <i className={cn(getDistroIcon(name), "text-4xl text-muted-foreground")}></i>
                 <div>
                     <p className="font-semibold text-lg truncate">{name}</p>
                     <p className="text-sm text-muted-foreground">{description}</p>
@@ -110,7 +110,7 @@ const FeaturedImageCard = ({ name, image, description, onSelect, isSelected }: {
 const ImageCard = ({ image, onSelect, isSelected }: { image: string, onSelect: (img: string) => void, isSelected: boolean }) => {
     return (
         <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative flex items-center gap-3", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
-            <i className={cn(getDistroIcon(image), "text-3xl")}></i>
+            <i className={cn(getDistroIcon(image), "text-3xl text-muted-foreground")}></i>
             <p className="font-semibold truncate font-mono text-sm">{image}</p>
         </button>
     );
@@ -272,5 +272,3 @@ export default function DownloadPage() {
     </Card>
   );
 }
-
-    

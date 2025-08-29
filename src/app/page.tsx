@@ -115,7 +115,7 @@ const ContainerRow = React.memo(({ container, onSelect, isSelected, actioningCon
               <div className="flex flex-col min-w-0">
                   <span className="font-semibold truncate">{container.name}</span>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                     <i className={cn(getDistroIcon(container.image), "text-lg")}></i>
+                     <i className={cn(getDistroIcon(container.image), "text-lg text-muted-foreground")}></i>
                      <span className="truncate">{container.image}</span>
                   </div>
               </div>
@@ -500,7 +500,7 @@ export default function HomePage() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-auto max-h-[calc(100vh-480px)] pr-2">
+          <ScrollArea className="h-auto max-h-[45vh] pr-2">
             <div className="space-y-2 p-1">
               {filteredContainers.length === 0 && !loading ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-4 text-center">
@@ -594,5 +594,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

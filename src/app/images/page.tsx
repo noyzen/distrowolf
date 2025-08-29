@@ -120,7 +120,7 @@ export default function ImagesPage() {
   const ImageCard = ({ image }: { image: LocalImage }) => (
     <div className="p-4 border rounded-lg flex flex-col gap-4 bg-card hover:bg-accent/50 transition-colors">
         <div className="flex items-center gap-3">
-            <i className={cn(getDistroIcon(image.repository), "text-3xl")}></i>
+            <i className={cn(getDistroIcon(image.repository), "text-3xl text-muted-foreground")}></i>
             <div className="flex flex-col overflow-hidden">
                 <span className="font-semibold truncate">{image.repository}</span>
                 <span className="text-sm text-muted-foreground">Tag: {image.tag}</span>
@@ -190,7 +190,7 @@ export default function ImagesPage() {
                       <TableRow key={image.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
-                              <i className={cn(getDistroIcon(image.repository), "text-2xl")}></i>
+                              <i className={cn(getDistroIcon(image.repository), "text-2xl text-muted-foreground")}></i>
                               <span>{image.repository}</span>
                           </div>
                         </TableCell>
@@ -279,5 +279,3 @@ export default function ImagesPage() {
     </>
   );
 }
-
-    
