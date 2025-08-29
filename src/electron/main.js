@@ -76,9 +76,6 @@ async function parseListOutput(output) {
             return entry ? entry.split('=')[1] : null;
         };
         
-        const cmd = info.Config?.Cmd || [];
-        const hasFlag = (flag) => cmd.includes(flag);
-        
         const distroboxHostHome = findEnvValue('DISTROBOX_HOST_HOME');
         const containerHome = findEnvValue('HOME');
         
@@ -472,6 +469,7 @@ ipcMain.handle('export-image', async (event, image) => {
 });
 
 ipcMain.handle('create-container', async (event, { name, image, home, volumes, init, nvidia }) => {
+    console.log('[DEBUG] Received create-container request with options:', { name, image, home, volumes, init, nvidia });
     let command = `distrobox create --name ${name} --image "${image}"`;
     if (home && home.trim() !== '') command += ` --home "${home}"`;
     if (init) command += ' --init';
@@ -481,7 +479,7 @@ ipcMain.handle('create-container', async (event, { name, image, home, volumes, i
     });
 
     try {
-        console.log(`Executing create command: ${command}`);
+        console.log(`[DEBUG] Executing create command: ${command}`);
         await execAsync(command);
         return { success: true };
     } catch (error) {
@@ -697,3 +695,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    
