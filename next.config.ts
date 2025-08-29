@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: 'export',
   distDir: 'out',
+  // Use a conditional assetPrefix. This is the key to making Electron's file:// protocol work.
   assetPrefix: isProd ? './' : '',
   typescript: {
     ignoreBuildErrors: true,

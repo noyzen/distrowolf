@@ -10,9 +10,12 @@ const distroIconMap: { [key: string]: string } = {
   ubuntu: 'fl-ubuntu',
   debian: 'fl-debian',
   fedora: 'fl-fedora',
+  'fedora-toolbox': 'fl-fedora',
   arch: 'fl-archlinux',
+  'arch-toolbox': 'fl-archlinux',
   archlinux: 'fl-archlinux',
   centos: 'fl-centos',
+  'centos-toolbox': 'fl-centos',
   opensuse: 'fl-opensuse',
   'suse': 'fl-opensuse',
   mint: 'fl-linuxmint',
@@ -46,6 +49,7 @@ const distroIconMap: { [key: string]: string } = {
   endeavour: 'fl-endeavour',
   alpine: 'fl-alpine',
   amazon: 'fl-tux',
+  amazonlinux: 'fl-tux',
   ubi: 'fl-redhat', // RedHat Universal Base Image
   default: 'fl-tux',
 };
@@ -56,17 +60,18 @@ export function getDistroIcon(imageName: string): string {
     // e.g. "quay.io/toolbx-images/debian-toolbox:12" -> "debian"
     // e.g. "ghcr.io/ublue-os/bluefin-cli:latest" -> "bluefin"
     const lowerCaseName = imageName.toLowerCase();
-    const parts = lowerCaseName.split(/[/:-]/);
-
+    
+    // Check for specific keywords first
     for (const distro in distroIconMap) {
-        if (parts.some(part => part === distro)) {
+        if (lowerCaseName.includes(distro)) {
             return distroIconMap[distro];
         }
     }
     
-    // Fallback for names that don't match exactly
+    // Fallback parsing if no direct keyword match
+    const parts = lowerCaseName.split(/[/:-]/);
     for (const distro in distroIconMap) {
-        if (lowerCaseName.includes(distro)) {
+        if (parts.some(part => part === distro)) {
             return distroIconMap[distro];
         }
     }

@@ -95,6 +95,10 @@ async function parseListOutput(output) {
         } else {
             homeInfo = { type: "Shared", path: hostHome };
         }
+        
+        const init = !!(info.Config.Cmd && info.Config.Cmd.includes('--init'));
+        const nvidia = !!(info.HostConfig.DeviceRequests && info.HostConfig.DeviceRequests.some(dr => dr.Driver === 'nvidia'));
+
 
         return {
             id: parts[0],
@@ -103,6 +107,8 @@ async function parseListOutput(output) {
             image: parts[3],
             autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
             home: homeInfo,
+            init: init,
+            nvidia: nvidia
         };
     }));
 
@@ -358,7 +364,15 @@ ipcMain.handle('list-local-images', async () => {
 
 ipcMain.handle('pull-image', async (event, imageName) => {
     try {
-        await execAsync(`podman pull ${imageName}`);
+        // Using exec instead of execAsync to get streaming output if needed later.
+        // For now, just waiting for completion.
+        const { stdout, stderr } = await execAsync(`podman pull ${imageName}`);
+        if (stderr) {
+            // Some tools write progress to stderr, so check for actual error keywords
+            if (stderr.toLowerCase().includes('error')) {
+                throw new Error(stderr);
+            }
+        }
         return { success: true };
     } catch (error) {
         console.error(`Error pulling image ${imageName}:`, error);
@@ -391,14 +405,14 @@ ipcMain.handle('import-image', async () => {
     const filePath = filePaths[0];
     try {
         const { stdout, stderr } = await execAsync(`podman load -i "${filePath}"`);
-        if (stderr && stderr.toLowerCase().includes('already exists')) {
-             return { success: false, cancelled: false, error: 'Image already exists.' };
+        if (stderr && stderr.toLowerCase().includes('error')) {
+             if (stderr.toLowerCase().includes('already exists')) {
+                return { success: false, cancelled: false, error: 'Image already exists.' };
+            }
+            throw new Error(stderr);
         }
         return { success: true, cancelled: false, path: filePath };
     } catch (error) {
-        if (error.stderr && error.stderr.toLowerCase().includes('already exists')) {
-            return { success: false, cancelled: false, error: 'Image already exists.' };
-        }
         console.error(`Error loading image from ${filePath}:`, error);
         throw error;
     }
@@ -439,7 +453,10 @@ ipcMain.handle('create-container', async (event, { name, image, home, volumes, i
 
     try {
         console.log(`[DEBUG] Executing create command: ${command}`);
-        await execAsync(command);
+        const { stdout, stderr } = await execAsync(command);
+         if (stderr && !stdout.includes("Container successfully created")) {
+            throw new Error(stderr);
+        }
         return { success: true };
     } catch (error) {
         console.error(`Error creating container ${name}:`, error);
@@ -460,10 +477,16 @@ ipcMain.handle('list-containers', async () => {
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
-    await execAsync(`distrobox enter ${containerName} -- true`);
+    // `distrobox enter -- true` is a reliable way to start and immediately exit.
+    const { stdout, stderr } = await execAsync(`distrobox enter ${containerName} -- true`);
+    // Some versions output "Container Setup Complete" on first start to stderr. This is not an error.
+    if (stderr && !stderr.includes("Container Setup Complete")) {
+        throw new Error(stderr);
+    }
     return { success: true };
   } catch (error) {
-    if (error.stderr && (error.stderr.includes("is already running") || error.stderr.includes("Container Setup Complete"))) {
+    // It might already be running, which is a success condition for "starting".
+    if (error.stderr && error.stderr.includes("is already running")) {
         return { success: true };
     }
     console.error(`Error starting container ${containerName}:`, error);
@@ -663,11 +686,12 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     const { stdout } = await execAsync(fullCommand);
     return parseSearchableApps(stdout, packageManager);
   } catch (error) {
+    // command exits with code 1 if no matches are found. This is not an error.
     if (error.code === 1 && error.stdout === '') {
-        return []; // Grep found no matches, not an error.
+        return [];
     }
     console.warn(`Error searching for apps in ${containerName} with ${packageManager}:`, error.message);
-    return []; // Return empty on other errors
+    return []; // Return empty on other errors to not break UI
   }
 });
 

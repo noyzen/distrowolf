@@ -212,7 +212,7 @@ export default function HomePage() {
     );
   }, [searchTerm, containers]);
 
-  const fetchContainers = useCallback(async () => {
+  const fetchContainers = useCallback(async (selectFirst = false) => {
     setLoading(true);
     setActioningContainerId(null);
     try {
@@ -220,12 +220,15 @@ export default function HomePage() {
       setContainers(fetchedContainers);
       
       if (selectedContainer) {
+        // If a container was selected, find its updated version in the new list
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
-        if (updatedSelected) {
-          setSelectedContainer(prev => prev ? {...prev, ...updatedSelected} : null);
-        } else {
-          setSelectedContainer(null);
+        setSelectedContainer(updatedSelected || null);
+        if (!updatedSelected) {
+          // The selected container was deleted
+          setSelectedContainerInfo(null);
         }
+      } else if (selectFirst && fetchedContainers.length > 0) {
+        setSelectedContainer(fetchedContainers[0]);
       }
 
     } catch (error: any) {
@@ -238,7 +241,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [toast, selectedContainer?.id]);
+  }, [toast, selectedContainer]);
 
   const fetchSharedApps = useCallback(async () => {
     if (!selectedContainer) {
@@ -254,7 +257,7 @@ export default function HomePage() {
   }, [selectedContainer]);
 
   useEffect(() => {
-    fetchContainers();
+    fetchContainers(false); // don't auto-select on initial load
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
@@ -487,7 +490,7 @@ export default function HomePage() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchContainers} disabled={loading}>
+            <Button variant="outline" onClick={() => fetchContainers(false)} disabled={loading}>
               {loading && !actioningContainerId ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
               Refresh
             </Button>
