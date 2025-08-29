@@ -1,3 +1,4 @@
+
 const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const { ipcMain } = require('electron');
@@ -40,7 +41,7 @@ function createWindow() {
 
   const loadUrl = isDev
     ? 'http://localhost:9002'
-    : `file://${path.join(__dirname, '..', 'out', 'index.html')}`;
+    : `file://${path.join(app.getAppPath(), 'out/index.html')}`;
     
   win.loadURL(loadUrl);
 
