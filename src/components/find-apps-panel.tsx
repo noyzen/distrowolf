@@ -11,8 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { Container, SearchableApp } from "@/lib/types";
 import { exportApp, searchContainerApps } from "@/lib/distrobox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface FindAppsPanelProps {
     container: Container;
@@ -38,34 +38,32 @@ const allPackageManagers = [
 
 export function FindAppsPanel({ container }: FindAppsPanelProps) {
   const { toast } = useToast();
-  const [selectedPMs, setSelectedPMs] = useState<string[]>(["dpkg"]);
+  const [selectedPM, setSelectedPM] = useState<string>("dpkg");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchableApp[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
   const handleSearch = async () => {
-    if (!searchQuery || selectedPMs.length === 0) return;
+    if (!searchQuery || !selectedPM) return;
     setIsSearching(true);
     setSearchResults([]);
     toast({
       title: "Searching for applications...",
-      description: `Using ${selectedPMs.join(', ')} to find "${searchQuery}".`,
+      description: `Using ${selectedPM} to find "${searchQuery}".`,
     });
 
     try {
-        // Note: Currently, the backend only supports searching with one PM at a time.
-        // This sends a request for the first selected PM.
         const results = await searchContainerApps({
             containerName: container.name,
-            packageManager: selectedPMs[0], 
+            packageManager: selectedPM, 
             query: searchQuery,
         });
         setSearchResults(results);
         if (results.length === 0) {
             toast({
                 title: "No Results",
-                description: `No packages found matching "${searchQuery}" using ${selectedPMs[0]}. Try another package manager.`,
+                description: `No packages found matching "${searchQuery}" using ${selectedPM}.`,
             });
         }
     } catch(error: any) {
@@ -98,12 +96,6 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
     }
   }
 
-  const handlePMSelection = (pm: string) => {
-      setSelectedPMs(prev => 
-          prev.includes(pm) ? prev.filter(p => p !== pm) : [...prev, pm]
-      );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -128,26 +120,22 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Select Package Managers</DialogTitle>
+                            <DialogTitle>Select Package Manager</DialogTitle>
                             <DialogDescription>
-                                Choose one or more package managers to search with. The search will use the first selected manager.
+                                Choose the package manager to search with.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="grid grid-cols-2 gap-4 py-4 max-h-96 overflow-y-auto">
+                        <RadioGroup value={selectedPM} onValueChange={setSelectedPM} className="grid grid-cols-2 gap-4 py-4 max-h-96 overflow-y-auto">
                             {allPackageManagers.map(pm => (
                                 <div key={pm.value} className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id={pm.value} 
-                                        checked={selectedPMs.includes(pm.value)}
-                                        onCheckedChange={() => handlePMSelection(pm.value)}
-                                    />
+                                    <RadioGroupItem value={pm.value} id={pm.value} />
                                     <Label htmlFor={pm.value} className="cursor-pointer">{pm.label}</Label>
                                 </div>
                             ))}
-                        </div>
+                        </RadioGroup>
                     </DialogContent>
                 </Dialog>
-                 <Button onClick={handleSearch} disabled={isSearching || !searchQuery || selectedPMs.length === 0} className="flex-grow sm:flex-grow-0">
+                 <Button onClick={handleSearch} disabled={isSearching || !searchQuery || !selectedPM} className="flex-grow sm:flex-grow-0">
                     {isSearching ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4"/>}
                     Search
                  </Button>
@@ -155,7 +143,7 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
         </div>
         <div className="text-xs text-muted-foreground flex items-center gap-2">
             <Info className="h-4 w-4"/>
-            <span>Searching with: {selectedPMs.length > 0 ? selectedPMs.join(', ') : 'None selected'}</span>
+            <span>Searching with: {selectedPM || 'None selected'}</span>
         </div>
         <div className="h-[300px] overflow-y-auto">
             <Table>
@@ -205,5 +193,3 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
     </Card>
   );
 }
-
-    
