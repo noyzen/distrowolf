@@ -1,11 +1,16 @@
 
+export type HomeInfo = {
+  type: 'Shared' | 'Isolated';
+  path: string | null;
+};
+
 export interface Container {
   id: string;
   name: string;
   status: 'running' | 'stopped';
   image: string;
   autostart: boolean;
-  home: 'Shared' | 'Isolated';
+  home: HomeInfo;
 }
 
 export interface LocalImage {

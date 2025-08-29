@@ -50,7 +50,9 @@ async function parseListOutput(output) {
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
     
+    const hostHome = app.getPath('home');
     const dataLines = lines.slice(1);
+    
     const containers = await Promise.all(dataLines.map(async line => {
         const parts = line.split('|').map(p => p.trim());
         if (parts.length < 4) return null;
@@ -67,17 +69,20 @@ async function parseListOutput(output) {
             return null;
         }
 
-        const args = info.Config?.Cmd || [];
-        
-        const findArgValue = (arg) => {
-          const index = args.indexOf(arg);
-          return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
-        }
+        const env = info.Config?.Env || [];
+        const findEnvValue = (key) => {
+            const entry = env.find(e => e.startsWith(`${key}=`));
+            return entry ? entry.split('=')[1] : null;
+        };
 
-        const homeArg = findArgValue('--home');
-        let homeStatus = "Shared";
-        if (homeArg && homeArg.trim() !== "") {
-            homeStatus = `Isolated`;
+        const distroboxHostHome = findEnvValue('DISTROBOX_HOST_HOME');
+        const containerHome = findEnvValue('HOME');
+        
+        let homeInfo;
+        if (distroboxHostHome) {
+            homeInfo = { type: "Isolated", path: containerHome };
+        } else {
+            homeInfo = { type: "Shared", path: hostHome };
         }
 
         return {
@@ -86,9 +91,7 @@ async function parseListOutput(output) {
             status: status,
             image: parts[3],
             autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
-            home: homeStatus,
-            init: args.includes('--init'),
-            nvidia: args.includes('--nvidia'),
+            home: homeInfo,
         };
     }));
 
@@ -362,7 +365,7 @@ ipcMain.handle('export-image', async (event, image) => {
     }
 });
 
-ipcMain.handle('create-container', async (event, { name, image, home, init, nvidia, volumes }) => {
+ipcMain.handle('create-container', async (event, { name, image, home, volumes }) => {
     let command = `distrobox create --name ${name} --image "${image}"`;
     if (home && home.trim() !== '') command += ` --home "${home}"`;
     if (init) command += ' --init';
@@ -588,5 +591,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-    

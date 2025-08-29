@@ -34,8 +34,6 @@ import {
   Copy,
   PlusCircle,
   Home,
-  AppWindow,
-  RefreshCcw,
 } from "lucide-react";
 import type { Container, SharedApp } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -337,7 +335,7 @@ export default function HomePage() {
 
     switch (activePanel) {
       case "info":
-        return <ContainerInfoPanel info={selectedContainerInfo} onBack={() => setActivePanel("apps")} />;
+        return <ContainerInfoPanel info={selectedContainerInfo} container={selectedContainer} onBack={() => setActivePanel("apps")} />;
       case "apps":
       default:
         return (
@@ -408,7 +406,7 @@ export default function HomePage() {
             </div>
             <div className="flex items-center gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0 self-end sm:self-center">
                  <div className="flex items-center gap-2">
-                    <FlagBadge icon={Home} text="Isolated Home" enabled={container.home === 'Isolated'} />
+                    <FlagBadge icon={Home} text="Isolated Home" enabled={container.home.type === 'Isolated'} />
                     <FlagBadge icon={Power} text="Autostart" enabled={container.autostart} />
                  </div>
                  <TooltipProvider>

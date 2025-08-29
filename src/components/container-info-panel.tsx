@@ -5,12 +5,14 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Box, CheckCircle, Clock, HardDrive, Hash, Home, Power, Server, XCircle, Shield } from 'lucide-react';
+import { ArrowLeft, Box, CheckCircle, Clock, HardDrive, Hash, Home, Power, Server, XCircle, Shield, Cpu, Gpu } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
+import type { Container } from '@/lib/types';
 
 interface ContainerInfoPanelProps {
   info: any | null;
+  container: Container;
   onBack: () => void;
 }
 
@@ -34,21 +36,24 @@ const FlagBadge = ({ label, enabled }: { label: string, enabled: boolean }) => (
 )
 
 
-export function ContainerInfoPanel({ info, onBack }: ContainerInfoPanelProps) {
+export function ContainerInfoPanel({ info, container, onBack }: ContainerInfoPanelProps) {
 
   const parsedInfo = useMemo(() => {
     if (!info) return null;
-
-    const args = info.Config?.Cmd || [];
     
-    // This logic relies on the main process providing the correct 'home' status.
-    const homeStatus = info.home === 'Isolated' 
-        ? `Isolated at ${info.HostConfig?.Binds?.find((b: string) => b.includes(info.Config.Labels['distrobox.host_home']))?.split(':')[0] || 'custom path'}`
-        : "Shared with Host";
+    let homeText = container.home.type === 'Isolated' 
+        ? `Isolated at ${container.home.path}`
+        : `Shared with Host at ${container.home.path}`;
 
     const mounts = info.HostConfig?.Binds?.filter((bind: string) => {
         const parts = bind.split(':');
-        return parts.length >= 2 && !parts[1].startsWith('/dev') && !parts[1].startsWith('/sys') && !parts[1].startsWith('/tmp') && !parts[1].includes('.distrobox') && !parts[1].includes(info.Config.Labels['distrobox.host_home']);
+        // Filter out system and distrobox-internal mounts
+        return parts.length >= 2 && 
+               !parts[1].startsWith('/dev') && 
+               !parts[1].startsWith('/sys') && 
+               !parts[1].startsWith('/tmp') && 
+               !parts[1].includes('.distrobox') && 
+               !bind.startsWith(container.home.path); // Also filter out the home mount itself
     }).map((bind: string) => {
         const parts = bind.split(':');
         return { host: parts[0], container: parts[1], options: parts.length > 2 ? parts[2] : 'rw' }
@@ -61,12 +66,14 @@ export function ContainerInfoPanel({ info, onBack }: ContainerInfoPanelProps) {
       status: info.State?.Status,
       created: info.Created ? formatDistanceToNow(new Date(info.Created), { addSuffix: true }) : 'N/A',
       startedAt: info.State?.StartedAt ? formatDistanceToNow(new Date(info.State.StartedAt), { addSuffix: true }) : 'N/A',
-      home: homeStatus,
+      home: homeText,
       privileged: info.HostConfig?.Privileged || false,
       autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
+      init: container.init,
+      nvidia: container.nvidia,
       mounts: mounts,
     };
-  }, [info]);
+  }, [info, container]);
 
   if (!info || !parsedInfo) {
     return (
@@ -141,6 +148,8 @@ export function ContainerInfoPanel({ info, onBack }: ContainerInfoPanelProps) {
                 <div className='flex gap-2 flex-wrap mt-1'>
                     <FlagBadge label="Privileged" enabled={parsedInfo.privileged} />
                     <FlagBadge label="Autostart" enabled={parsedInfo.autostart} />
+                    <FlagBadge label="Init" enabled={parsedInfo.init} />
+                    <FlagBadge label="Nvidia" enabled={parsedInfo.nvidia} />
                 </div>
             </InfoRow>
         </CardContent>
