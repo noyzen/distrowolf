@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { createContainer, listLocalImages } from "@/lib/distrobox";
-import { HardDrive, Loader } from "lucide-react";
+import { HardDrive, Loader, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -169,38 +169,47 @@ export default function CreateContainerPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Base Image</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
-                    >
-                        {loadingImages ? (
-                           Array.from({ length: 4 }).map((_, i) => (
-                               <Skeleton key={i} className="h-24 w-full" />
-                           ))
-                        ) : localImages.length > 0 ? (
-                            localImages.map((img) => (
-                                <FormItem key={img.id} className="relative">
-                                    <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
-                                    <FormLabel htmlFor={img.id} className={cn(
-                                        "flex flex-col items-start justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer",
-                                        "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
-                                    )}>
-                                        <h3 className="font-semibold text-foreground truncate w-full">{img.repository}:{img.tag}</h3>
-                                        <p className="text-sm text-muted-foreground">{img.size}</p>
-                                        <p className="text-xs text-muted-foreground">{img.created}</p>
-                                    </FormLabel>
-                                </FormItem>
-                            ))
-                        ) : null}
-                    </RadioGroup>
-                  </FormControl>
+                    <FormControl>
+                        <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+                        >
+                            {loadingImages ? (
+                               Array.from({ length: 8 }).map((_, i) => (
+                                   <Skeleton key={i} className="h-28 w-full rounded-lg" />
+                               ))
+                            ) : localImages.length > 0 ? (
+                                localImages.map((img) => (
+                                    <FormItem key={img.id} className="relative">
+                                        <FormControl>
+                                            <RadioGroupItem value={`${img.repository}:${img.tag}`} id={img.id} className="peer sr-only" />
+                                        </FormControl>
+                                        <FormLabel htmlFor={img.id} className={cn(
+                                            "flex flex-col items-start justify-between rounded-lg border-2 border-muted bg-popover p-4 h-28 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-all",
+                                            "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
+                                        )}>
+                                            <CheckCircle className={cn("h-5 w-5 absolute top-2 right-2 text-primary opacity-0 transition-opacity", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
+                                            <div>
+                                                <h3 className="font-semibold text-foreground truncate w-full">{img.repository}</h3>
+                                                <p className="text-sm text-muted-foreground">{img.tag}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">{img.size}</p>
+                                                <p className="text-xs text-muted-foreground">{img.created}</p>
+                                            </div>
+                                        </FormLabel>
+                                    </FormItem>
+                                ))
+                            ) : null}
+                        </RadioGroup>
+                    </FormControl>
                   {localImages.length === 0 && !loadingImages && (
-                        <div className="text-center col-span-full p-8 border-2 border-dashed rounded-lg">
+                        <div className="text-center col-span-full p-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
                            <HardDrive className="mx-auto h-12 w-12 text-muted-foreground" />
                            <h3 className="mt-4 text-lg font-semibold">No Local Images Found</h3>
                            <p className="text-muted-foreground">Go to the "Download Images" page to pull an image first.</p>
+                           <Button variant="outline" className="mt-4" onClick={() => router.push('/download')}>Go to Downloads</Button>
                         </div>
                   )}
                   <FormMessage />
@@ -261,7 +270,7 @@ export default function CreateContainerPage() {
                         name="init"
                         render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <FormLabel htmlFor="init-flag">Use Init</FormLabel>
+                            <FormLabel htmlFor="init-flag" className="mb-0">Use Init</FormLabel>
                             <FormControl>
                             <Switch
                                 id="init-flag"
@@ -277,7 +286,7 @@ export default function CreateContainerPage() {
                         name="nvidia"
                         render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                            <FormLabel htmlFor="nvidia-gpu">Nvidia GPU</FormLabel>
+                            <FormLabel htmlFor="nvidia-gpu" className="mb-0">Nvidia GPU</FormLabel>
                             <FormControl>
                             <Switch
                                 id="nvidia-gpu"
@@ -320,3 +329,5 @@ export default function CreateContainerPage() {
     </Form>
   );
 }
+
+    

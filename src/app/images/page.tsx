@@ -19,6 +19,8 @@ export default function ImagesPage() {
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [imageToDelete, setImageToDelete] = useState<LocalImage | null>(null);
+  const [isActionDialogOpen, setActionDialogOpen] = useState(false);
+  const [actionDialogContent, setActionDialogContent] = useState({ title: "", description: "" });
 
   const fetchImages = useCallback(async () => {
     setLoading(true);
@@ -71,8 +73,12 @@ export default function ImagesPage() {
     }
   };
 
-  const handleAction = (title: string, description: string) => {
-    toast({ title, description });
+  const handlePlaceholderAction = (action: "Import" | "Export") => {
+    setActionDialogContent({
+        title: `${action} Not Implemented`,
+        description: `This feature requires a native file picker, which is a planned feature for a future update. The backend logic is ready, but UI integration for file selection is pending.`
+    });
+    setActionDialogOpen(true);
   };
 
   return (
@@ -89,7 +95,7 @@ export default function ImagesPage() {
             <Button variant="outline" onClick={fetchImages} disabled={loading}>
               {loading ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />} Refresh
             </Button>
-            <Button variant="outline" onClick={() => handleAction("Import Not Implemented", "This feature requires a native file picker, which is not yet implemented.")}>
+            <Button variant="outline" onClick={() => handlePlaceholderAction("Import")}>
               <Upload className="mr-2 h-4 w-4" /> Import Image
             </Button>
           </div>
@@ -133,7 +139,7 @@ export default function ImagesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleAction("Export Not Implemented", "This feature requires a native file picker, which is not yet implemented.")}>
+                          <DropdownMenuItem onClick={() => handlePlaceholderAction("Export")}>
                             <Download className="mr-2 h-4 w-4" />
                             <span>Export (.tar)</span>
                           </DropdownMenuItem>
@@ -182,6 +188,21 @@ export default function ImagesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+       <AlertDialog open={isActionDialogOpen} onOpenChange={setActionDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{actionDialogContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {actionDialogContent.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setActionDialogOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
+
+    

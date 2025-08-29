@@ -6,17 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader, Search } from "lucide-react";
+import { Upload, Loader, Search, Settings, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Container, SearchableApp } from "@/lib/types";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportApp, searchContainerApps } from "@/lib/distrobox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface FindAppsPanelProps {
     container: Container;
 }
 
-const packageManagers = [
+const allPackageManagers = [
     { value: 'dpkg', label: 'dpkg (Debian/Ubuntu)' },
     { value: 'rpm', label: 'rpm (Fedora/RHEL)' },
     { value: 'dnf', label: 'dnf (Fedora)' },
@@ -36,27 +38,34 @@ const packageManagers = [
 
 export function FindAppsPanel({ container }: FindAppsPanelProps) {
   const { toast } = useToast();
-  const [packageManager, setPackageManager] = useState("dpkg");
+  const [selectedPMs, setSelectedPMs] = useState<string[]>(["dpkg"]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchableApp[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isExporting, setIsExporting] = useState<string | null>(null);
 
   const handleSearch = async () => {
-    if (!searchQuery) return;
+    if (!searchQuery || selectedPMs.length === 0) return;
     setIsSearching(true);
     setSearchResults([]);
+    toast({
+      title: "Searching for applications...",
+      description: `Using ${selectedPMs.join(', ')} to find "${searchQuery}".`,
+    });
+
     try {
+        // Note: Currently, the backend only supports searching with one PM at a time.
+        // This sends a request for the first selected PM.
         const results = await searchContainerApps({
             containerName: container.name,
-            packageManager,
+            packageManager: selectedPMs[0], 
             query: searchQuery,
         });
         setSearchResults(results);
         if (results.length === 0) {
             toast({
                 title: "No Results",
-                description: `No packages found matching "${searchQuery}" using ${packageManager}. Try another package manager.`,
+                description: `No packages found matching "${searchQuery}" using ${selectedPMs[0]}. Try another package manager.`,
             });
         }
     } catch(error: any) {
@@ -89,6 +98,12 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
     }
   }
 
+  const handlePMSelection = (pm: string) => {
+      setSelectedPMs(prev => 
+          prev.includes(pm) ? prev.filter(p => p !== pm) : [...prev, pm]
+      );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -100,28 +115,47 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
             <Input 
-                placeholder="Search for applications..." 
+                placeholder="Search for an application..." 
                 className="flex-grow"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
             <div className="flex items-center space-x-2">
-               <Select value={packageManager} onValueChange={setPackageManager}>
-                    <SelectTrigger className="w-full sm:w-[220px]">
-                        <SelectValue placeholder="Select a package manager" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {packageManagers.map(pm => (
-                            <SelectItem key={pm.value} value={pm.value}>{pm.label}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                 <Button onClick={handleSearch} disabled={isSearching || !searchQuery}>
+                <Dialog>
+                    <DialogTrigger asChild>
+                       <Button variant="outline" size="icon"><Settings /></Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Select Package Managers</DialogTitle>
+                            <DialogDescription>
+                                Choose one or more package managers to search with. The search will use the first selected manager.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid grid-cols-2 gap-4 py-4 max-h-96 overflow-y-auto">
+                            {allPackageManagers.map(pm => (
+                                <div key={pm.value} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={pm.value} 
+                                        checked={selectedPMs.includes(pm.value)}
+                                        onCheckedChange={() => handlePMSelection(pm.value)}
+                                    />
+                                    <Label htmlFor={pm.value} className="cursor-pointer">{pm.label}</Label>
+                                </div>
+                            ))}
+                        </div>
+                    </DialogContent>
+                </Dialog>
+                 <Button onClick={handleSearch} disabled={isSearching || !searchQuery || selectedPMs.length === 0} className="flex-grow sm:flex-grow-0">
                     {isSearching ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4"/>}
                     Search
                  </Button>
             </div>
+        </div>
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <Info className="h-4 w-4"/>
+            <span>Searching with: {selectedPMs.length > 0 ? selectedPMs.join(', ') : 'None selected'}</span>
         </div>
         <div className="h-[300px] overflow-y-auto">
             <Table>
@@ -171,3 +205,5 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
     </Card>
   );
 }
+
+    

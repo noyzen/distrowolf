@@ -370,7 +370,7 @@ ipcMain.handle('enter-container', (event, containerName) => {
   const command = `distrobox enter ${containerName}`;
 
   const terminals = [
-    { cmd: 'gnome-terminal', args: ['--', 'bash', '-c', command] },
+    { cmd: 'gnome-terminal', args: ['--', 'bash', '-c', `${command}; exec bash`] },
     { cmd: 'konsole', args: ['-e', command] },
     { cmd: 'xfce4-terminal', args: ['-e', command] },
     { cmd: 'xterm', args: ['-e', command] },
@@ -531,3 +531,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    
