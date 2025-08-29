@@ -149,6 +149,7 @@ export default function Home() {
             setLoading(false);
         }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   useEffect(() => {
@@ -331,7 +332,7 @@ export default function Home() {
   }
 
   if (dependencies && (!dependencies.distroboxInstalled || !dependencies.podmanInstalled)) {
-      return <SetupWizard dependencies={dependencies} />;
+      return <SetupWizard />;
   }
 
   const renderActivePanel = () => {
@@ -419,8 +420,8 @@ export default function Home() {
                         key={container.id} 
                         onClick={() => handleRowClick(container)}
                         className={cn(
-                            "cursor-pointer", 
-                            selectedContainer?.id === container.id && "bg-primary/10"
+                            "cursor-pointer transition-all duration-300", 
+                            selectedContainer?.id === container.id && "bg-primary/10 shadow-lg shadow-primary/20"
                         )}
                     >
                       <TableCell className={cn("rounded-l-lg", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>
@@ -568,3 +569,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

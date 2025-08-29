@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 interface SetupWizardProps {
     dependencies: {
@@ -36,6 +37,11 @@ export function SetupWizard({ dependencies }: SetupWizardProps) {
 
   return (
     <div className="flex items-center justify-center min-h-full">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         <Card className="w-full max-w-2xl">
             <CardHeader>
                 <CardTitle className="font-headline text-2xl">Welcome to DistroWolf!</CardTitle>
@@ -65,6 +71,9 @@ export function SetupWizard({ dependencies }: SetupWizardProps) {
                 </Link>
             </CardFooter>
         </Card>
+      </motion.div>
     </div>
   );
 }
+
+    
