@@ -1,5 +1,5 @@
 
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, dialog } = require('electron');
 const path = require('path');
 const { ipcMain } = require('electron');
 const { exec, spawn } = require('child_process');
@@ -294,6 +294,50 @@ ipcMain.handle('delete-image', async (event, imageId) => {
     }
 });
 
+ipcMain.handle('import-image', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Import Image from .tar',
+        buttonLabel: 'Import',
+        properties: ['openFile'],
+        filters: [{ name: 'TAR Archives', extensions: ['tar'] }],
+    });
+
+    if (canceled || filePaths.length === 0) {
+        return { success: false, cancelled: true };
+    }
+
+    const filePath = filePaths[0];
+    try {
+        await execAsync(`podman load -i "${filePath}"`);
+        return { success: true, cancelled: false, path: filePath };
+    } catch (error) {
+        console.error(`Error loading image from ${filePath}:`, error);
+        throw error;
+    }
+});
+
+ipcMain.handle('export-image', async (event, image) => {
+    const defaultName = `${image.repository.replace(/[\/:]/g, '_')}_${image.tag}.tar`;
+    const { canceled, filePath } = await dialog.showSaveDialog({
+        title: 'Export Image to .tar',
+        buttonLabel: 'Export',
+        defaultPath: defaultName,
+        filters: [{ name: 'TAR Archives', extensions: ['tar'] }],
+    });
+
+    if (canceled || !filePath) {
+        return { success: false, cancelled: true };
+    }
+
+    try {
+        const imageName = `${image.repository}:${image.tag}`;
+        await execAsync(`podman save -o "${filePath}" ${imageName}`);
+        return { success: true, cancelled: false, path: filePath };
+    } catch (error) {
+        console.error(`Error saving image ${image.id} to ${filePath}:`, error);
+        throw error;
+    }
+});
 
 ipcMain.handle('create-container', async (event, { name, image, home, init, nvidia, volumes }) => {
     let command = `distrobox create --name ${name} --image "${image}"`;
@@ -389,9 +433,9 @@ ipcMain.handle('enter-container', (event, containerName) => {
   if (spawned) {
     return { success: true };
   } else {
-     const error = new Error('Could not find a compatible terminal. Please run manually: ' + command);
-     console.error(error);
-     throw error;
+     const message = 'Could not find a compatible terminal. Please run manually: ' + command;
+     console.error(message);
+     return { success: false, message };
   }
 });
 
@@ -528,5 +572,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-    

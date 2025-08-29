@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -60,6 +60,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { SetupWizard } from "@/components/setup-wizard";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
+import { useSearch } from "@/hooks/use-search";
 
 export default function Home() {
   const [containers, setContainers] = useState<Container[]>([]);
@@ -70,6 +71,15 @@ export default function Home() {
   const [containerToDelete, setContainerToDelete] = useState<Container | null>(null);
   const [actioningContainerId, setActioningContainerId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { searchTerm } = useSearch();
+
+  const filteredContainers = useMemo(() => {
+    if (!searchTerm) return containers;
+    return containers.filter(container =>
+      container.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      container.image.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, containers]);
 
   const checkSystemDependencies = async () => {
     const deps = await checkDependencies();
@@ -179,11 +189,19 @@ export default function Home() {
 
   const handleEnterContainer = async (containerName: string) => {
     try {
-      await enterContainer(containerName);
-      toast({
-        title: "Opening Terminal",
-        description: `Entering container "${containerName}" in a new terminal.`
-      })
+      const result = await enterContainer(containerName);
+      if(result.success) {
+          toast({
+            title: "Opening Terminal",
+            description: `Entering container "${containerName}" in a new terminal.`
+          });
+      } else {
+         toast({
+            variant: "destructive",
+            title: "Could not open terminal",
+            description: result.message || "No compatible terminal found on your system.",
+         });
+      }
     } catch(error: any) {
       toast({
         variant: "destructive",
@@ -301,26 +319,28 @@ export default function Home() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {containers.length === 0 && !loading ? (
+                {filteredContainers.length === 0 && !loading ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center">
                        <div className="flex flex-col items-center gap-4">
                             <Box className="h-12 w-12 text-muted-foreground" />
                             <div className="text-center">
                                 <h3 className="font-semibold">No containers found</h3>
-                                <p className="text-muted-foreground">Create a container to get started!</p>
+                                <p className="text-muted-foreground">{searchTerm ? "No containers match your search." : "Create a container to get started!"}</p>
                             </div>
-                            <Button asChild>
-                               <Link href="/create">
-                                 <PlusCircle className="mr-2 h-4 w-4" />
-                                 Create Container
-                               </Link>
-                            </Button>
+                           {!searchTerm && (
+                                <Button asChild>
+                                <Link href="/create">
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Create Container
+                                </Link>
+                                </Button>
+                           )}
                        </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  containers.map((container) => (
+                  filteredContainers.map((container) => (
                     <TableRow 
                         key={container.id} 
                         onClick={() => handleRowClick(container)}

@@ -21,6 +21,13 @@ type AppActionOptions = {
     appName: string;
 }
 
+type ImageActionResult = {
+  success: boolean;
+  cancelled: boolean;
+  path?: string;
+  error?: string;
+}
+
 declare global {
   interface Window {
     electron: {
@@ -32,13 +39,15 @@ declare global {
       startContainer: (containerName: string) => Promise<{ success: boolean }>;
       stopContainer: (containerName: string) => Promise<{ success: boolean }>;
       deleteContainer: (containerName: string) => Promise<{ success: boolean }>;
-      enterContainer: (containerName: string) => Promise<{ success: boolean }>;
+      enterContainer: (containerName: string) => Promise<{ success: boolean, message?: string }>;
       infoContainer: (containerName: string) => Promise<{ success: boolean, message?: string }>;
       saveContainerAsImage: (containerName: string) => Promise<{ success: boolean, imageName?: string, error?: string }>;
       
       listLocalImages: () => Promise<LocalImage[]>;
       pullImage: (imageName: string) => Promise<{ success: boolean }>;
       deleteImage: (imageId: string) => Promise<{ success: boolean }>;
+      importImage: () => Promise<ImageActionResult>;
+      exportImage: (image: LocalImage) => Promise<ImageActionResult>;
 
       listSharedApps: (containerName: string) => Promise<SharedApp[]>;
       searchContainerApps: (options: SearchAppsOptions) => Promise<SearchableApp[]>;
@@ -84,6 +93,17 @@ export async function deleteImage(imageId: string): Promise<{ success: boolean }
   return { success: false };
 }
 
+export async function importImage(): Promise<ImageActionResult> {
+    if (window.electron) return window.electron.importImage();
+    console.warn("Electron API not available.");
+    return { success: false, cancelled: true, error: "Electron API not available." };
+}
+
+export async function exportImage(image: LocalImage): Promise<ImageActionResult> {
+    if (window.electron) return window.electron.exportImage(image);
+    console.warn("Electron API not available.");
+    return { success: false, cancelled: true, error: "Electron API not available." };
+}
 
 export async function createContainer(options: CreateContainerOptions): Promise<{ success: boolean }> {
   if (window.electron) return window.electron.createContainer(options);
@@ -109,10 +129,10 @@ export async function deleteContainer(containerName: string): Promise<{ success:
   return { success: false };
 }
 
-export async function enterContainer(containerName: string): Promise<{ success: boolean }> {
+export async function enterContainer(containerName: string): Promise<{ success: boolean, message?: string }> {
     if (window.electron) return window.electron.enterContainer(containerName);
     console.warn("Electron API not available.");
-    return { success: false };
+    return { success: false, message: "Electron API not available." };
 }
 
 export async function infoContainer(containerName: string): Promise<{ success: boolean, message?: string }> {

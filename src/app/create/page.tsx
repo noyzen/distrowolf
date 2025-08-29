@@ -190,8 +190,8 @@ export default function CreateContainerPage() {
                                             "peer-data-[state=checked]:border-primary peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary"
                                         )}>
                                             <CheckCircle className={cn("h-5 w-5 absolute top-2 right-2 text-primary opacity-0 transition-opacity", field.value === `${img.repository}:${img.tag}` && "opacity-100")} />
-                                            <div>
-                                                <h3 className="font-semibold text-foreground truncate w-full">{img.repository}</h3>
+                                            <div className="overflow-hidden">
+                                                <h3 className="font-semibold text-foreground truncate w-full" title={img.repository}>{img.repository}</h3>
                                                 <p className="text-sm text-muted-foreground">{img.tag}</p>
                                             </div>
                                             <div>
@@ -329,5 +329,3 @@ export default function CreateContainerPage() {
     </Form>
   );
 }
-
-    

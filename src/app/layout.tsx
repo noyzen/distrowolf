@@ -1,7 +1,9 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AppShell } from '@/components/app-shell';
+import { SearchProvider } from '@/hooks/use-search';
 
 export const metadata: Metadata = {
   title: 'DistroWolf',
@@ -28,7 +30,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-background">
-        <AppShell>{children}</AppShell>
+        <SearchProvider>
+            <AppShell>{children}</AppShell>
+        </SearchProvider>
         <Toaster />
       </body>
     </html>

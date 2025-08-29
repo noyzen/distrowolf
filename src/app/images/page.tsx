@@ -1,17 +1,18 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Upload, Trash2, Download, RefreshCw, Loader, HardDrive, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { listLocalImages, deleteImage } from "@/lib/distrobox";
+import { listLocalImages, deleteImage, exportImage, importImage } from "@/lib/distrobox";
 import type { LocalImage } from "@/lib/types";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { buttonVariants } from "@/components/ui/button";
+import { useSearch } from "@/hooks/use-search";
 
 export default function ImagesPage() {
   const { toast } = useToast();
@@ -19,8 +20,15 @@ export default function ImagesPage() {
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [imageToDelete, setImageToDelete] = useState<LocalImage | null>(null);
-  const [isActionDialogOpen, setActionDialogOpen] = useState(false);
-  const [actionDialogContent, setActionDialogContent] = useState({ title: "", description: "" });
+  const { searchTerm } = useSearch();
+
+  const filteredImages = useMemo(() => {
+    if (!searchTerm) return localImages;
+    return localImages.filter(image =>
+      image.repository.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      image.tag.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm, localImages]);
 
   const fetchImages = useCallback(async () => {
     setLoading(true);
@@ -73,13 +81,38 @@ export default function ImagesPage() {
     }
   };
 
-  const handlePlaceholderAction = (action: "Import" | "Export") => {
-    setActionDialogContent({
-        title: `${action} Not Implemented`,
-        description: `This feature requires a native file picker, which is a planned feature for a future update. The backend logic is ready, but UI integration for file selection is pending.`
-    });
-    setActionDialogOpen(true);
-  };
+  const handleExport = async (image: LocalImage) => {
+    toast({ title: "Preparing to export image...", description: `Image: ${image.repository}:${image.tag}`});
+    try {
+        const result = await exportImage(image);
+        if(result.success) {
+            toast({ title: "Export complete!", description: `Image saved to: ${result.path}`});
+        } else if (result.cancelled) {
+             toast({ variant: "default", title: "Export cancelled", description: "You cancelled the file save operation."});
+        } else {
+            throw new Error("Export failed for an unknown reason.");
+        }
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Export Failed", description: error.message });
+    }
+  }
+
+  const handleImport = async () => {
+    toast({ title: "Preparing to import image..." });
+     try {
+        const result = await importImage();
+        if(result.success) {
+            toast({ title: "Import complete!", description: `Successfully loaded image from file.`});
+            fetchImages();
+        } else if (result.cancelled) {
+             toast({ variant: "default", title: "Import cancelled", description: "You cancelled the file open operation."});
+        } else {
+            throw new Error("Import failed for an unknown reason.");
+        }
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Import Failed", description: error.message });
+    }
+  }
 
   return (
     <>
@@ -95,7 +128,7 @@ export default function ImagesPage() {
             <Button variant="outline" onClick={fetchImages} disabled={loading}>
               {loading ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />} Refresh
             </Button>
-            <Button variant="outline" onClick={() => handlePlaceholderAction("Import")}>
+            <Button variant="outline" onClick={handleImport}>
               <Upload className="mr-2 h-4 w-4" /> Import Image
             </Button>
           </div>
@@ -122,8 +155,8 @@ export default function ImagesPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : localImages.length > 0 ? (
-                localImages.map((image) => (
+              ) : filteredImages.length > 0 ? (
+                filteredImages.map((image) => (
                   <TableRow key={image.id}>
                     <TableCell className="font-medium">{image.repository}</TableCell>
                     <TableCell>{image.tag}</TableCell>
@@ -139,7 +172,7 @@ export default function ImagesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handlePlaceholderAction("Export")}>
+                          <DropdownMenuItem onClick={() => handleExport(image)}>
                             <Download className="mr-2 h-4 w-4" />
                             <span>Export (.tar)</span>
                           </DropdownMenuItem>
@@ -160,7 +193,7 @@ export default function ImagesPage() {
                       <HardDrive className="h-12 w-12 text-muted-foreground" />
                       <div className="text-center">
                         <h3 className="font-semibold">No local images found</h3>
-                        <p className="text-muted-foreground">Download an image or pull one using podman.</p>
+                        <p className="text-muted-foreground">{searchTerm ? "No images match your search." : "Download an image or pull one using podman."}</p>
                       </div>
                     </div>
                   </TableCell>
@@ -188,21 +221,6 @@ export default function ImagesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-       <AlertDialog open={isActionDialogOpen} onOpenChange={setActionDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{actionDialogContent.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {actionDialogContent.description}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setActionDialogOpen(false)}>OK</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
-
-    
