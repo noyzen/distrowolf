@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Box, CheckCircle, Clock, HardDrive, Hash, Home, Power, Server, XCircle } from 'lucide-react';
+import { ArrowLeft, Box, CheckCircle, Clock, HardDrive, Hash, Home, Power, Server, XCircle, Shield } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -40,21 +40,14 @@ export function ContainerInfoPanel({ info, onBack }: ContainerInfoPanelProps) {
     if (!info) return null;
 
     const args = info.Config?.Cmd || [];
-    const findArg = (arg: string) => {
-        const index = args.indexOf(arg);
-        return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
-    }
-
-    const hostHome = info.HostConfig?.Binds?.find((b: string) => b.includes(info.Config.Labels['distrobox.host_home']));
-    const homeArg = findArg('--home');
-    let homeStatus = "Shared with Host";
-    if (homeArg && homeArg.trim() !== "" && homeArg.trim() !== info.Config.Labels['distrobox.host_home']) {
-        homeStatus = `Isolated at ${homeArg}`;
-    }
+    
+    // This logic relies on the main process providing the correct 'home' status.
+    const homeStatus = info.home === 'Isolated' 
+        ? `Isolated at ${info.HostConfig?.Binds?.find((b: string) => b.includes(info.Config.Labels['distrobox.host_home']))?.split(':')[0] || 'custom path'}`
+        : "Shared with Host";
 
     const mounts = info.HostConfig?.Binds?.filter((bind: string) => {
         const parts = bind.split(':');
-        // Filter out system and home binds to only show user-defined volumes
         return parts.length >= 2 && !parts[1].startsWith('/dev') && !parts[1].startsWith('/sys') && !parts[1].startsWith('/tmp') && !parts[1].includes('.distrobox') && !parts[1].includes(info.Config.Labels['distrobox.host_home']);
     }).map((bind: string) => {
         const parts = bind.split(':');

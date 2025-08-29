@@ -52,7 +52,7 @@ async function parseListOutput(output) {
     
     const hostHome = app.getPath('home');
     const dataLines = lines.slice(1);
-
+    
     const containers = await Promise.all(dataLines.map(async line => {
         const parts = line.split('|').map(p => p.trim());
         if (parts.length < 4) return null;
@@ -78,6 +78,8 @@ async function parseListOutput(output) {
         
         const homeArg = findArgValue('--home');
         let homeStatus = "Shared"; // Default to Shared
+        
+        // A home is isolated ONLY if a custom home path is provided AND it is NOT the same as the host's home path.
         if (homeArg && homeArg.trim() !== "" && homeArg.trim() !== hostHome) {
             homeStatus = "Isolated";
         }
@@ -166,7 +168,7 @@ function parseSharedBinaries(output, containerName) {
     }).filter(Boolean);
 }
 
-function parseSearchableApps(output, packageManager) {
+function parseSearchableApps(output, packageManager, query) {
     console.log(`[DEBUG] Raw output for ${packageManager}:`, `\n---\n${output}\n---`);
     const lines = output.trim().split('\n').filter(line => line.trim() !== '');
     if (lines.length === 0) return [];
@@ -194,7 +196,7 @@ function parseSearchableApps(output, packageManager) {
                     break;
                 case 'pacman':
                     if (parts.length < 2) return null;
-                    name = parts[0].split('/')[1] || parts[0]; // handles 'local/firefox'
+                    name = parts[0];
                     version = parts[1];
                     break;
                 case 'zypper':
@@ -205,8 +207,12 @@ function parseSearchableApps(output, packageManager) {
                     description = zypperParts[2];
                     break;
                 case 'apk':
-                    name = parts[0].replace(/-\d.*/, '');
-                    version = parts[0].substring(name.length + 1) || 'N/A';
+                     if (line.includes(query)) {
+                        name = parts[0].replace(/-\d.*/, '');
+                        version = parts[0].substring(name.length + 1) || 'N/A';
+                     } else {
+                        return null;
+                     }
                     break;
                 case 'snap':
                     if (parts.length < 2 || line.toLowerCase().startsWith('name')) return null; // Skip header
@@ -226,7 +232,7 @@ function parseSearchableApps(output, packageManager) {
                      version = name.split('-').pop() || 'N/A';
                      name = name.replace(`-${version}`, '');
                      break;
-                default: // Generic fallback for grep-based results
+                default:
                     name = parts[0];
                     version = parts[1] || 'N/A';
             }
@@ -512,7 +518,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
       searchCommand = `zypper se -i '${escapedQuery}'`;
       break;
     case 'apk':
-        searchCommand = `apk info -e '*${escapedQuery}*'`;
+        searchCommand = `apk info -I | grep -i '${escapedQuery}'`;
         break;
     case 'snap':
         searchCommand = `snap list | grep -i '${escapedQuery}'`;
@@ -524,7 +530,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
         searchCommand = `equery list '*${escapedQuery}*'`;
         break;
     default:
-      return []; // Unsupported package manager
+      return [];
   }
   
   const fullCommand = `distrobox enter ${containerName} -- sh -c "${searchCommand}"`;
@@ -532,13 +538,13 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
   try {
     const { stdout } = await execAsync(fullCommand);
-    return parseSearchableApps(stdout, packageManager);
+    return parseSearchableApps(stdout, packageManager, escapedQuery);
   } catch (error) {
     if (error.code === 1 && error.stdout === '') {
-        return []; // Grep found no matches, not an error.
+        return [];
     }
     console.warn(`Error searching for apps in ${containerName} with ${packageManager}:`, error.message);
-    return []; // Return empty on other errors
+    return [];
   }
 });
 
