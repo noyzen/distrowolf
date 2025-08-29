@@ -132,5 +132,3 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
     </Card>
   );
 }
-
-    

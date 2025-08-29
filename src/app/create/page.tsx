@@ -34,6 +34,7 @@ import { createContainer, listLocalImages } from "@/lib/distrobox";
 import { HardDrive, Loader, CheckCircle } from "lucide-react";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -169,6 +170,7 @@ export default function CreateContainerPage() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Base Image</FormLabel>
+                  <ScrollArea className="h-72 pr-4">
                     <FormControl>
                         <RadioGroup
                             onValueChange={field.onChange}
@@ -203,6 +205,7 @@ export default function CreateContainerPage() {
                             ) : null}
                         </RadioGroup>
                     </FormControl>
+                  </ScrollArea>
                   {localImages.length === 0 && !loadingImages && (
                         <div className="text-center col-span-full p-8 border-2 border-dashed rounded-lg flex flex-col items-center justify-center">
                            <HardDrive className="mx-auto h-12 w-12 text-muted-foreground" />
@@ -328,5 +331,3 @@ export default function CreateContainerPage() {
     </Form>
   );
 }
-
-    

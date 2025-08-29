@@ -198,5 +198,3 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
     </Card>
   );
 }
-
-    

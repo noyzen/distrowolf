@@ -40,6 +40,7 @@ import {
   RefreshCw,
   Box,
   Copy,
+  PlusCircle,
 } from "lucide-react";
 import type { Container, SharedApp } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -63,7 +64,6 @@ import { SharedAppsPanel } from "@/components/shared-apps-panel";
 import { AnimatePresence, motion } from "framer-motion";
 import { SetupWizard } from "@/components/setup-wizard";
 import Link from "next/link";
-import { PlusCircle } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
 import { ContainerInfoPanel } from "@/components/container-info-panel";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -334,7 +334,7 @@ export default function Home() {
   }
 
   if (dependencies && (!dependencies.distroboxInstalled || !dependencies.podmanInstalled)) {
-      return <SetupWizard />;
+      return <SetupWizard dependencies={dependencies} />;
   }
 
   const renderActivePanel = () => {
@@ -574,7 +574,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
