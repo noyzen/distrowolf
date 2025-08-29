@@ -30,12 +30,13 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { createContainer, listLocalImages } from "@/lib/distrobox";
-import { HardDrive, Loader, CheckCircle, Package, Tag, Clock, Layers, Download } from "lucide-react";
+import { HardDrive, Loader, CheckCircle, Layers, Clock, Download, Power, Server } from "lucide-react";
 import { cn, getDistroIcon } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -43,6 +44,8 @@ const formSchema = z.object({
   homeMode: z.enum(["shared", "isolated"]).default("shared"),
   customHome: z.string().optional(),
   volumes: z.string().optional(),
+  init: z.boolean().default(false),
+  nvidia: z.boolean().default(false),
 }).refine(data => {
     if (data.homeMode === 'isolated') {
         return !!data.customHome && data.customHome.length > 0;
@@ -68,6 +71,8 @@ export default function CreateContainerPage() {
       homeMode: "shared",
       customHome: "",
       volumes: "",
+      init: false,
+      nvidia: false,
     },
   });
 
@@ -105,7 +110,9 @@ export default function CreateContainerPage() {
         name: values.name,
         image: values.image,
         home: homePath,
-        volumes: volumesArray 
+        volumes: volumesArray,
+        init: values.init,
+        nvidia: values.nvidia,
     };
 
     toast({
@@ -275,6 +282,57 @@ export default function CreateContainerPage() {
                 </FormItem>
               )}
             />
+             <div className="space-y-4">
+                <h3 className="text-lg font-medium">Advanced Options</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 rounded-lg border p-4">
+                     <FormField
+                        control={form.control}
+                        name="init"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg bg-background/50">
+                                <div className="space-y-0.5">
+                                <FormLabel className="text-base flex items-center gap-2">
+                                    <Power className="h-5 w-5 text-primary" />
+                                    Enable Init (systemd)
+                                </FormLabel>
+                                <FormDescription>
+                                    Use an init system like systemd inside the container.
+                                </FormDescription>
+                                </div>
+                                <FormControl>
+                                <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="nvidia"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg bg-background/50">
+                                 <div className="space-y-0.5">
+                                <FormLabel className="text-base flex items-center gap-2">
+                                     <Server className="h-5 w-5 text-primary" />
+                                    Enable NVIDIA GPU
+                                </FormLabel>
+                                <FormDescription>
+                                    Share the host's NVIDIA GPU with the container.
+                                </FormDescription>
+                                </div>
+                                <FormControl>
+                                <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            </div>
             
             <FormField
               control={form.control}

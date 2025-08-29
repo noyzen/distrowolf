@@ -75,7 +75,10 @@ async function parseListOutput(output) {
             const entry = env.find(e => e.startsWith(`${key}=`));
             return entry ? entry.split('=')[1] : null;
         };
-
+        
+        const cmd = info.Config?.Cmd || [];
+        const hasFlag = (flag) => cmd.includes(flag);
+        
         const distroboxHostHome = findEnvValue('DISTROBOX_HOST_HOME');
         const containerHome = findEnvValue('HOME');
         
@@ -93,6 +96,8 @@ async function parseListOutput(output) {
             image: parts[3],
             autostart: info.HostConfig?.RestartPolicy?.Name === 'always',
             home: homeInfo,
+            init: hasFlag('--init'),
+            nvidia: hasFlag('--nvidia'),
         };
     }));
 
@@ -468,9 +473,11 @@ ipcMain.handle('export-image', async (event, image) => {
     }
 });
 
-ipcMain.handle('create-container', async (event, { name, image, home, volumes }) => {
+ipcMain.handle('create-container', async (event, { name, image, home, volumes, init, nvidia }) => {
     let command = `distrobox create --name ${name} --image "${image}"`;
     if (home && home.trim() !== '') command += ` --home "${home}"`;
+    if (init) command += ' --init';
+    if (nvidia) command += ' --nvidia';
     volumes.forEach(volume => {
         if (volume.trim()) command += ` --volume "${volume.trim()}"`;
     });
@@ -692,5 +699,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-    
