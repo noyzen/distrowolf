@@ -3,9 +3,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, ExternalLink, Shield, LogOut, Terminal, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, LogOut, Terminal, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSystemCheck } from "@/hooks/use-system-check";
+import { Logo } from "@/components/ui/logo";
 
 export function SetupWizard() {
   const { dependencies, checkSystemDependencies, setSkipped } = useSystemCheck();
@@ -24,7 +25,7 @@ export function SetupWizard() {
       <Card>
           <CardHeader className="text-center">
               <div className="mx-auto flex justify-center items-center gap-3 mb-4">
-                  <Shield className="h-10 w-10 text-primary" />
+                  <Logo className="h-10 w-10 text-primary" />
                   <CardTitle className="font-headline text-3xl">DistroWolf Setup</CardTitle>
               </div>
               <CardDescription>

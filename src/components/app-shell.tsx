@@ -29,6 +29,7 @@ import { Input } from "@/components/ui/input";
 import { useSearch } from "@/hooks/use-search";
 import { AnimatePresence, motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Logo } from "@/components/ui/logo";
 
 const navItems = [
   { href: "/create", label: "Create New", icon: PlusCircle },
@@ -72,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/20 rounded-lg">
-                <Shield className="h-6 w-6 text-primary" />
+                <Logo className="h-6 w-6 text-primary" />
             </div>
             <h1 className="font-headline text-2xl font-semibold text-primary">
               DistroWolf
@@ -87,8 +88,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   asChild
                   isActive={currentPage?.href === item.href}
                   tooltip={item.label}
+                  prefetch={false}
                 >
-                <Link href={item.href} prefetch={false}>
+                <Link href={item.href}>
                   <item.icon />
                   <span>{item.label}</span>
                 </Link>
