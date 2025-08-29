@@ -5,6 +5,9 @@ contextBridge.exposeInMainWorld('electron', {
   // Dependency & System Info
   checkDependencies: () => ipcRenderer.invoke('check-dependencies'),
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  installPodman: () => ipcRenderer.invoke('install-podman'),
+  installDistrobox: () => ipcRenderer.invoke('install-distrobox'),
+  installWezterm: () => ipcRenderer.invoke('install-wezterm'),
   
   // Container Management
   listContainers: () => ipcRenderer.invoke('list-containers'),
@@ -33,5 +36,3 @@ contextBridge.exposeInMainWorld('electron', {
   exportApp: (options) => ipcRenderer.invoke('export-app', options),
   unshareApp: (options) => ipcRenderer.invoke('unshare-app', options),
 });
-
-    

@@ -193,7 +193,6 @@ ContainerRow.displayName = 'ContainerRow';
 export default function HomePage() {
   const [containers, setContainers] = useState<Container[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEnterDialogOpen, setEnterDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", message: "" });
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
@@ -301,7 +300,6 @@ export default function HomePage() {
 
   const handleDeleteConfirm = useCallback((container: Container) => {
     setContainerToDelete(container);
-    setDeleteDialogOpen(true);
   }, []);
   
   const handleDeleteContainer = useCallback(async () => {
@@ -331,7 +329,6 @@ export default function HomePage() {
       });
     } finally {
         setContainerToDelete(null);
-        setDeleteDialogOpen(false);
         await fetchContainers();
         setActioningContainerId(null);
     }
@@ -340,15 +337,22 @@ export default function HomePage() {
   const handleEnterContainer = useCallback(async (containerName: string) => {
     try {
       const result = await enterContainer(containerName);
-      setDialogContent({
-        title: `Enter Container: ${containerName}`,
-        message: result.message!
-      });
-      setEnterDialogOpen(true);
+      if (result.launched) {
+        toast({
+          title: 'Terminal Launched',
+          description: `Opening ${containerName} in a new terminal window.`
+        });
+      } else {
+        setDialogContent({
+          title: `Enter Container: ${containerName}`,
+          message: result.message!
+        });
+        setEnterDialogOpen(true);
+      }
     } catch(error: any) {
       toast({
         variant: "destructive",
-        title: "Failed to get enter command",
+        title: "Failed to enter container",
         description: error.message,
       });
     }
@@ -545,7 +549,7 @@ export default function HomePage() {
         </motion.div>
       </AnimatePresence>
       
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialog open={!!containerToDelete} onOpenChange={(open) => !open && setContainerToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

@@ -6,6 +6,8 @@ type CreateContainerOptions = {
   image: string;
   home: string;
   volumes: string[];
+  init: boolean;
+  nvidia: boolean;
 }
 
 type SearchAppsOptions = {
@@ -27,6 +29,12 @@ type ImageActionResult = {
   error?: string;
 }
 
+type EnterContainerResult = {
+    success: boolean;
+    launched: boolean;
+    message?: string;
+}
+
 declare global {
   interface Window {
     electron: {
@@ -34,13 +42,14 @@ declare global {
       getSystemInfo: () => Promise<SystemInfo>;
       installPodman: () => Promise<{ success: boolean }>;
       installDistrobox: () => Promise<{ success: boolean }>;
+      installWezterm: () => Promise<{ success: boolean }>;
       
       listContainers: () => Promise<Container[]>;
       createContainer: (options: CreateContainerOptions) => Promise<{ success: boolean }>;
       startContainer: (containerName: string) => Promise<{ success: boolean }>;
       stopContainer: (containerName: string) => Promise<{ success: boolean }>;
       deleteContainer: (containerName: string) => Promise<{ success: boolean }>;
-      enterContainer: (containerName: string) => Promise<{ success: boolean, message?: string }>;
+      enterContainer: (containerName: string) => Promise<EnterContainerResult>;
       infoContainer: (containerName: string) => Promise<{ success: boolean, message?: string }>;
       saveContainerAsImage: (containerName: string) => Promise<{ success: boolean, imageName?: string, error?: string }>;
       toggleAutostart: (containerName: string, autostart: boolean) => Promise<{ success: boolean }>;
@@ -67,6 +76,8 @@ export async function checkDependencies(): Promise<DependencyInfo> {
         distroboxInstalled: false, 
         podmanInstalled: false,
         dockerInstalled: false,
+        weztermInstalled: false,
+        detectedTerminal: null,
         distroInfo: { id: 'unknown', name: 'Not Found' }
     };
 }
@@ -78,6 +89,11 @@ export async function installPodman(): Promise<{ success: boolean }> {
 
 export async function installDistrobox(): Promise<{ success: boolean }> {
   if (window.electron) return window.electron.installDistrobox();
+  throw new Error("Electron API not available.");
+}
+
+export async function installWezterm(): Promise<{ success: boolean }> {
+  if (window.electron) return window.electron.installWezterm();
   throw new Error("Electron API not available.");
 }
 
@@ -147,10 +163,10 @@ export async function deleteContainer(containerName: string): Promise<{ success:
   return { success: false };
 }
 
-export async function enterContainer(containerName: string): Promise<{ success: boolean, message?: string }> {
+export async function enterContainer(containerName: string): Promise<EnterContainerResult> {
     if (window.electron) return window.electron.enterContainer(containerName);
     console.warn("Electron API not available.");
-    return { success: false, message: "Electron API not available." };
+    return { success: false, launched: false, message: "Electron API not available." };
 }
 
 export async function infoContainer(containerName: string): Promise<{ success: boolean, message?: string }> {
@@ -200,5 +216,3 @@ export async function unshareApp(options: AppActionOptions): Promise<{ success: 
     console.warn("Electron API not available.");
     return { success: false };
 }
-
-    

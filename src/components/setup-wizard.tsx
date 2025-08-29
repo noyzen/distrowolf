@@ -3,16 +3,18 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, ExternalLink, Loader, Shield, LogOut } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Loader, Shield, LogOut, Terminal, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSystemCheck } from "@/hooks/use-system-check";
 
 export function SetupWizard() {
-  const { dependencies, checkSystemDependencies, setSkipped } = useSystemCheck();
+  const { dependencies, checkSystemDependencies, setSkipped, installWezterm, isInstallingWezterm } = useSystemCheck();
 
   const handleManualInstallClick = () => {
     window.open('https://distrobox.it/', '_blank');
   };
+
+  const hasTerminal = dependencies?.weztermInstalled || !!dependencies?.detectedTerminal;
 
   return (
     <motion.div
@@ -35,7 +37,7 @@ export function SetupWizard() {
           <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-background rounded-lg border">
                   <div className="flex items-center gap-4">
-                      <CheckCircle className="h-6 w-6 text-green-500" />
+                      {dependencies?.podmanInstalled ? <CheckCircle className="h-6 w-6 text-green-500" /> : <XCircle className="h-6 w-6 text-destructive" />}
                       <div className="flex flex-col">
                           <span className="font-semibold">Podman</span>
                           <span className="text-sm text-muted-foreground">The recommended container runtime.</span>
@@ -48,7 +50,7 @@ export function SetupWizard() {
 
               <div className="flex items-center justify-between p-4 bg-background rounded-lg border">
                   <div className="flex items-center gap-4">
-                      <CheckCircle className="h-6 w-6 text-green-500" />
+                      {dependencies?.distroboxInstalled ? <CheckCircle className="h-6 w-6 text-green-500" /> : <XCircle className="h-6 w-6 text-destructive" />}
                       <div className="flex flex-col">
                           <span className="font-semibold">Distrobox</span>
                           <span className="text-sm text-muted-foreground">The core container management tool.</span>
@@ -57,6 +59,27 @@ export function SetupWizard() {
                    <span className={`text-sm font-semibold ${dependencies?.distroboxInstalled ? 'text-green-500' : 'text-destructive'}`}>
                       {dependencies?.distroboxInstalled ? "Installed" : "Not Found"}
                   </span>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-background rounded-lg border">
+                  <div className="flex items-center gap-4">
+                      {hasTerminal ? <CheckCircle className="h-6 w-6 text-green-500" /> : <AlertTriangle className="h-6 w-6 text-yellow-500" />}
+                      <div className="flex flex-col">
+                          <span className="font-semibold">Terminal Emulator</span>
+                          <span className="text-sm text-muted-foreground">For entering containers directly. (Optional)</span>
+                      </div>
+                  </div>
+                   <div className="flex flex-col items-end gap-2">
+                     <span className={`text-sm font-semibold ${hasTerminal ? 'text-green-500' : 'text-yellow-500'}`}>
+                        {dependencies?.detectedTerminal ? `Detected: ${dependencies.detectedTerminal}` : (dependencies?.weztermInstalled ? 'WezTerm Installed' : 'Not Found')}
+                     </span>
+                      {!hasTerminal && (
+                        <Button size="sm" onClick={installWezterm} disabled={isInstallingWezterm}>
+                            {isInstallingWezterm ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Terminal className="mr-2 h-4 w-4" />}
+                            Install WezTerm
+                        </Button>
+                      )}
+                   </div>
               </div>
               
               <div className="pt-4 text-center text-sm text-muted-foreground">
@@ -75,7 +98,7 @@ export function SetupWizard() {
               </div>
               <Button onClick={handleManualInstallClick}>
                   <ExternalLink className="mr-2 h-4 w-4"/>
-                  Manual Installation Guide
+                  Guide
               </Button>
           </CardFooter>
       </Card>

@@ -48,10 +48,10 @@ export interface DependencyInfo {
   distroboxInstalled: boolean;
   podmanInstalled: boolean;
   dockerInstalled: boolean;
+  weztermInstalled: boolean;
+  detectedTerminal: string | null;
   distroInfo: {
     id: string;
     name: string;
   };
 }
-
-    

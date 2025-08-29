@@ -269,51 +269,72 @@ function getDistroInfo() {
     return { id: info.ID || 'unknown', name: info.PRETTY_NAME || 'Unknown Linux' };
 }
 
+const checkCmd = async (cmd) => {
+    try {
+        await execAsync(`command -v ${cmd}`);
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
+
+async function detectTerminal() {
+    const terminals = [
+        'konsole',
+        'gnome-terminal',
+        'xfce4-terminal',
+        'lxterminal',
+        'mate-terminal',
+        'terminator',
+        'tilix',
+        'alacritty',
+        'kitty',
+    ];
+    for (const term of terminals) {
+        if (await checkCmd(term)) {
+            return term;
+        }
+    }
+    return null;
+}
 
 ipcMain.handle('check-dependencies', async () => {
-    const checkCmd = async (cmd) => {
-        try {
-            await execAsync(`command -v ${cmd}`);
-            return true;
-        } catch (error) {
-            return false;
-        }
-    };
     const distroboxInstalled = await checkCmd('distrobox');
     const podmanInstalled = await checkCmd('podman');
     const dockerInstalled = await checkCmd('docker');
+    const weztermInstalled = await checkCmd('wezterm');
+    const detectedTerminal = await detectTerminal();
     const distroInfo = getDistroInfo();
 
     return {
         distroboxInstalled,
         podmanInstalled,
         dockerInstalled,
+        weztermInstalled,
+        detectedTerminal,
         distroInfo,
     };
 });
 
-function runCommandWithPkexec(command) {
+function runCommandWithPkexec(command, event) {
     return new Promise((resolve, reject) => {
         const child = spawn('pkexec', ['sh', '-c', command], {
             stdio: ['ignore', 'pipe', 'pipe'] // stdin, stdout, stderr
         });
 
-        let stdout = '';
-        let stderr = '';
-
         child.stdout.on('data', (data) => {
-            stdout += data.toString();
             console.log(`[pkexec stdout]: ${data}`);
+            if (event) event.sender.send('install-progress', data.toString());
         });
 
         child.stderr.on('data', (data) => {
-            stderr += data.toString();
             console.error(`[pkexec stderr]: ${data}`);
+            if (event) event.sender.send('install-progress', data.toString());
         });
 
         child.on('close', (code) => {
             if (code === 0) {
-                resolve({ success: true, stdout });
+                resolve({ success: true });
             } else {
                  if (stderr.includes('polkit-agent-helper-1') || code === 126 || code === 127) {
                      reject(new Error('Authentication failed or was cancelled by the user.'));
@@ -330,7 +351,7 @@ function runCommandWithPkexec(command) {
     });
 }
 
-ipcMain.handle('install-podman', async () => {
+ipcMain.handle('install-podman', async (event) => {
     const { id } = getDistroInfo();
     let command;
 
@@ -361,13 +382,31 @@ ipcMain.handle('install-podman', async () => {
             throw new Error(`Unsupported distribution for automatic Podman installation: ${id}`);
     }
 
-    return runCommandWithPkexec(command);
+    return runCommandWithPkexec(command, event);
 });
 
 
-ipcMain.handle('install-distrobox', async () => {
+ipcMain.handle('install-distrobox', async (event) => {
     const command = 'curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sh';
-    return runCommandWithPkexec(command);
+    return runCommandWithPkexec(command, event);
+});
+
+ipcMain.handle('install-wezterm', async (event) => {
+    const homeDir = app.getPath('home');
+    const binDir = path.join(homeDir, '.local', 'bin');
+    const command = `
+        mkdir -p ${binDir} &&
+        curl -LO https://github.com/wez/wezterm/releases/download/nightly/WezTerm-nightly-Ubuntu22.04.AppImage &&
+        chmod +x WezTerm-nightly-Ubuntu22.04.AppImage &&
+        mv WezTerm-nightly-Ubuntu22.04.AppImage ${binDir}/wezterm &&
+        echo "WezTerm installed to ${binDir}/wezterm"
+    `;
+    // We don't need pkexec for this since we are installing to user's local dir
+    return new Promise((resolve, reject) => {
+         const child = spawn('sh', ['-c', command], { stdio: ['ignore', 'pipe', 'pipe'] });
+         child.on('close', code => code === 0 ? resolve({success: true}) : reject(new Error('Failed to install Wezterm.')));
+         child.on('error', err => reject(err));
+    });
 });
 
 
@@ -536,9 +575,52 @@ ipcMain.handle('delete-container', async (event, containerName) => {
 });
 
 
-ipcMain.handle('enter-container', (event, containerName) => {
-    const command = `distrobox enter ${containerName}`;
-    return { success: true, message: command };
+ipcMain.handle('enter-container', async (event, containerName) => {
+    let terminal = await detectTerminal();
+    if (!terminal && await checkCmd('wezterm')) {
+        terminal = 'wezterm';
+    }
+    
+    let command;
+    const enterCommand = `distrobox enter ${containerName}`;
+
+    if (terminal) {
+        switch (terminal) {
+            case 'wezterm':
+                command = `wezterm start -- ${enterCommand}`;
+                break;
+            case 'konsole':
+                command = `konsole -e ${enterCommand}`;
+                break;
+            case 'gnome-terminal':
+            case 'mate-terminal':
+            case 'xfce4-terminal':
+            case 'lxterminal':
+                command = `${terminal} -- ${enterCommand}`;
+                break;
+            case 'terminator':
+            case 'tilix':
+                command = `${terminal} -e "${enterCommand}"`;
+                break;
+            case 'alacritty':
+                 command = `alacritty -e ${enterCommand}`;
+                 break;
+            default:
+                command = enterCommand; // Fallback for unknown but detected terminals
+                break;
+        }
+        try {
+            console.log(`[DEBUG] Executing terminal command: ${command}`);
+            exec(command); // Use non-async exec to launch and forget
+            return { success: true, launched: true };
+        } catch (error) {
+             console.error(`Failed to launch terminal with command: ${command}`, error);
+             // Fallback to showing command
+             return { success: true, launched: false, message: enterCommand };
+        }
+    }
+
+    return { success: true, launched: false, message: enterCommand };
 });
 
 ipcMain.handle('copy-to-clipboard', (event, text) => {
