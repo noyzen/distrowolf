@@ -148,7 +148,8 @@ function parseSearchableApps(output, packageManager, query) {
         let currentPackage = null;
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            if (line.startsWith('ii')) {
+            // 'ii' is the status for an installed package in dpkg -l
+            if (line.startsWith('ii')) { 
                 if (currentPackage) {
                     packages.push(currentPackage);
                 }
@@ -160,9 +161,9 @@ function parseSearchableApps(output, packageManager, query) {
                     version: parts[2],
                     description: parts.slice(4).join(' '),
                 };
-            } else if (currentPackage && line.startsWith(' ')) { // Description continuation
+            } else if (currentPackage && line.startsWith(' ')) { // Description continuation lines start with a space
                 currentPackage.description += ' ' + line.trim();
-            } else { // Handle cases where a new package starts without flushing the old one
+            } else {
                  if (currentPackage) {
                     packages.push(currentPackage);
                     currentPackage = null;
@@ -172,7 +173,7 @@ function parseSearchableApps(output, packageManager, query) {
         if (currentPackage) {
             packages.push(currentPackage);
         }
-
+        
         // Filter results after parsing to ensure relevance
         return packages.filter(p => p.name && p.name.toLowerCase().includes(normalizedQuery));
 
@@ -591,5 +592,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-    

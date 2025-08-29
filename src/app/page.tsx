@@ -111,7 +111,6 @@ export default function Home() {
         if (updatedSelected) {
           setSelectedContainer(updatedSelected);
         } else {
-          // The selected container was deleted, so clear the selection
           setSelectedContainer(null);
         }
       }
@@ -150,13 +149,13 @@ export default function Home() {
             setLoading(false);
         }
     });
-  }, []); // Run only once on mount
+  }, []);
   
   useEffect(() => {
     if (selectedContainer) {
       fetchSharedApps();
     } else {
-      setSharedApps([]); // Clear shared apps when no container is selected
+      setSharedApps([]); 
     }
   }, [selectedContainer, fetchSharedApps]);
 
@@ -187,7 +186,7 @@ export default function Home() {
         description: error.message,
       });
     } finally {
-        await fetchContainers(); // Refreshes the state regardless of outcome
+        await fetchContainers(); 
         setActioningContainerId(null);
     }
   };
@@ -301,7 +300,7 @@ export default function Home() {
             title: "Success!",
             description: `Autostart for "${container.name}" has been ${newAutostartState ? 'enabled' : 'disabled'}.`,
         });
-        await fetchContainers(); // Refresh to show the new state
+        await fetchContainers(); 
     } catch(error: any) {
         toast({
             variant: "destructive",
@@ -317,8 +316,8 @@ export default function Home() {
       setSelectedContainerInfo(null);
     } else {
       setSelectedContainer(container);
-      setActivePanel("apps"); // Default to apps view on new selection
-      setSelectedContainerInfo(null); // Clear old info
+      setActivePanel("apps"); 
+      setSelectedContainerInfo(null);
     }
   }
 
@@ -424,7 +423,7 @@ export default function Home() {
                             selectedContainer?.id === container.id && "bg-primary/10"
                         )}
                     >
-                      <TableCell className={cn(selectedContainer?.id === container.id && "rounded-l-lg")}>
+                      <TableCell className={cn("rounded-l-lg", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>
                         <Badge
                           variant={
                             container.status === "running" ? "default" : "secondary"
@@ -439,13 +438,13 @@ export default function Home() {
                           {container.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{container.name}</TableCell>
-                      <TableCell className="flex items-center gap-2">
+                      <TableCell className={cn(selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>{container.name}</TableCell>
+                      <TableCell className={cn("flex items-center gap-2", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>
                         <i className={cn(getDistroIcon(container.image), "text-2xl")}></i>
                         <span>{container.image}</span>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{container.id}</TableCell>
-                      <TableCell className={cn("text-right", selectedContainer?.id === container.id && "rounded-r-lg")}>
+                      <TableCell className={cn("font-mono text-xs", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>{container.id}</TableCell>
+                      <TableCell className={cn("text-right rounded-r-lg", selectedContainer?.id === container.id && "ring-2 ring-primary ring-inset")}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
@@ -569,5 +568,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
