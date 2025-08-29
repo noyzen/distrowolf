@@ -44,20 +44,12 @@ const navItems = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { searchTerm, setSearchTerm } = useSearch();
-  const [isNavigating, setIsNavigating] = useState(false);
   const isMobile = useIsMobile();
   const { setOpenMobile, toggleSidebar } = useSidebar();
 
   useEffect(() => {
-    if (pathname) {
-        setIsNavigating(true);
-        const timer = setTimeout(() => {
-            setIsNavigating(false);
-            if (isMobile) {
-                setOpenMobile(false);
-            }
-        }, 500); 
-        return () => clearTimeout(timer);
+    if (pathname && isMobile) {
+        setOpenMobile(false);
     }
   }, [pathname, isMobile, setOpenMobile]);
 
@@ -127,20 +119,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
         <main className="flex-1 p-4 sm:p-6 relative">
           <AnimatePresence mode="wait">
-              {isNavigating && (
-                  <motion.div
-                      key="loader"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50"
-                  >
-                      <Loader className="h-10 w-10 animate-spin text-primary" />
-                  </motion.div>
-              )}
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {children}
+            </motion.div>
           </AnimatePresence>
-          {!isNavigating && children}
         </main>
       </SidebarInset>
     </>
