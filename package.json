@@ -93,7 +93,7 @@
     },
     "linux": {
       "target": "AppImage",
-      "compression": "normal"
+      "compression": "store"
     },
     "mac": {
       "target": "dmg"
