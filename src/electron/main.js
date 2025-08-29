@@ -11,9 +11,6 @@ const fs = require('fs');
 const execAsync = promisify(exec);
 const store = new Store();
 
-// This MUST be called before the app is ready.
-app.disableHardwareAcceleration();
-
 function createWindow() {
   const isDev = !app.isPackaged;
 
