@@ -103,35 +103,37 @@ body {
 
 /* Distro Logo Colors */
 @layer components {
-  .fl-ubuntu { color: #E95420 !important; }
-  .fl-debian { color: #A80030 !important; }
-  .fl-fedora { color: #55a4e3 !important; }
-  .fl-archlinux { color: #1793D1 !important; }
-  .fl-centos { color: #2d005f !important; }
-  .fl-opensuse { color: #73BA25 !important; }
-  .fl-linuxmint { color: #87C375 !important; }
-  .fl-manjaro { color: #35BF5C !important; }
-  .fl-gentoo { color: #54487A !important; }
-  .fl-alpine { color: #0D598E !important; }
-  .fl-redhat { color: #CC0000 !important; }
-  .fl-pop-os { color: #48B9C7 !important; }
-  .fl-void { color: #478061 !important; }
-  .fl-solus { color: #5294e2 !important; }
-  .fl-nixos { color: #5277C3 !important; }
-  .fl-rocky-linux { color: #107963 !important; }
-  .fl-almalinux { color: #682860 !important; }
-  .fl-kali-linux { color: #557C9B !important; }
-  .fl-elementary { color: #6184f5 !important; }
-  .fl-tux { color: #a1a1a1 !important; }
-  .fl-docker { color: #2496ED !important; }
-  .fl-tumbleweed { color: #28a745 !important; }
-  .fl-leap { color: #28a745 !important; }
-  .fl-garuda { color: #c0392b !important; }
-  .fl-endeavour { color: #7c3f99 !important; }
-  .fl-kubuntu { color: #0079c1 !important; }
+  .fl-ubuntu { color: #E95420; }
+  .fl-debian { color: #A80030; }
+  .fl-fedora { color: #55a4e3; }
+  .fl-archlinux { color: #1793D1; }
+  .fl-centos { color: #2d005f; }
+  .fl-opensuse { color: #73BA25; }
+  .fl-linuxmint { color: #87C375; }
+  .fl-manjaro { color: #35BF5C; }
+  .fl-gentoo { color: #54487A; }
+  .fl-alpine { color: #0D598E; }
+  .fl-redhat { color: #CC0000; }
+  .fl-pop-os { color: #48B9C7; }
+  .fl-void { color: #478061; }
+  .fl-solus { color: #5294e2; }
+  .fl-nixos { color: #5277C3; }
+  .fl-rocky-linux { color: #107963; }
+  .fl-almalinux { color: #682860; }
+  .fl-kali-linux { color: #557C9B; }
+  .fl-elementary { color: #6184f5; }
+  .fl-tux { color: #a1a1a1; }
+  .fl-docker { color: #2496ED; }
+  .fl-tumbleweed { color: #28a745; }
+  .fl-leap { color: #28a745; }
+  .fl-garuda { color: #c0392b; }
+  .fl-endeavour { color: #7c3f99; }
+  .fl-kubuntu { color: #0079c1; }
 
   /* Default/fallback color */
   [class^="fl-"]:not(.fl-ubuntu):not(.fl-debian):not(.fl-fedora):not(.fl-archlinux):not(.fl-centos):not(.fl-opensuse):not(.fl-linuxmint):not(.fl-manjaro):not(.fl-gentoo):not(.fl-alpine):not(.fl-redhat):not(.fl-pop-os):not(.fl-void):not(.fl-solus):not(.fl-nixos):not(.fl-rocky-linux):not(.fl-almalinux):not(.fl-kali-linux):not(.fl-elementary):not(.fl-tux):not(.fl-docker):not(.fl-tumbleweed):not(.fl-leap):not(.fl-garuda):not(.fl-endeavour):not(.fl-kubuntu) {
-    color: hsl(var(--foreground)) !important;
+    color: hsl(var(--foreground));
   }
 }
+
+    
