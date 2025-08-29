@@ -82,8 +82,7 @@
     "productName": "DistroWolf",
     "files": [
       "out",
-      "src/electron/main.js",
-      "src/electron/preload.js"
+      "src/electron"
     ],
     "directories": {
       "buildResources": "resources",
@@ -101,5 +100,3 @@
     }
   }
 }
-
-    
