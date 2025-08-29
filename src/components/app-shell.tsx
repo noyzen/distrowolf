@@ -118,17 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         </header>
         <main className="flex-1 p-4 sm:p-6 relative">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          {children}
         </main>
       </SidebarInset>
     </>
