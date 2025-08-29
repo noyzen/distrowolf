@@ -7,20 +7,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 const distroIconMap: { [key: string]: string } = {
-  almalinux: 'fl-almalinux',
-  alpine: 'fl-alpine',
-  amazonlinux: 'fl-tux', 
-  aosc: 'fl-aosc',
-  apple: 'fl-apple',
-  archcraft: 'fl-archcraft',
-  archlabs: 'fl-archlabs',
-  arch: 'fl-archlinux',
-  archlinux: 'fl-archlinux',
-  arcolinux: 'fl-arcolinux',
-  artix: 'fl-artix',
-  fedora: 'fl-fedora',
   ubuntu: 'fl-ubuntu',
   debian: 'fl-debian',
+  fedora: 'fl-fedora',
+  arch: 'fl-archlinux',
+  archlinux: 'fl-archlinux',
   centos: 'fl-centos',
   opensuse: 'fl-opensuse',
   'suse': 'fl-opensuse',
@@ -39,26 +30,41 @@ const distroIconMap: { [key: string]: string } = {
   kali: 'fl-kali-linux',
   parrot: 'fl-parrot',
   rocky: 'fl-rocky-linux',
-  oracle: 'fl-tux',
+  rockylinux: 'fl-rocky-linux',
+  almalinux: 'fl-almalinux',
+  oracle: 'fl-tux', 
   'oraclelinux': 'fl-tux',
   mageia: 'fl-mageia',
   tumbleweed: 'fl-tumbleweed',
   leap: 'fl-leap',
   docker: 'fl-docker',
   'bazzite-arch': 'fl-garuda',
-  'bluefin-cli': 'fl-tux',
+  bluefin: 'fl-tux',
   wolfi: 'fl-tux',
   kubuntu: 'fl-kubuntu',
   garuda: 'fl-garuda',
   endeavour: 'fl-endeavour',
+  alpine: 'fl-alpine',
+  amazon: 'fl-tux',
+  ubi: 'fl-redhat', // RedHat Universal Base Image
   default: 'fl-tux',
 };
 
 export function getDistroIcon(imageName: string): string {
     if (!imageName) return distroIconMap.default;
 
+    // e.g. "quay.io/toolbx-images/debian-toolbox:12" -> "debian"
+    // e.g. "ghcr.io/ublue-os/bluefin-cli:latest" -> "bluefin"
     const lowerCaseName = imageName.toLowerCase();
+    const parts = lowerCaseName.split(/[/:-]/);
 
+    for (const distro in distroIconMap) {
+        if (parts.some(part => part === distro)) {
+            return distroIconMap[distro];
+        }
+    }
+    
+    // Fallback for names that don't match exactly
     for (const distro in distroIconMap) {
         if (lowerCaseName.includes(distro)) {
             return distroIconMap[distro];
