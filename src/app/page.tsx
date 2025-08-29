@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -45,6 +46,7 @@ import { CreateContainerDialog } from "@/components/create-container-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { listContainers, startContainer, stopContainer, deleteContainer as removeContainer } from "@/lib/distrobox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const [containers, setContainers] = useState<Container[]>([]);
@@ -52,6 +54,7 @@ export default function Home() {
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
+  const [actioningContainerId, setActioningContainerId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchContainers = async () => {
@@ -85,6 +88,8 @@ export default function Home() {
       title: `${actionName} container...`,
       description: `Request sent to ${actionName.toLowerCase()} "${container.name}".`,
     });
+    
+    setActioningContainerId(container.id);
 
     try {
       await action(container.name);
@@ -92,13 +97,15 @@ export default function Home() {
         title: "Success",
         description: `Container "${container.name}" is now ${newStatus}.`,
       });
-      await fetchContainers(); // Refresh the list
+      await fetchContainers();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: `Failed to ${actionName.toLowerCase()} container`,
         description: error.message,
       });
+    } finally {
+        setActioningContainerId(null);
     }
   };
 
@@ -115,6 +122,7 @@ export default function Home() {
       description: `Request sent to delete "${selectedContainer.name}".`,
     });
 
+    setActioningContainerId(selectedContainer.id);
     try {
       await removeContainer(selectedContainer.name);
       toast({
@@ -124,18 +132,19 @@ export default function Home() {
       });
       setDeleteDialogOpen(false);
       setSelectedContainer(null);
-      await fetchContainers(); // Refresh the list
+      await fetchContainers();
     } catch (error: any) {
        toast({
         variant: "destructive",
         title: "Failed to delete container",
         description: error.message,
       });
+    } finally {
+        setActioningContainerId(null);
     }
   };
 
   const handleCreateContainer = (newContainerData: Omit<Container, "id" | "size" | "status">) => {
-    // This part is still using mock data creation, will be replaced with real command later
     const newContainer: Container = {
       ...newContainerData,
       id: `distrobox-${Math.random().toString(36).substring(7)}`,
@@ -148,6 +157,14 @@ export default function Home() {
       description: `New container "${newContainer.name}" has been created successfully.`,
     });
   };
+  
+  const handleRowClick = (container: Container) => {
+    if (selectedContainer?.id === container.id) {
+        setSelectedContainer(null); // Unselect if clicked again
+    } else {
+        setSelectedContainer(container);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -205,80 +222,99 @@ export default function Home() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {containers.map((container) => (
-                  <TableRow key={container.id}>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          container.status === "running" ? "default" : "secondary"
-                        }
-                        className="capitalize"
-                      >
-                        {container.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{container.name}</TableCell>
-                    <TableCell>{container.image}</TableCell>
-                    <TableCell className="font-mono text-xs">{container.id}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleToggleContainerStatus(container)}
-                          >
-                            {container.status === "running" ? (
-                              <StopCircle className="mr-2 h-4 w-4" />
-                            ) : (
-                              <Play className="mr-2 h-4 w-4" />
-                            )}
-                            <span>
-                              {container.status === "running" ? "Stop" : "Start"}
-                            </span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Terminal className="mr-2 h-4 w-4" />
-                            <span>Enter</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Info className="mr-2 h-4 w-4" />
-                            <span>Info</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <Save className="mr-2 h-4 w-4" />
-                            <span>Save as Image</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            {container.autostart ? (
-                              <PowerOff className="mr-2 h-4 w-4" />
-                            ) : (
-                              <Power className="mr-2 h-4 w-4" />
-                            )}
-                            <span>
-                              {container.autostart
-                                ? "Disable Autostart"
-                                : "Enable Autostart"}
-                            </span>
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive-foreground focus:bg-destructive"
-                            onClick={() => handleDeleteConfirm(container)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Delete</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {containers.length === 0 && !loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      No containers found. Create one to get started!
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  containers.map((container) => (
+                    <TableRow 
+                        key={container.id} 
+                        onClick={() => handleRowClick(container)}
+                        className={cn("cursor-pointer transition-colors duration-300", 
+                            selectedContainer?.id === container.id && "bg-primary/10 ring-2 ring-primary ring-inset shadow-lg"
+                        )}
+                    >
+                      <TableCell>
+                        <Badge
+                          variant={
+                            container.status === "running" ? "default" : "secondary"
+                          }
+                          className="capitalize"
+                        >
+                           {actioningContainerId === container.id ? (
+                                <Loader className="mr-2 h-3 w-3 animate-spin"/>
+                            ) : (
+                                <span className={cn("h-2 w-2 rounded-full mr-2", container.status === 'running' ? 'bg-green-400' : 'bg-red-400')}></span>
+                            )}
+                          {container.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{container.name}</TableCell>
+                      <TableCell>{container.image}</TableCell>
+                      <TableCell className="font-mono text-xs">{container.id}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem
+                              onClick={() => handleToggleContainerStatus(container)}
+                            >
+                              {container.status === "running" ? (
+                                <StopCircle className="mr-2 h-4 w-4" />
+                              ) : (
+                                <Play className="mr-2 h-4 w-4" />
+                              )}
+                              <span>
+                                {container.status === "running" ? "Stop" : "Start"}
+                              </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Terminal className="mr-2 h-4 w-4" />
+                              <span>Enter</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Info className="mr-2 h-4 w-4" />
+                              <span>Info</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>
+                              <Save className="mr-2 h-4 w-4" />
+                              <span>Save as Image</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              {container.autostart ? (
+                                <PowerOff className="mr-2 h-4 w-4" />
+                              ) : (
+                                <Power className="mr-2 h-4 w-4" />
+                              )}
+                              <span>
+                                {container.autostart
+                                  ? "Disable Autostart"
+                                  : "Enable Autostart"}
+                              </span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive-foreground focus:bg-destructive"
+                              onClick={() => handleDeleteConfirm(container)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           )}
@@ -302,6 +338,7 @@ export default function Home() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setSelectedContainer(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteContainer} className={buttonVariants({ variant: "destructive" })}>
+               {actioningContainerId === selectedContainer?.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -310,3 +347,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
