@@ -46,14 +46,18 @@ async function createWindow() {
 }
 
 function parseListOutput(output) {
+    console.log('DEBUG: Raw "distrobox list" stdout:\n---START---\n' + output + '\n---END---');
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
+    
     const dataLines = lines.slice(1);
-    return dataLines.map(line => {
+    const containers = dataLines.map(line => {
         const parts = line.split('|').map(p => p.trim());
         if (parts.length < 4) return null;
+        
         const status = parts[2].toLowerCase().startsWith('up') ? 'running' : 'stopped';
-        return {
+        
+        const container = {
             id: parts[0],
             name: parts[1],
             status: status,
@@ -65,8 +69,14 @@ function parseListOutput(output) {
             nvidia: false, 
             volumes: [], 
         };
+        console.log("DEBUG: Parsed container:", JSON.stringify(container));
+        return container;
     }).filter(Boolean);
+
+    console.log("DEBUG: Parsed containers:", JSON.stringify(containers, null, 2));
+    return containers;
 }
+
 
 function parseLocalImages(output) {
     const lines = output.trim().split('\n');
@@ -76,10 +86,10 @@ function parseLocalImages(output) {
         const parts = line.split(/\s{2,}/); // Split on 2+ spaces
         if (parts.length < 3) return null;
         return {
-            id: `img-${index}`, // Podman doesn't provide a short ID here, so we generate one
+            id: `img-${parts[2].substring(0,12)}`, // Use image ID for a more stable unique key
             repository: parts[0],
             tag: parts[1],
-            imageID: parts[2], // Not directly used in UI but good to have
+            imageID: parts[2],
             created: parts[3],
             size: parts[4],
         };
@@ -138,6 +148,7 @@ ipcMain.handle('create-container', async (event, { name, image, sharedHome, init
     });
 
     try {
+        console.log(`Executing create command: ${command}`);
         await execAsync(command);
         return { success: true };
     } catch (error) {
@@ -148,6 +159,7 @@ ipcMain.handle('create-container', async (event, { name, image, sharedHome, init
 
 
 ipcMain.handle('list-containers', async () => {
+  console.log('DEBUG: Received "list-containers" event.');
   try {
     const { stdout } = await execAsync('distrobox list --no-color');
     return parseListOutput(stdout);
@@ -159,10 +171,17 @@ ipcMain.handle('list-containers', async () => {
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
+    // Use "true" as a no-op command to just start the container
     await execAsync(`distrobox enter ${containerName} -- "true"`);
     return { success: true };
   } catch (error) {
     console.error(`Error starting container ${containerName}:`, error);
+    // Even if it fails, it might have started, let's not re-throw immediately
+    // The UI will refresh and show the current state.
+    // Let's check if the error is just because it's already running.
+    if (error.stderr && error.stderr.includes("is already running")) {
+        return { success: true };
+    }
     throw error;
   }
 });
@@ -179,13 +198,15 @@ ipcMain.handle('stop-container', async (event, containerName) => {
 
 ipcMain.handle('delete-container', async (event, containerName) => {
   try {
-    await execAsync(`distrobox rm -f ${containerName}`);
+    // The --yes flag is needed for non-interactive deletion
+    await execAsync(`distrobox rm -f --yes ${containerName}`);
     return { success: true };
   } catch (error) {
     console.error(`Error deleting container ${containerName}:`, error);
     throw error;
   }
 });
+
 
 ipcMain.handle('enter-container', (event, containerName) => {
   const terminals = [

@@ -28,7 +28,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   MoreHorizontal,
-  PlusCircle,
   Play,
   StopCircle,
   Terminal,
@@ -41,8 +40,7 @@ import {
   RefreshCw,
   Box,
 } from "lucide-react";
-import type { Container, LocalImage } from "@/lib/types";
-import { CreateContainerDialog } from "@/components/create-container-dialog";
+import type { Container } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { 
   listContainers, 
@@ -53,8 +51,6 @@ import {
   infoContainer,
   saveContainerAsImage,
   checkDependencies,
-  createContainer as apiCreateContainer,
-  listLocalImages,
 } from "@/lib/distrobox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
@@ -62,15 +58,16 @@ import { FindAppsPanel } from "@/components/find-apps-panel";
 import { SharedAppsPanel } from "@/components/shared-apps-panel";
 import { AnimatePresence, motion } from "framer-motion";
 import { SetupWizard } from "@/components/setup-wizard";
+import Link from "next/link";
+import { PlusCircle } from "lucide-react";
 
 export default function Home() {
   const [containers, setContainers] = useState<Container[]>([]);
-  const [localImages, setLocalImages] = useState<LocalImage[]>([]);
   const [dependencies, setDependencies] = useState<{ distroboxInstalled: boolean, podmanInstalled: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
+  const [containerToDelete, setContainerToDelete] = useState<Container | null>(null);
   const [actioningContainerId, setActioningContainerId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -84,15 +81,14 @@ export default function Home() {
     setLoading(true);
     setActioningContainerId(null);
     try {
-      const [fetchedContainers, fetchedImages] = await Promise.all([listContainers(), listLocalImages()]);
+      const fetchedContainers = await listContainers();
       setContainers(fetchedContainers);
-      setLocalImages(fetchedImages);
       if (selectedContainer) {
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
         setSelectedContainer(updatedSelected || null);
       }
     } catch (error: any) {
-      console.error("Failed to list containers or images:", error);
+      console.error("Failed to list containers:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -132,41 +128,41 @@ export default function Home() {
         title: "Success",
         description: `Container "${container.name}" is now ${newStatus}.`,
       });
-      await fetchContainers();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: `Failed to ${actionName.toLowerCase()} container`,
         description: error.message,
       });
-      await fetchContainers();
     } finally {
+        await fetchContainers(); // Refreshes the state regardless of outcome
         setActioningContainerId(null);
     }
   };
 
   const handleDeleteConfirm = (container: Container) => {
-    setSelectedContainer(container);
+    setContainerToDelete(container);
     setDeleteDialogOpen(true);
   };
   
   const handleDeleteContainer = async () => {
-    if (!selectedContainer) return;
+    if (!containerToDelete) return;
     
     toast({
       title: "Deleting container...",
-      description: `Request sent to delete "${selectedContainer.name}".`,
+      description: `Request sent to delete "${containerToDelete.name}".`,
     });
 
-    setActioningContainerId(selectedContainer.id);
+    setActioningContainerId(containerToDelete.id);
     try {
-      await removeContainer(selectedContainer.name);
+      await removeContainer(containerToDelete.name);
       toast({
         title: "Container deleted",
-        description: `Container "${selectedContainer.name}" has been removed.`,
+        description: `Container "${containerToDelete.name}" has been removed.`,
       });
-       setSelectedContainer(null); 
-      await fetchContainers();
+      if (selectedContainer?.id === containerToDelete.id) {
+         setSelectedContainer(null); 
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -174,7 +170,9 @@ export default function Home() {
         description: error.message,
       });
     } finally {
+        setContainerToDelete(null);
         setDeleteDialogOpen(false);
+        await fetchContainers();
         setActioningContainerId(null);
     }
   };
@@ -238,31 +236,6 @@ export default function Home() {
         description: `Autostart for "${container.name}" is now ${!container.autostart ? 'enabled' : 'disabled'}. Backend not implemented.`,
     });
   }
-
-  const handleCreateContainer = async (values: any) => {
-    const volumesArray = values.volumes ? values.volumes.split("\n").filter((v:string) => v.trim() !== "") : [];
-    const newContainerData = { ...values, volumes: volumesArray };
-
-    toast({
-      title: "Creating container...",
-      description: `Request sent to create "${newContainerData.name}". This might take some time.`,
-    });
-
-    try {
-      await apiCreateContainer(newContainerData);
-      toast({
-        title: "Container created successfully!",
-        description: `New container "${newContainerData.name}" is being set up.`,
-      });
-      await fetchContainers();
-    } catch(error: any) {
-        toast({
-            variant: "destructive",
-            title: "Failed to Create Container",
-            description: error.message,
-        });
-    }
-  };
   
   const handleRowClick = (container: Container) => {
     if (selectedContainer?.id === container.id) {
@@ -276,7 +249,7 @@ export default function Home() {
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
             <Loader className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-lg text-muted-foreground">Loading system status...</p>
+            <p className="mt-4 text-lg text-muted-foreground">Loading containers...</p>
         </div>
     )
   }
@@ -300,9 +273,11 @@ export default function Home() {
               {loading && !actioningContainerId ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <RefreshCw className="mr-2 h-4 w-4" />}
               Refresh
             </Button>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Container
+            <Button asChild>
+                <Link href="/create">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create Container
+                </Link>
             </Button>
           </div>
         </CardHeader>
@@ -327,9 +302,11 @@ export default function Home() {
                                 <h3 className="font-semibold">No containers found</h3>
                                 <p className="text-muted-foreground">Create a container to get started!</p>
                             </div>
-                            <Button onClick={() => setCreateDialogOpen(true)}>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Create Container
+                            <Button asChild>
+                               <Link href="/create">
+                                 <PlusCircle className="mr-2 h-4 w-4" />
+                                 Create Container
+                               </Link>
                             </Button>
                        </div>
                     </TableCell>
@@ -442,27 +419,21 @@ export default function Home() {
             </motion.div>
         )}
       </AnimatePresence>
-
-      <CreateContainerDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        onCreate={handleCreateContainer}
-        localImages={localImages}
-      />
+      
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              <span className="font-bold"> {selectedContainer?.name} </span>
+              <span className="font-bold"> {containerToDelete?.name} </span>
               container and all of its data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSelectedContainer(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setContainerToDelete(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteContainer} className={buttonVariants({ variant: "destructive" })}>
-               {actioningContainerId === selectedContainer?.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
+               {actioningContainerId === containerToDelete?.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : null}
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

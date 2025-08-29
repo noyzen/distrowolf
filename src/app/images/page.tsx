@@ -1,10 +1,11 @@
+
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { MOCK_LOCAL_IMAGES } from "@/lib/mock-data";
-import { Download, Upload, Trash2 } from "lucide-react";
+import { Upload, Trash2, Download, RefreshCw, Loader, HardDrive } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,10 +15,34 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { listLocalImages } from "@/lib/distrobox";
+import type { LocalImage } from "@/lib/types";
 
 export default function ImagesPage() {
   const { toast } = useToast();
+  const [localImages, setLocalImages] = useState<LocalImage[]>([]);
+  const [loading, setLoading] = useState(true);
   
+  const fetchImages = async () => {
+    setLoading(true);
+    try {
+      const images = await listLocalImages();
+      setLocalImages(images);
+    } catch(error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to fetch local images.",
+        description: error.message,
+      })
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchImages();
+  }, []);
+
   const handleAction = (title: string, description: string) => {
     toast({ title, description });
   }
@@ -32,6 +57,7 @@ export default function ImagesPage() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={fetchImages} disabled={loading}><RefreshCw className="mr-2 h-4 w-4" /> Refresh</Button>
             <Button variant="outline" onClick={() => handleAction("Import Image", "Please select a .tar file to import.")}><Upload className="mr-2 h-4 w-4" /> Import Image</Button>
           </div>
       </CardHeader>
@@ -41,16 +67,28 @@ export default function ImagesPage() {
             <TableRow>
               <TableHead>Repository</TableHead>
               <TableHead>Tag</TableHead>
+              <TableHead>Image ID</TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right w-[100px]">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {MOCK_LOCAL_IMAGES.map((image) => (
+            {loading ? (
+                <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                            <Loader className="h-6 w-6 animate-spin" />
+                            <span>Loading local images...</span>
+                        </div>
+                    </TableCell>
+                </TableRow>
+            ) : localImages.length > 0 ? (
+              localImages.map((image) => (
               <TableRow key={image.id}>
                 <TableCell className="font-medium">{image.repository}</TableCell>
                 <TableCell>{image.tag}</TableCell>
+                <TableCell className="font-mono text-xs">{image.imageID.substring(0, 12)}</TableCell>
                 <TableCell>{image.size}</TableCell>
                 <TableCell className="text-muted-foreground">{image.created}</TableCell>
                 <TableCell className="text-right">
@@ -75,7 +113,20 @@ export default function ImagesPage() {
                     </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+            ))
+            ) : (
+                <TableRow>
+                    <TableCell colSpan={6} className="h-24 text-center">
+                       <div className="flex flex-col items-center gap-4">
+                            <HardDrive className="h-12 w-12 text-muted-foreground" />
+                            <div className="text-center">
+                                <h3 className="font-semibold">No local images found</h3>
+                                <p className="text-muted-foreground">Download an image or pull one using podman.</p>
+                            </div>
+                       </div>
+                    </TableCell>
+                </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>

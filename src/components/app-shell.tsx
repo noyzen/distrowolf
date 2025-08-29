@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 
 
 const navItems = [
+  { href: "/create", label: "Create New Container", icon: PlusCircle },
   { href: "/", label: "My Containers", icon: Boxes },
   { href: "/images", label: "Local Images", icon: HardDrive },
   { href: "/download", label: "Download Images", icon: Download },
@@ -46,8 +47,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const allNavItems = [...navItems, ...systemNavItems];
   const currentPage = allNavItems.find((item) => {
     if (item.href === '/') return pathname === '/';
-    return pathname.startsWith(item.href);
-  });
+    // Handle cases where the current path is a sub-path of a nav item
+    return pathname.startsWith(item.href) && (pathname.length === item.href.length || pathname[item.href.length] === '/');
+  }) ?? allNavItems.find(item => item.href === '/'); // Default to "My Containers"
 
   return (
     <SidebarProvider>
@@ -66,7 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href}>
+                <Link href={item.href} legacyBehavior={false}>
                   <SidebarMenuButton
                     isActive={currentPage?.href === item.href}
                     tooltip={item.label}
@@ -83,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
            <SidebarMenu>
              {systemNavItems.map((item) => (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href}>
+                <Link href={item.href} legacyBehavior={false}>
                   <SidebarMenuButton
                     isActive={currentPage?.href === item.href}
                     tooltip={item.label}
