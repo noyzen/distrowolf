@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   isActive={currentPage?.href === item.href}
                   tooltip={item.label}
                 >
-                <Link href={item.href}>
+                <Link href={item.href} prefetch={false}>
                   <item.icon />
                   <span>{item.label}</span>
                 </Link>
