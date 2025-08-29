@@ -64,6 +64,7 @@ import { SetupWizard } from "@/components/setup-wizard";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
 import { useSearch } from "@/hooks/use-search";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Home() {
   const [containers, setContainers] = useState<Container[]>([]);
@@ -71,7 +72,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isInfoDialogOpen, setInfoDialogOpen] = useState(false);
-  const [infoDialogContent, setInfoDialogContent] = useState({ title: "", message: "" });
+  const [isEnterDialogOpen, setEnterDialogOpen] = useState(false);
+  const [dialogContent, setDialogContent] = useState({ title: "", message: "" });
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const [containerToDelete, setContainerToDelete] = useState<Container | null>(null);
   const [actioningContainerId, setActioningContainerId] = useState<string | null>(null);
@@ -196,11 +198,11 @@ export default function Home() {
     try {
       const result = await enterContainer(containerName);
       if (result.success && result.message) {
-        setInfoDialogContent({
+        setDialogContent({
           title: `Enter Container: ${containerName}`,
           message: result.message
         });
-        setInfoDialogOpen(true);
+        setEnterDialogOpen(true);
       } else {
         throw new Error("Could not get enter command.");
       }
@@ -216,10 +218,11 @@ export default function Home() {
   const handleInfoContainer = async (containerName: string) => {
     try {
         const res = await infoContainer(containerName);
-        toast({
-            title: "Container Info",
-            description: <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4"><code className="text-white">{res.message}</code></pre>
+        setDialogContent({
+            title: `Container Info: ${containerName}`,
+            message: res.message || "No information returned."
         });
+        setInfoDialogOpen(true);
     } catch(error: any) {
         toast({
             variant: "destructive",
@@ -483,16 +486,16 @@ export default function Home() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={isInfoDialogOpen} onOpenChange={setInfoDialogOpen}>
+      <AlertDialog open={isEnterDialogOpen} onOpenChange={setEnterDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{infoDialogContent.title}</AlertDialogTitle>
+            <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
             <AlertDialogDescription>
                 Run the following command in your terminal:
                 <div className="mt-4 bg-background/50 p-4 rounded-lg flex items-center justify-between">
-                    <code className="font-mono text-foreground">{infoDialogContent.message}</code>
+                    <code className="font-mono text-foreground">{dialogContent.message}</code>
                     <Button variant="ghost" size="icon" onClick={() => {
-                        copyToClipboard(infoDialogContent.message);
+                        copyToClipboard(dialogContent.message);
                         toast({ title: "Copied!", description: "Command copied to clipboard." });
                     }}>
                         <Copy className="h-4 w-4" />
@@ -501,7 +504,31 @@ export default function Home() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setInfoDialogOpen(false)}>OK</AlertDialogAction>
+            <AlertDialogAction onClick={() => setEnterDialogOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isInfoDialogOpen} onOpenChange={setInfoDialogOpen}>
+        <AlertDialogContent className="max-w-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+                Full container details from Podman inspect.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+            <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
+                <pre><code className="text-xs">{dialogContent.message}</code></pre>
+            </ScrollArea>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => {
+                copyToClipboard(dialogContent.message);
+                toast({ title: "Copied!", description: "JSON output copied to clipboard." });
+            }}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy JSON
+            </Button>
+            <AlertDialogAction onClick={() => setInfoDialogOpen(false)}>Close</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -509,3 +536,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
