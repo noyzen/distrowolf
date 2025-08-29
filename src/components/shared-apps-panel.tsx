@@ -9,6 +9,7 @@ import { XCircle, Loader, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Container, SharedApp } from "@/lib/types";
 import { listSharedApps, unshareApp } from "@/lib/distrobox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SharedAppsPanelProps {
     container: Container;
@@ -78,7 +79,7 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px] overflow-y-auto">
+        <ScrollArea className="h-[300px] border rounded-lg">
             <Table>
             <TableHeader className="sticky top-0 bg-card">
                 <TableRow>
@@ -125,10 +126,8 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
                 )}
             </TableBody>
             </Table>
-        </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );
 }
-
-    
