@@ -587,7 +587,7 @@ ipcMain.handle('enter-container', async (event, containerName) => {
     if (terminal) {
         switch (terminal) {
             case 'wezterm':
-                spawnArgs = ['wezterm', 'start', '--', ...enterCommand.split(' ')];
+                spawnArgs = ['wezterm', 'start', '--', 'distrobox', 'enter', containerName];
                 break;
             case 'konsole':
                 spawnArgs = ['konsole', '-e', enterCommand];
@@ -596,14 +596,14 @@ ipcMain.handle('enter-container', async (event, containerName) => {
             case 'mate-terminal':
             case 'xfce4-terminal':
             case 'lxterminal':
-                spawnArgs = [terminal, '--', ...enterCommand.split(' ')];
+                spawnArgs = [terminal, '--', 'distrobox', 'enter', containerName];
                 break;
             case 'terminator':
             case 'tilix':
                 spawnArgs = [terminal, '-e', enterCommand];
                 break;
             case 'alacritty':
-                 spawnArgs = ['alacritty', '-e', ...enterCommand.split(' ')];
+                 spawnArgs = ['alacritty', '-e', 'distrobox', 'enter', containerName];
                  break;
             default:
                 // This case should ideally not be hit if detection is accurate, but as a fallback:
@@ -616,6 +616,9 @@ ipcMain.handle('enter-container', async (event, containerName) => {
             const child = spawn(spawnArgs[0], spawnArgs.slice(1), {
                 detached: true,
                 stdio: 'ignore'
+            });
+            child.on('error', (err) => {
+                console.error(`Failed to launch terminal with spawn:`, err);
             });
             child.unref(); 
             return { success: true, launched: true };
