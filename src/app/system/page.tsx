@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code, Terminal, Loader } from "lucide-react";
+import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code, Terminal, Loader, Download } from "lucide-react";
 import Link from "next/link";
 import { getSystemInfo, listContainers, listLocalImages } from "@/lib/distrobox";
 import type { SystemInfo } from "@/lib/types";
