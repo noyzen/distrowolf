@@ -131,8 +131,6 @@ export default function Home() {
         title: "Container deleted",
         description: `Container "${selectedContainer.name}" has been removed.`,
       });
-      setDeleteDialogOpen(false);
-      setSelectedContainer(null);
       await fetchContainers();
     } catch (error: any) {
        toast({
@@ -141,6 +139,8 @@ export default function Home() {
         description: error.message,
       });
     } finally {
+        setDeleteDialogOpen(false);
+        setSelectedContainer(null);
         setActioningContainerId(null);
     }
   };

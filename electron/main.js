@@ -102,7 +102,7 @@ ipcMain.handle('list-containers', async () => {
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
     // Using `distrobox enter` with a non-interactive command is a reliable way to start it
-    await execAsync(`distrobox enter ${containerName} -- "echo 'Container starting'"`);
+    await execAsync(`distrobox enter ${containerName} -- "true"`);
     return { success: true };
   } catch (error) {
     console.error(`Error starting container ${containerName}:`, error);
