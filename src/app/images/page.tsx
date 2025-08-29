@@ -136,7 +136,7 @@ export default function ImagesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[calc(100vh-200px)]">
+          <ScrollArea className="h-[calc(100vh-250px)]">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -399,7 +399,7 @@ export default function HomePage() {
                  <div className="hidden md:flex items-center gap-2">
                     <FlagBadge icon={Rocket} text="Init" enabled={container.init} />
                     <FlagBadge icon={Cpu} text="Nvidia" enabled={container.nvidia} />
-                    <FlagBadge icon={HomeIcon} text={container.home} enabled={container.home === 'Isolated'} />
+                    <FlagBadge icon={HomeIcon} text="Isolated Home" enabled={container.home === 'Isolated'} />
                     <FlagBadge icon={Power} text="Autostart" enabled={container.autostart} />
                  </div>
                  <DropdownMenu>
