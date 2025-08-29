@@ -33,3 +33,5 @@ contextBridge.exposeInMainWorld('electron', {
   exportApp: (options) => ipcRenderer.invoke('export-app', options),
   unshareApp: (options) => ipcRenderer.invoke('unshare-app', options),
 });
+
+    

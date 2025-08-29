@@ -26,6 +26,7 @@ export interface SharedApp {
   name: string;
   container: string;
   binaryPath: string;
+  type: 'app' | 'binary';
 }
 
 export interface SearchableApp {
@@ -40,3 +41,5 @@ export interface SystemInfo {
     distroboxVersion: string;
     podmanVersion: string;
 }
+
+    

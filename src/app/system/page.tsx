@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive } from "lucide-react";
+import { ShieldCheck, Github, ExternalLink, Server, Box, Info, Boxes, HardDrive, Code } from "lucide-react";
 import Link from "next/link";
 import { getSystemInfo, listContainers, listLocalImages } from "@/lib/distrobox";
 import type { SystemInfo } from "@/lib/types";
@@ -121,6 +121,13 @@ export default function SystemPage() {
             </Link>
         </CardContent>
       </Card>
+
+      <div className="text-center text-xs text-muted-foreground/50 flex items-center justify-center gap-2">
+        <Code className="h-4 w-4"/>
+        <span>designed by Noyzen, in firebase.studio full vibe ai coding.</span>
+      </div>
     </div>
   );
 }
+
+    

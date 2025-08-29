@@ -19,6 +19,7 @@ type SearchAppsOptions = {
 type AppActionOptions = {
     containerName: string;
     appName: string;
+    type: 'app' | 'binary';
 }
 
 type ImageActionResult = {
@@ -184,3 +185,5 @@ export async function unshareApp(options: AppActionOptions): Promise<{ success: 
     console.warn("Electron API not available.");
     return { success: false };
 }
+
+    

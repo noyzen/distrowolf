@@ -385,7 +385,7 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[400px] pr-4">
+          <ScrollArea className="h-auto max-h-[50vh] pr-4">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -574,3 +574,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
