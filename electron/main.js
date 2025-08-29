@@ -46,7 +46,6 @@ async function createWindow() {
 }
 
 function parseListOutput(output) {
-    console.log('DEBUG: Raw "distrobox list" stdout:\n---START---\n' + output + '\n---END---');
     const lines = output.trim().split('\n');
     if (lines.length < 2) return [];
     
@@ -69,14 +68,11 @@ function parseListOutput(output) {
             nvidia: false, 
             volumes: [], 
         };
-        console.log("DEBUG: Parsed container:", JSON.stringify(container));
         return container;
     }).filter(Boolean);
 
-    console.log("DEBUG: Parsed containers:", JSON.stringify(containers, null, 2));
     return containers;
 }
-
 
 function parseLocalImages(output) {
     const lines = output.trim().split('\n');
@@ -110,6 +106,51 @@ function parseLocalImages(output) {
         };
     }).filter(Boolean);
 }
+
+function parseSharedApps(output) {
+  const lines = output.trim().split('\n').slice(2); // Skip headers
+  const apps = [];
+  lines.forEach(line => {
+    const parts = line.split('|').map(p => p.trim());
+    if (parts.length >= 3) {
+      apps.push({
+        id: `shared-${parts[0]}-${parts[1]}`,
+        name: parts[1],
+        container: parts[0],
+        binaryPath: parts[2]
+      });
+    }
+  });
+  return apps;
+}
+
+function parseSearchableApps(output, packageManager) {
+    const lines = output.trim().split('\n');
+    return lines.map((line, index) => {
+        const parts = line.split(/\s+/);
+        if (parts.length < 2) return null;
+        let name, version;
+
+        if (packageManager === 'apt') {
+            const [pkg, ver] = parts[0].split('/');
+            name = pkg;
+            version = ver;
+        } else { // dnf, pacman
+            name = parts[0];
+            version = parts[1];
+        }
+        
+        if (!name || !version) return null;
+
+        return {
+            id: `s-app-${name}-${index}`,
+            name,
+            version,
+            description: parts.slice(2).join(' ')
+        };
+    }).filter(Boolean);
+}
+
 
 ipcMain.handle('check-dependencies', async () => {
   const checkCmd = async (cmd) => {
@@ -186,7 +227,6 @@ ipcMain.handle('create-container', async (event, { name, image, home, init, nvid
 
 
 ipcMain.handle('list-containers', async () => {
-  console.log('DEBUG: Received "list-containers" event.');
   try {
     const { stdout } = await execAsync('distrobox list --no-color');
     return parseListOutput(stdout);
@@ -205,7 +245,6 @@ ipcMain.handle('start-container', async (event, containerName) => {
     console.error(`Error starting container ${containerName}:`, error);
     // Even if it fails, it might have started, let's not re-throw immediately
     // The UI will refresh and show the current state.
-    // Let's check if the error is just because it's already running.
     if (error.stderr && error.stderr.includes("is already running")) {
         return { success: true };
     }
@@ -265,11 +304,14 @@ ipcMain.handle('enter-container', (event, containerName) => {
 
 
 ipcMain.handle('info-container', async (event, containerName) => {
-  console.log(`Info requested for ${containerName}`);
-  return {
-    success: true,
-    message: `Info for ${containerName} is not yet implemented.`,
-  };
+  try {
+    const { stdout } = await execAsync(`podman inspect ${containerName}`);
+    const info = JSON.parse(stdout);
+    return { success: true, message: JSON.stringify(info[0], null, 2) };
+  } catch(error) {
+     console.error(`Error getting info for ${containerName}:`, error);
+     throw error;
+  }
 });
 
 ipcMain.handle('save-as-image', async (event, containerName) => {
@@ -283,6 +325,64 @@ ipcMain.handle('save-as-image', async (event, containerName) => {
     }
 });
 
+ipcMain.handle('list-shared-apps', async (event, containerName) => {
+  try {
+    const { stdout } = await execAsync(`distrobox list --show-exports --no-color`);
+    const allApps = parseSharedApps(stdout);
+    const containerApps = allApps.filter(app => app.container === containerName);
+    return containerApps;
+  } catch (error) {
+    console.error(`Error listing shared apps for ${containerName}:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('search-container-apps', async (event, { containerName, packageManager, query }) => {
+  let searchCommand;
+  switch (packageManager) {
+    case 'apt':
+      searchCommand = `apt list --installed ${query}*`;
+      break;
+    case 'dnf':
+      searchCommand = `dnf list installed ${query}*`;
+      break;
+    case 'pacman':
+      searchCommand = `pacman -Qs ${query}`;
+      break;
+    default:
+      throw new Error(`Unsupported package manager: ${packageManager}`);
+  }
+
+  try {
+    const { stdout } = await execAsync(`distrobox enter ${containerName} -- "${searchCommand}"`);
+    return parseSearchableApps(stdout, packageManager);
+  } catch (error) {
+    // If command fails (e.g. no results), return empty array instead of throwing
+    console.warn(`Error searching for apps in ${containerName} with ${packageManager}:`, error.message);
+    return [];
+  }
+});
+
+
+ipcMain.handle('export-app', async (event, { containerName, appName }) => {
+  try {
+    await execAsync(`distrobox-export --app ${appName} -c ${containerName} --export-path ~/.local/bin`);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error exporting app ${appName} from ${containerName}:`, error);
+    throw error;
+  }
+});
+
+ipcMain.handle('unshare-app', async (event, { containerName, appName }) => {
+  try {
+    await execAsync(`distrobox-export --app ${appName} -c ${containerName} --unexport`);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error unsharing app ${appName} from ${containerName}:`, error);
+    throw error;
+  }
+});
 
 app.whenReady().then(createWindow);
 

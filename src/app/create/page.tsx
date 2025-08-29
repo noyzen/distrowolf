@@ -101,12 +101,8 @@ export default function CreateContainerPage() {
     const volumesArray = values.volumes ? values.volumes.split("\n").filter((v:string) => v.trim() !== "") : [];
     
     let homePath = "";
-    if (values.homeMode === 'isolated') {
-        homePath = values.customHome || "";
-    } else {
-        // Find user home to construct shared path
-        // This is a simplification; a more robust solution might be needed
-        homePath = '/home/user'; // This is a placeholder
+    if (values.homeMode === 'isolated' && values.customHome) {
+        homePath = values.customHome;
     }
 
     const newContainerData = { 

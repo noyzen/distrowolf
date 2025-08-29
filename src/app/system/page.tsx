@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Wrench, Github, ExternalLink, Loader, Server, Box, Info } from "lucide-react";
+import { ShieldCheck, Wrench, Github, ExternalLink, Server, Box, Info } from "lucide-react";
 import Link from "next/link";
 import { getSystemInfo } from "@/lib/distrobox";
 import type { SystemInfo } from "@/lib/types";
@@ -12,18 +12,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SystemPage() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchInfo = async () => {
-      setLoading(true);
       try {
         const info = await getSystemInfo();
         setSystemInfo(info);
       } catch (error) {
         console.error("Failed to get system info:", error);
-      } finally {
-        setLoading(false);
       }
     };
     fetchInfo();

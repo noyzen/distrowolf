@@ -194,11 +194,19 @@ export default function Home() {
   }
   
   const handleInfoContainer = async (containerName: string) => {
-    const res = await infoContainer(containerName);
-    toast({
-        title: "Container Info",
-        description: res.message || "No specific info available yet.",
-    });
+    try {
+        const res = await infoContainer(containerName);
+        toast({
+            title: "Container Info",
+            description: res.message || "No specific info available yet.",
+        });
+    } catch(error: any) {
+        toast({
+            variant: "destructive",
+            title: "Failed to get container info",
+            description: error.message,
+        });
+    }
   }
 
   const handleSaveImage = async (container: Container) => {

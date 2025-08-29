@@ -1,5 +1,5 @@
 
-import type { Container, LocalImage, SystemInfo } from './types';
+import type { Container, LocalImage, SystemInfo, SharedApp, SearchableApp } from './types';
 
 type CreateContainerOptions = {
   name: string;
@@ -8,6 +8,17 @@ type CreateContainerOptions = {
   init: boolean;
   nvidia: boolean;
   volumes: string[];
+}
+
+type SearchAppsOptions = {
+  containerName: string;
+  packageManager: string;
+  query: string;
+}
+
+type AppActionOptions = {
+    containerName: string;
+    appName: string;
 }
 
 declare global {
@@ -27,6 +38,11 @@ declare global {
       
       listLocalImages: () => Promise<LocalImage[]>;
       pullImage: (imageName: string) => Promise<{ success: boolean }>;
+
+      listSharedApps: (containerName: string) => Promise<SharedApp[]>;
+      searchContainerApps: (options: SearchAppsOptions) => Promise<SearchableApp[]>;
+      exportApp: (options: AppActionOptions) => Promise<{ success: boolean }>;
+      unshareApp: (options: AppActionOptions) => Promise<{ success: boolean }>;
     }
   }
 }
@@ -107,4 +123,28 @@ export async function saveContainerAsImage(containerName: string): Promise<{ suc
 export async function toggleAutostart(containerName: string): Promise<{ success: boolean }> {
     console.warn(`Autostart toggle for ${containerName} is not implemented in the backend yet.`);
     return { success: true };
+}
+
+export async function listSharedApps(containerName: string): Promise<SharedApp[]> {
+    if (window.electron) return window.electron.listSharedApps(containerName);
+    console.warn("Electron API not available.");
+    return [];
+}
+
+export async function searchContainerApps(options: SearchAppsOptions): Promise<SearchableApp[]> {
+    if (window.electron) return window.electron.searchContainerApps(options);
+    console.warn("Electron API not available.");
+    return [];
+}
+
+export async function exportApp(options: AppActionOptions): Promise<{ success: boolean }> {
+    if (window.electron) return window.electron.exportApp(options);
+    console.warn("Electron API not available.");
+    return { success: false };
+}
+
+export async function unshareApp(options: AppActionOptions): Promise<{ success: boolean }> {
+    if (window.electron) return window.electron.unshareApp(options);
+    console.warn("Electron API not available.");
+    return { success: false };
 }
