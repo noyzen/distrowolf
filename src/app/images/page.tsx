@@ -147,7 +147,7 @@ export default function ImagesPage() {
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4">
           <div className="flex-grow">
-            <CardTitle className="font-headline">Local Images</CardTitle>
+            <CardTitle className="font-headline">Local Images ({localImages.length})</CardTitle>
             <CardDescription>
               Manage container images available on your local machine.
             </CardDescription>
@@ -167,6 +167,7 @@ export default function ImagesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">#</TableHead>
                     <TableHead>Repository</TableHead>
                     <TableHead>Tag</TableHead>
                     <TableHead>Image ID</TableHead>
@@ -178,7 +179,7 @@ export default function ImagesPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={7} className="h-24 text-center">
                         <div className="flex items-center justify-center gap-2 text-muted-foreground">
                           <Loader className="h-6 w-6 animate-spin" />
                           <span>Loading local images...</span>
@@ -186,8 +187,9 @@ export default function ImagesPage() {
                       </TableCell>
                     </TableRow>
                   ) : filteredImages.length > 0 ? (
-                    filteredImages.map((image) => (
+                    filteredImages.map((image, index) => (
                       <TableRow key={image.id}>
+                        <TableCell className="font-mono text-muted-foreground">{index + 1}</TableCell>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
                               <i className={cn(getDistroIcon(image.repository), "text-2xl text-muted-foreground")}></i>

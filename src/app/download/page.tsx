@@ -149,13 +149,20 @@ export default function DownloadPage() {
     });
 
     try {
-      await pullImage(values.imageName);
-      toast({
-        title: "Download Complete!",
-        description: `Successfully pulled ${values.imageName}. It is now available when creating a new container.`,
-      });
-      form.reset();
-      setSelectedImage(null);
+      const result = await pullImage(values.imageName);
+      if (result.cancelled) {
+        toast({
+            title: "Download Cancelled",
+            description: `Pull for image ${values.imageName} was cancelled.`,
+        });
+      } else {
+        toast({
+            title: "Download Complete!",
+            description: `Successfully pulled ${values.imageName}. It is now available when creating a new container.`,
+        });
+        form.reset();
+        setSelectedImage(null);
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -173,18 +180,14 @@ export default function DownloadPage() {
 
     try {
       await cancelPullImage(imageName);
-      toast({
-        title: "Download Cancelled",
-        description: `Cancelled pull for image: ${imageName}`,
-      });
+      // No toast here, the onSubmit handler will show the cancelled toast
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Failed to Cancel",
         description: error.message || "Could not cancel the download.",
       });
-    } finally {
-      setIsDownloading(false);
+      setIsDownloading(false); // Reset state on cancellation error
     }
   };
 

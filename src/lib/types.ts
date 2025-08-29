@@ -55,3 +55,8 @@ export interface DependencyInfo {
     name: string;
   };
 }
+
+export type PullImageResult = {
+  success: boolean;
+  cancelled: boolean;
+}

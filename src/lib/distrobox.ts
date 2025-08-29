@@ -1,5 +1,5 @@
 
-import type { Container, LocalImage, SystemInfo, SharedApp, SearchableApp, DependencyInfo } from './types';
+import type { Container, LocalImage, SystemInfo, SharedApp, SearchableApp, DependencyInfo, PullImageResult } from './types';
 
 type CreateContainerOptions = {
   name: string;
@@ -53,7 +53,7 @@ declare global {
       copyToClipboard: (text: string) => Promise<{ success: boolean }>;
       
       listLocalImages: () => Promise<LocalImage[]>;
-      pullImage: (imageName: string) => Promise<{ success: boolean }>;
+      pullImage: (imageName: string) => Promise<PullImageResult>;
       cancelPullImage: (imageName: string) => Promise<{ success: boolean, error?: string }>;
       deleteImage: (imageId: string) => Promise<{ success: boolean }>;
       importImage: () => Promise<ImageActionResult>;
@@ -97,10 +97,10 @@ export async function listLocalImages(): Promise<LocalImage[]> {
   return [];
 }
 
-export async function pullImage(imageName: string): Promise<{ success: boolean }> {
+export async function pullImage(imageName: string): Promise<PullImageResult> {
   if (window.electron) return window.electron.pullImage(imageName);
   console.warn("Electron API not available.");
-  return { success: false };
+  return { success: false, cancelled: false };
 }
 
 export async function cancelPullImage(imageName: string): Promise<{ success: boolean, error?: string }> {
