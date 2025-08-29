@@ -80,11 +80,15 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
 
   const handleExport = async (appName: string) => {
     setIsExporting(appName);
+    toast({
+        title: "Exporting Application",
+        description: `"${appName}" from ${container.name} is being exported. It will appear in 'Shared Apps' shortly.`,
+    });
     try {
         await exportApp({containerName: container.name, appName});
         toast({
-            title: "Exporting Application",
-            description: `"${appName}" from ${container.name} is being exported to the host.`,
+            title: "Export Successful",
+            description: `"${appName}" has been shared with the host.`,
         });
     } catch (error: any) {
         toast({
@@ -150,10 +154,10 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
             <Table>
             <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
-                <TableHead className="w-[150px] max-w-[150px]">Application</TableHead>
-                <TableHead className="w-[120px] max-w-[120px]">Version</TableHead>
+                <TableHead className="w-[200px]">Application</TableHead>
+                <TableHead className="w-[150px]">Version</TableHead>
                 <TableHead>Description</TableHead>
-                <TableHead className="text-right w-[150px] max-w-[150px]">Action</TableHead>
+                <TableHead className="text-right w-[100px]">Action</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>

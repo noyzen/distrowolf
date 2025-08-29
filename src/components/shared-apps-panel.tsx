@@ -41,18 +41,25 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
 
   useEffect(() => {
     fetchSharedApps();
+    // Also poll for changes every 10 seconds to catch new exports
+    const interval = setInterval(fetchSharedApps, 10000);
+    return () => clearInterval(interval);
   }, [fetchSharedApps]);
 
 
   const handleUnshare = async (appName: string) => {
     setIsUnsharing(appName);
+    toast({
+        title: "Unsharing Application...",
+        description: `Request sent to unshare "${appName}" from the host.`,
+    });
     try {
         await unshareApp({ containerName: container.name, appName });
         toast({
-            title: "Unsharing Application",
-            description: `"${appName}" from ${container.name} is being unshared from the host.`,
+            title: "Unshare Successful",
+            description: `"${appName}" has been unshared from the host.`,
         });
-        await fetchSharedApps(); // Refresh the list
+        await fetchSharedApps(); // Refresh the list immediately
     } catch(error: any) {
         toast({
         variant: "destructive",
@@ -89,7 +96,7 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {isLoading ? (
+                {isLoading && sharedApps.length === 0 ? (
                     <TableRow>
                         <TableCell colSpan={3} className="h-24 text-center">
                              <div className="flex items-center justify-center gap-2 text-muted-foreground">

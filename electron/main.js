@@ -145,7 +145,9 @@ function parseSearchableApps(output, packageManager) {
 
     if (packageManager === 'dpkg') {
         let currentPackage = null;
-        for (const line of lines) {
+        // Start from 1 to skip the header
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
             if (line.startsWith('ii')) {
                 if (currentPackage) {
                     packages.push(currentPackage);
@@ -153,11 +155,12 @@ function parseSearchableApps(output, packageManager) {
                 const parts = line.split(/\s+/);
                 currentPackage = {
                     id: `s-app-${parts[1]}-${packages.length}`,
-                    name: parts[1].split(':')[0],
+                    name: parts[1].split(':')[0], // handle architecture like :amd64
                     version: parts[2],
                     description: parts.slice(4).join(' '),
                 };
             } else if (currentPackage && line.startsWith('  ')) {
+                // This is a continuation of the previous description
                 currentPackage.description += ' ' + line.trim();
             }
         }
@@ -196,7 +199,7 @@ function parseSearchableApps(output, packageManager) {
                     description = 'Arch Package';
                     break;
                 case 'zypper':
-                    if(parts[0] !== 'i' && parts[0] !== 'i+') return null;
+                    if(parts.length < 7 || (parts[0] !== 'i' && parts[0] !== 'i+')) return null;
                     name = parts[2];
                     version = parts[4];
                     description = parts.slice(6).join(' ');
@@ -482,25 +485,27 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
   switch (packageManager) {
     case 'dpkg':
-      searchCommand = `dpkg -l | grep -i "${escapedQuery}"`;
+      // This is a more robust way to find packages by name and then get their details.
+      // It avoids the messy multiline description issue from simple grep.
+      searchCommand = `dpkg-query -W -f='\\${binary:Package}\\n' '*${escapedQuery}*' | xargs -r dpkg-query -l`;
       break;
     case 'rpm':
-      searchCommand = `rpm -qa | grep -i "${escapedQuery}"`;
+      searchCommand = `rpm -qa '*${escapedQuery}*'`;
       break;
     case 'dnf':
-      searchCommand = `dnf list installed | grep -i "${escapedQuery}"`;
+      searchCommand = `dnf list installed '*${escapedQuery}*'`;
       break;
     case 'yum':
-      searchCommand = `yum list installed | grep -i "${escapedQuery}"`;
+      searchCommand = `yum list installed '*${escapedQuery}*'`;
       break;
     case 'pacman':
       searchCommand = `pacman -Q | grep -i "${escapedQuery}"`;
       break;
     case 'zypper':
-      searchCommand = `zypper se -i "${escapedQuery}"`;
+      searchCommand = `zypper se -i '*${escapedQuery}*'`;
       break;
     case 'apk':
-        searchCommand = `apk info | grep -i "${escapedQuery}"`;
+        searchCommand = `apk info '*${escapedQuery}*'`;
         break;
     case 'equery':
         searchCommand = `equery list "*${escapedQuery}*"`; // equery has native wildcard support
@@ -534,7 +539,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     const { stdout } = await execAsync(`distrobox enter ${containerName} -- sh -c "${searchCommand}"`);
     return parseSearchableApps(stdout, packageManager);
   } catch (error) {
-    // Grep returns exit code 1 if no lines are found, which throws an error.
+    // Grep and other tools might return exit code 1 if no lines are found, which throws an error.
     // We can safely ignore this and return an empty array.
     if (error.code === 1 && error.stdout === '') {
         return [];
@@ -558,6 +563,7 @@ ipcMain.handle('export-app', async (event, { containerName, appName }) => {
 
 ipcMain.handle('unshare-app', async (event, { containerName, appName }) => {
   try {
+    // The --delete flag is an alias for --unexport
     await execAsync(`distrobox-export --app ${appName} -c ${containerName} --delete`);
     return { success: true };
   } catch (error) {
