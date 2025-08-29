@@ -3,6 +3,8 @@
   "name": "nextn-electron",
   "version": "0.1.0",
   "private": true,
+  "description": "A GUI for managing Distrobox containers.",
+  "author": "DistroWolf",
   "main": "electron/main.js",
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
@@ -103,5 +105,3 @@
     }
   }
 }
-
-    
