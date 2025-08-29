@@ -78,12 +78,23 @@ function parseListOutput(output) {
 }
 
 ipcMain.handle('list-containers', async () => {
+  console.log('DEBUG: Received "list-containers" event.');
   try {
     // --no-color is important to ensure consistent output for parsing
-    const { stdout } = await execAsync('distrobox list --no-color');
-    return parseListOutput(stdout);
+    const { stdout, stderr } = await execAsync('distrobox list --no-color');
+    
+    if (stderr) {
+      console.error('DEBUG: "distrobox list" stderr:', stderr);
+    }
+    
+    console.log('DEBUG: Raw "distrobox list" stdout:\n---START---\n' + stdout + '---END---');
+    
+    const containers = parseListOutput(stdout);
+    console.log('DEBUG: Parsed containers:', JSON.stringify(containers, null, 2));
+
+    return containers;
   } catch (error) {
-    console.error('Error listing distrobox containers:', error);
+    console.error('DEBUG: Error listing distrobox containers:', error);
     // Forward the error message to the renderer process
     throw error;
   }
