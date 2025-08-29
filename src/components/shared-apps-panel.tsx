@@ -30,7 +30,7 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
     setIsUnsharing(appName);
     toast({
         title: "Unsharing Application...",
-        description: `Request sent to unshare "${appName}". This might require a password.`,
+        description: `Request sent to unshare "${appName}".`,
     });
     try {
         await unshareApp({ containerName: container.name, appName });
@@ -50,6 +50,11 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
     }
   }
 
+  const handleRefresh = async () => {
+      setIsLoading(true);
+      await onAppUnshared();
+      setIsLoading(false);
+  }
 
   return (
     <Card>
@@ -59,19 +64,21 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
             <CardDescription>
             Applications from this container that are available on the host.
             </CardDescription>
-            <div className="flex items-center space-x-2 pt-4">
-                <Checkbox id="show-binaries" checked={showBinaries} onCheckedChange={(checked) => setShowBinaries(!!checked)} />
-                <Label htmlFor="show-binaries" className="text-sm font-normal">Show binary paths</Label>
-            </div>
         </div>
-        <Button variant="outline" size="icon" onClick={onAppUnshared} disabled={isLoading}>
-            {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-        </Button>
+        <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-2">
+                <Checkbox id="show-binaries" checked={showBinaries} onCheckedChange={(checked) => setShowBinaries(!!checked)} />
+                <Label htmlFor="show-binaries" className="text-sm font-normal text-muted-foreground whitespace-nowrap">Show Paths</Label>
+            </div>
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
+                {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[300px] border rounded-lg">
             <Table>
-            <TableHeader className="sticky top-0 bg-card">
+            <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
                 <TableHead>Application</TableHead>
                 <TableHead className="text-right w-[150px]">Action</TableHead>
@@ -107,7 +114,7 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
                             <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="text-red-500 hover:text-red-400 hover:bg-red-500/10" 
+                                className="text-red-500 hover:text-red-400 hover:bg-red-900/20" 
                                 onClick={() => handleUnshare(app.name)}
                                 disabled={!!isUnsharing}
                             >
@@ -132,3 +139,5 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
     </Card>
   );
 }
+
+    
