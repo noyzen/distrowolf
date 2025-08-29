@@ -107,23 +107,19 @@ function parseLocalImages(output) {
     }).filter(Boolean);
 }
 
-function parseSharedApps(output) {
+function parseSharedApps(output, containerName) {
   const lines = output.trim().split('\n');
   const apps = [];
-  
-  const headerIndex = lines.findIndex(line => line.includes("CONTAINER") && line.includes("APP/BINARY"));
-  if (headerIndex === -1) return [];
-
-  const dataLines = lines.slice(headerIndex + 2); 
-  
-  dataLines.forEach(line => {
-    const parts = line.split('|').map(p => p.trim());
-    if (parts.length >= 3) {
+  lines.forEach((line, index) => {
+    if (line.trim()) {
+      const parts = line.split(':');
+      const name = parts[0].trim();
+      const binaryPath = parts[1] ? parts[1].trim() : 'N/A';
       apps.push({
-        id: `shared-${parts[0]}-${parts[1]}`,
-        name: parts[1],
-        container: parts[0],
-        binaryPath: parts[2]
+        id: `shared-${containerName}-${name}-${index}`,
+        name: name,
+        container: containerName,
+        binaryPath: binaryPath
       });
     }
   });
@@ -424,12 +420,13 @@ ipcMain.handle('save-as-image', async (event, containerName) => {
 
 ipcMain.handle('list-shared-apps', async (event, containerName) => {
   try {
-    const { stdout } = await execAsync(`distrobox list --show-exports --no-color`);
-    const allApps = parseSharedApps(stdout);
-    const containerApps = containerName ? allApps.filter(app => app.container === containerName) : allApps;
-    return containerApps;
+    // The --show-exports flag is deprecated/removed in some versions.
+    // A more reliable way is to enter the container and list them.
+    const { stdout } = await execAsync(`distrobox enter ${containerName} -- distrobox-export --list-apps`);
+    return parseSharedApps(stdout, containerName);
   } catch (error) {
     console.error(`Error listing shared apps for ${containerName}:`, error);
+    // Return empty array on error, as it might just mean none are shared.
     return [];
   }
 });
@@ -510,7 +507,7 @@ ipcMain.handle('export-app', async (event, { containerName, appName }) => {
 
 ipcMain.handle('unshare-app', async (event, { containerName, appName }) => {
   try {
-    await execAsync(`distrobox-export --app ${appName} -c ${containerName} --unexport`);
+    await execAsync(`distrobox-export --app ${appName} -c ${containerName} --delete`);
     return { success: true };
   } catch (error) {
     console.error(`Error unsharing app ${appName} from ${containerName}:`, error);

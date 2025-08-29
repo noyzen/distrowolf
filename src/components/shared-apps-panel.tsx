@@ -21,6 +21,7 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
   const [isUnsharing, setIsUnsharing] = useState<string | null>(null);
 
   const fetchSharedApps = useCallback(async () => {
+    if (!container) return;
     setIsLoading(true);
     try {
         const apps = await listSharedApps(container.name);
@@ -31,6 +32,7 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
             title: "Failed to load shared apps",
             description: error.message,
         });
+        setSharedApps([]); // Clear on error
     } finally {
         setIsLoading(false);
     }
@@ -72,7 +74,7 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
             </CardDescription>
         </div>
         <Button variant="outline" size="icon" onClick={fetchSharedApps} disabled={isLoading}>
-            <RefreshCw className="h-4 w-4" />
+            {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
         </Button>
       </CardHeader>
       <CardContent>
@@ -128,3 +130,5 @@ export function SharedAppsPanel({ container }: SharedAppsPanelProps) {
     </Card>
   );
 }
+
+    
