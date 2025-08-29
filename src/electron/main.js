@@ -42,7 +42,10 @@ function createWindow() {
     
   win.loadURL(loadUrl);
 
-  if (isDev) {
+  // Enable DevTools in production if the --debug flag is present
+  if (process.argv.includes('--debug')) {
+    win.webContents.openDevTools();
+  } else if (isDev) {
     win.webContents.openDevTools();
   }
 }
