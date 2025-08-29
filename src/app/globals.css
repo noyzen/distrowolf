@@ -80,6 +80,25 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  /* Modern, styled scrollbar for the entire application */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.2);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--secondary));
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.8);
+    background-clip: content-box;
+  }
 }
 
 /* Distro Logo Colors */

@@ -11,14 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -360,6 +352,86 @@ export default function Home() {
         );
     }
   };
+  
+  const ContainerRow = ({ container, onSelect, isSelected }: { container: Container, onSelect: (c: Container) => void, isSelected: boolean }) => {
+    return (
+        <div
+            onClick={() => onSelect(container)}
+            className={cn(
+                "relative flex items-center justify-between p-4 border-b transition-colors duration-200 cursor-pointer hover:bg-muted/50",
+                isSelected && "bg-primary/10"
+            )}
+        >
+            {isSelected && <div className="absolute left-0 top-0 h-full w-1 bg-primary rounded-r-full"></div>}
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+                <Badge
+                    variant={container.status === "running" ? "default" : "secondary"}
+                    className="capitalize w-24 justify-center"
+                >
+                    {actioningContainerId === container.id ? (
+                        <Loader className="mr-2 h-3 w-3 animate-spin"/>
+                    ) : (
+                        <span className={cn("h-2 w-2 rounded-full mr-2", container.status === 'running' ? 'bg-green-400' : 'bg-red-400')}></span>
+                    )}
+                    {container.status}
+                </Badge>
+                <div className="flex flex-col min-w-0">
+                    <span className="font-semibold truncate">{container.name}</span>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                       <i className={cn(getDistroIcon(container.image), "text-lg")}></i>
+                       <span className="truncate">{container.image}</span>
+                    </div>
+                </div>
+            </div>
+            <div className="flex items-center gap-2 ml-4">
+                 <span className="font-mono text-xs text-muted-foreground hidden md:block">{container.id}</span>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem
+                        onClick={() => handleToggleContainerStatus(container)}
+                        disabled={!!actioningContainerId}
+                    >
+                        {container.status === "running" ? <StopCircle className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+                        <span>{container.status === "running" ? "Stop" : "Start"}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEnterContainer(container.name)}>
+                        <Terminal className="mr-2 h-4 w-4" />
+                        <span>Enter</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleInfoContainer(container)}>
+                        <Info className="mr-2 h-4 w-4" />
+                        <span>Info</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleSaveImage(container)}>
+                        <Save className="mr-2 h-4 w-4" />
+                        <span>Save as Image</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleToggleAutostart(container)}>
+                        {container.autostart ? <PowerOff className="mr-2 h-4 w-4" /> : <Power className="mr-2 h-4 w-4" />}
+                        <span>{container.autostart ? "Disable Autostart" : "Enable Autostart"}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        className="text-destructive focus:text-destructive-foreground focus:bg-destructive"
+                        onClick={() => handleDeleteConfirm(container)}
+                        disabled={!!actioningContainerId}
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>Delete</span>
+                    </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -385,135 +457,38 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-auto max-h-[50vh] pr-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Image</TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead className="text-right w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="border rounded-lg overflow-hidden">
+            <ScrollArea className="h-auto max-h-[45vh]">
+                <div className="divide-y">
                 {filteredContainers.length === 0 && !loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                       <div className="flex flex-col items-center gap-4">
-                            <Box className="h-12 w-12 text-muted-foreground" />
-                            <div className="text-center">
-                                <h3 className="font-semibold">No containers found</h3>
-                                <p className="text-muted-foreground">{searchTerm ? "No containers match your search." : "Create a container to get started!"}</p>
-                            </div>
-                           {!searchTerm && (
-                                <Button asChild>
-                                <Link href="/create">
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Create Container
-                                </Link>
-                                </Button>
-                           )}
-                       </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredContainers.map((container) => (
-                    <TableRow 
-                        key={container.id} 
-                        onClick={() => handleRowClick(container)}
-                        className={cn(
-                            "cursor-pointer transition-colors duration-200", 
-                            selectedContainer?.id === container.id && "bg-primary/10 ring-2 ring-primary"
-                        )}
-                        data-state={selectedContainer?.id === container.id ? 'selected' : undefined}
-                    >
-                      <TableCell>
-                        <Badge
-                          variant={
-                            container.status === "running" ? "default" : "secondary"
-                          }
-                          className="capitalize"
-                        >
-                           {actioningContainerId === container.id ? (
-                                <Loader className="mr-2 h-3 w-3 animate-spin"/>
-                            ) : (
-                                <span className={cn("h-2 w-2 rounded-full mr-2", container.status === 'running' ? 'bg-green-400' : 'bg-red-400')}></span>
-                            )}
-                          {container.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{container.name}</TableCell>
-                      <TableCell className="flex items-center gap-2">
-                        <i className={cn(getDistroIcon(container.image), "text-2xl")}></i>
-                        <span>{container.image}</span>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{container.id}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
+                    <div className="flex flex-col items-center justify-center h-48 gap-4 text-center">
+                        <Box className="h-12 w-12 text-muted-foreground" />
+                        <div>
+                            <h3 className="font-semibold">No containers found</h3>
+                            <p className="text-muted-foreground">{searchTerm ? "No containers match your search." : "Create a container to get started!"}</p>
+                        </div>
+                        {!searchTerm && (
+                            <Button asChild>
+                            <Link href="/create">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Create Container
+                            </Link>
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                            <DropdownMenuItem
-                              onClick={() => handleToggleContainerStatus(container)}
-                              disabled={!!actioningContainerId}
-                            >
-                              {container.status === "running" ? (
-                                <StopCircle className="mr-2 h-4 w-4" />
-                              ) : (
-                                <Play className="mr-2 h-4 w-4" />
-                              )}
-                              <span>
-                                {container.status === "running" ? "Stop" : "Start"}
-                              </span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEnterContainer(container.name)}>
-                              <Terminal className="mr-2 h-4 w-4" />
-                              <span>Enter</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleInfoContainer(container)}>
-                              <Info className="mr-2 h-4 w-4" />
-                              <span>Info</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleSaveImage(container)}>
-                              <Save className="mr-2 h-4 w-4" />
-                              <span>Save as Image</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleAutostart(container)}>
-                              {container.autostart ? (
-                                <PowerOff className="mr-2 h-4 w-4" />
-                              ) : (
-                                <Power className="mr-2 h-4 w-4" />
-                              )}
-                              <span>
-                                {container.autostart
-                                  ? "Disable Autostart"
-                                  : "Enable Autostart"}
-                              </span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive-foreground focus:bg-destructive"
-                              onClick={() => handleDeleteConfirm(container)}
-                              disabled={!!actioningContainerId}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        )}
+                    </div>
+                ) : (
+                filteredContainers.map((container) => (
+                    <ContainerRow 
+                        key={container.id} 
+                        container={container}
+                        onSelect={handleRowClick}
+                        isSelected={selectedContainer?.id === container.id}
+                    />
+                ))
                 )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
+                </div>
+            </ScrollArea>
+           </div>
         </CardContent>
       </Card>
 
@@ -574,5 +549,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

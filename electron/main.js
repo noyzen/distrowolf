@@ -121,45 +121,43 @@ function parseLocalImages(output) {
 }
 
 function parseSharedApps(output, containerName) {
-  const lines = output.trim().split('\n');
-  const apps = [];
-  lines.forEach((line, index) => {
-    if (line.trim()) {
-      const parts = line.split(':');
-      if (parts.length < 2) return;
-      const name = parts[0].trim();
-      const binaryPath = parts.slice(1).join(':').trim();
-      apps.push({
-        id: `shared-app-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
-        name: name,
-        container: containerName,
-        binaryPath: binaryPath,
-        type: 'app'
-      });
-    }
-  });
-  return apps;
+    const lines = output.trim().split('\n');
+    const apps = [];
+    lines.forEach((line, index) => {
+        if (!line.trim()) return;
+        const parts = line.split(':');
+        if (parts.length < 2) return;
+        const name = parts[0].trim();
+        const binaryPath = parts.slice(1).join(':').trim();
+        apps.push({
+            id: `shared-app-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
+            name: name,
+            container: containerName,
+            binaryPath: binaryPath,
+            type: 'app'
+        });
+    });
+    return apps;
 }
 
 function parseSharedBinaries(output, containerName) {
-  const lines = output.trim().split('\n');
-  const binaries = [];
-  lines.forEach((line, index) => {
-    if (line.trim()) {
-      const parts = line.split(':');
-      if (parts.length < 2) return;
-      const name = parts[0].trim();
-      const binaryPath = parts.slice(1).join(':').trim();
-      binaries.push({
-        id: `shared-bin-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
-        name: name,
-        container: containerName,
-        binaryPath: binaryPath,
-        type: 'binary'
-      });
-    }
-  });
-  return binaries;
+    const lines = output.trim().split('\n');
+    const binaries = [];
+    lines.forEach((line, index) => {
+        if (!line.trim()) return;
+        const parts = line.split(':');
+        if (parts.length < 2) return;
+        const name = parts[0].trim();
+        const binaryPath = parts.slice(1).join(':').trim();
+        binaries.push({
+            id: `shared-bin-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
+            name: name,
+            container: containerName,
+            binaryPath: binaryPath,
+            type: 'binary'
+        });
+    });
+    return binaries;
 }
 
 
@@ -170,30 +168,22 @@ function parseSearchableApps(output, packageManager, query) {
     let allPackages = [];
 
     if (packageManager === 'dpkg') {
-        let currentPackage = null;
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (line.startsWith('ii')) {
-                if (currentPackage) allPackages.push(currentPackage);
-                const parts = line.split(/\s+/);
-                const name = parts[1].split(':')[0];
-                currentPackage = {
+        // dpkg-query output is multi-line, so we parse it differently.
+        lines.forEach(line => {
+            const parts = line.split(/\s+/);
+            if (parts.length >= 4 && parts[0] === 'ii') {
+                const name = parts[1].split(':')[0]; // remove arch like :amd64
+                const version = parts[2];
+                const description = parts.slice(3).join(' ');
+                allPackages.push({
                     id: `s-app-${name}-${allPackages.length}`,
                     name: name,
-                    version: parts[2],
-                    description: parts.slice(3).join(' '),
-                    type: 'app'
-                };
-            } else if (currentPackage && line.startsWith(' ')) {
-                currentPackage.description += ' ' + line.trim();
-            } else {
-                if (currentPackage) {
-                    allPackages.push(currentPackage);
-                    currentPackage = null;
-                }
+                    version: version,
+                    description: description,
+                    type: 'app' // Assume app for now
+                });
             }
-        }
-        if (currentPackage) allPackages.push(currentPackage);
+        });
     } else {
         allPackages = lines.map((line, index) => {
             let name, version = 'N/A', description = 'N/A', type = 'app';
@@ -203,13 +193,7 @@ function parseSearchableApps(output, packageManager, query) {
 
                 switch (packageManager) {
                     case 'rpm':
-                        const rpmParts = parts[0].match(/(.+)-([^-]+)-([^-]+)/);
-                        if (rpmParts) {
-                            name = rpmParts[1];
-                            version = `${rpmParts[2]}-${rpmParts[3]}`;
-                        } else {
-                            name = parts[0];
-                        }
+                        name = parts[0];
                         description = 'RPM Package';
                         break;
                     case 'dnf': case 'yum':
@@ -233,21 +217,6 @@ function parseSearchableApps(output, packageManager, query) {
                         version = 'N/A';
                         description = 'Alpine Package';
                         break;
-                    case 'equery': name = parts[0]; description = line; break;
-                    case 'xbps-query':
-                        const xbpsParts = parts[0].split('-');
-                        name = xbpsParts.slice(0, -2).join('-');
-                        version = xbpsParts.slice(-2).join('-');
-                        description = parts.slice(1).join(' ');
-                        break;
-                    case 'nix-env': case 'guix': case 'slack':
-                         name = parts[0]; description = line; break;
-                     case 'eopkg':
-                         name = parts[0]; description = parts.slice(1).join(' '); break;
-                    case 'flatpak':
-                        name = parts[1]; version = parts[2]; description = `ID: ${parts[0]}`; break;
-                    case 'snap':
-                        name = parts[0]; version = parts[1]; description = parts.slice(3).join(' '); break;
                     default: return null;
                 }
             } catch (e) {
@@ -267,7 +236,8 @@ function parseSearchableApps(output, packageManager, query) {
         }).filter(Boolean);
     }
     
-    // Then, filter based on the query
+    // The grep in the command already does the filtering, but we can do a final client-side filter
+    // to be safe and handle cases where grep might not be perfect.
     return allPackages.filter(p => p.name && p.name.toLowerCase().includes(normalizedQuery));
 }
 
@@ -514,35 +484,33 @@ ipcMain.handle('list-shared-apps', async (event, containerName) => {
 
 ipcMain.handle('search-container-apps', async (event, { containerName, packageManager, query }) => {
   let searchCommand;
+  // Basic sanitation to prevent command injection. Escape characters that have special meaning in shells.
   const escapedQuery = query.replace(/(["'$`\\])/g, '\\$1');
 
   switch (packageManager) {
     case 'dpkg':
-      searchCommand = `dpkg-query -W -f='ii \${binary:Package} \${Version} \${Description}\\n' '*${escapedQuery}*' | grep -i "${escapedQuery}"`;
+      searchCommand = `dpkg-query -W -f='ii \${binary:Package} \${Version} \${Description}\\n' | grep -i "${escapedQuery}"`;
       break;
     case 'rpm':
-      searchCommand = `rpm -qa --queryformat '%{NAME} %{VERSION}-%{RELEASE} %{SUMMARY}\\n' | grep -i "${escapedQuery}"`;
+      searchCommand = `rpm -qa --queryformat '%{NAME}\\n' | grep -i "${escapedQuery}"`;
       break;
     case 'dnf':
     case 'yum':
       searchCommand = `dnf list installed | grep -i "${escapedQuery}"`;
       break;
     case 'pacman':
-      searchCommand = `pacman -Q | grep -i "${escapedQuery}"`;
+      // Using -Ss for searching available packages as well which is more common user intent.
+      // -i for case-insensitive search
+      searchCommand = `pacman -Ss | grep -i "${escapedQuery}"`; 
       break;
     case 'zypper':
       searchCommand = `zypper se -i -s '${escapedQuery}'`; 
       break;
     case 'apk':
-        searchCommand = `apk info -e '*${escapedQuery}*' | grep -i "${escapedQuery}"`;
-        break;
-    case 'equery':
-        searchCommand = `equery list "*${escapedQuery}*" | grep -i "${escapedQuery}"`;
-        break;
-    case 'xbps-query':
-        searchCommand = `xbps-query -iRs "${escapedQuery}"`; 
+        searchCommand = `apk info | grep -i "${escapedQuery}"`;
         break;
     default:
+        // A safe default
         searchCommand = `echo "Unsupported package manager"`;
   }
 
@@ -550,6 +518,8 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
     const { stdout } = await execAsync(`distrobox enter ${containerName} -- sh -c "${searchCommand}"`);
     return parseSearchableApps(stdout, packageManager, query);
   } catch (error) {
+    // Grep returns exit code 1 if no matches are found, which execAsync treats as an error.
+    // We should check for this and return an empty array instead of throwing.
     if (error.code === 1 && error.stdout === '') {
         return [];
     }
@@ -561,6 +531,8 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
 ipcMain.handle('export-app', async (event, { containerName, appName, type }) => {
   try {
+    // For binaries, distrobox-export needs the --export-path flag.
+    // For apps (.desktop files), it's not needed.
     const flag = type === 'app' ? '--app' : '--bin';
     const exportPath = type === 'binary' ? `--export-path "${app.getPath('home')}/.local/bin"` : '';
     const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${appName}" ${exportPath}`;
@@ -576,7 +548,8 @@ ipcMain.handle('unshare-app', async (event, { containerName, appName, type }) =>
   try {
     const flag = type === 'app' ? '--app' : '--bin';
     const exportPath = type === 'binary' ? `--export-path "${app.getPath('home')}/.local/bin"` : '';
-    const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${appName}" ${exportPath} --delete`;
+    // The --delete flag is used to unshare.
+    const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${appName}" --delete ${exportPath}`;
     await execAsync(command);
     return { success: true };
   } catch (error) {
@@ -598,5 +571,3 @@ app.on('activate', () => {
     createWindow();
   }
 });
-
-    

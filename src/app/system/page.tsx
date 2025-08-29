@@ -73,12 +73,12 @@ export default function SystemPage() {
            <CardDescription>
             An overview of your system and DistroWolf environment.
           </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-            <div className="text-center text-md text-muted-foreground flex items-center justify-center gap-2">
+          <div className="text-md text-primary pt-2 flex items-center gap-2">
                 <Code className="h-4 w-4"/>
                 <span>Forged by Noyzen in the full-vibe AI coding flames of firebase.studio.</span>
             </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
             <div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground/90">DistroWolf Statistics</h3>
                 <div className="grid gap-4 md:grid-cols-2">
@@ -128,5 +128,3 @@ export default function SystemPage() {
     </div>
   );
 }
-
-    
