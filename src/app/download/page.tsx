@@ -8,7 +8,7 @@ import * as z from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, Loader } from "lucide-react";
+import { Download, Loader, Server, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { pullImage } from "@/lib/distrobox";
@@ -16,27 +16,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 const imageCategories = {
+    "Featured": [
+        { name: "Ubuntu", image: "quay.io/toolbx/ubuntu-toolbox:24.04", tags: ["General", "Debian"] },
+        { name: "Fedora", image: "quay.io/fedora/fedora-toolbox:40", tags: ["General", "RPM"] },
+        { name: "Arch Linux", image: "quay.io/toolbx/arch-toolbox:latest", tags: ["General", "Rolling"] },
+        { name: "Debian", image: "quay.io/toolbx-images/debian-toolbox:12", tags: ["General", "Stable"] },
+        { name: "Ublue Toolbox", image: "ghcr.io/ublue-os/toolbox:latest", tags: ["Immutable", "Fedora"] },
+        { name: "Alpine", image: "quay.io/toolbx-images/alpine-toolbox:latest", tags: ["Minimal", "Lightweight"] },
+    ],
     "General Purpose": [
-        "ubuntu:latest",
-        "fedora:latest",
-        "debian:stable-slim",
-        "archlinux:latest",
-        "opensuse/tumbleweed:latest",
-        "alpine:latest",
-    ],
-    "Development Toolboxes": [
-        "quay.io/toolbx/fedora-toolbox:latest",
+        "quay.io/toolbx/ubuntu-toolbox:25.04",
+        "quay.io/toolbx/ubuntu-toolbox:24.04",
         "quay.io/toolbx/ubuntu-toolbox:22.04",
-        "registry.access.redhat.com/ubi9/toolbox:latest"
+        "quay.io/fedora/fedora-toolbox:42",
+        "quay.io/fedora/fedora-toolbox:41",
+        "registry.fedoraproject.org/fedora-toolbox:40",
+        "quay.io/toolbx-images/debian-toolbox:13",
+        "quay.io/toolbx-images/debian-toolbox:12",
+        "quay.io/toolbx/arch-toolbox:latest",
+        "registry.opensuse.org/opensuse/distrobox:latest",
     ],
-    "Immutable OS Toolboxes": [
-        "ghcr.io/ublue-os/toolbox:latest",
-        "ghcr.io/vanilla-os/first-setup-toolbox:2"
+    "Enterprise & Stable": [
+        "quay.io/toolbx-images/almalinux-toolbox:9",
+        "quay.io/toolbx-images/rockylinux-toolbox:9",
+        "quay.io/toolbx-images/centos-toolbox:stream9",
+        "registry.access.redhat.com/ubi9/toolbox",
+        "quay.io/toolbx-images/amazonlinux-toolbox:2023",
     ],
-    "Specialized": [
-        "kalilinux/kali-rolling:latest",
-        "continuumio/miniconda3:latest",
-        "docker.io/amazonlinux:latest"
+    "Immutable & Specialized": [
+        "ghcr.io/ublue-os/bluefin-cli:latest",
+        "ghcr.io/ublue-os/bazzite-arch:latest",
+        "ghcr.io/ublue-os/ubuntu-toolbox:latest",
+        "ghcr.io/ublue-os/fedora-toolbox:latest",
+        "ghcr.io/ublue-os/wolfi-toolbox:latest",
+        "quay.io/toolbx-images/wolfi-toolbox:latest",
     ]
 };
 
@@ -94,6 +107,20 @@ export default function DownloadPage() {
       setIsDownloading(false);
     }
   };
+  
+  const ImageCard = ({ image, onSelect, isSelected }: { image: string, onSelect: (img: string) => void, isSelected: boolean }) => {
+    const [name, tag] = image.split(':');
+    const repo = name.substring(0, name.lastIndexOf('/'));
+    const imageName = name.substring(name.lastIndexOf('/') + 1);
+
+    return (
+        <button type="button" onClick={() => onSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all relative", isSelected && "border-primary ring-2 ring-primary bg-primary/10")}>
+            <p className="font-semibold truncate">{imageName}</p>
+            <p className="text-xs text-muted-foreground truncate">{repo}</p>
+            <p className="text-xs text-muted-foreground font-mono mt-1">{tag || 'latest'}</p>
+        </button>
+    );
+  };
 
   return (
     <Card>
@@ -106,50 +133,38 @@ export default function DownloadPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <Tabs defaultValue="general" className="w-full">
+            <Tabs defaultValue="featured" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="featured"><Star className="w-4 h-4 mr-2"/>Featured</TabsTrigger>
                 <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="dev">Development</TabsTrigger>
-                <TabsTrigger value="immutable">Immutable</TabsTrigger>
+                <TabsTrigger value="enterprise">Enterprise</TabsTrigger>
                 <TabsTrigger value="specialized">Specialized</TabsTrigger>
               </TabsList>
-              <TabsContent value="general">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+              <TabsContent value="featured" className="pt-4">
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {imageCategories["Featured"].map(({image}) => (
+                        <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
+                    ))}
+                 </div>
+              </TabsContent>
+              <TabsContent value="general" className="pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {imageCategories["General Purpose"].map(image => (
-                    <button type="button" key={image} onClick={() => handleImageSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all", selectedImage === image && "border-primary ring-2 ring-primary")}>
-                      <p className="font-semibold truncate">{image.split('/')[image.split('/').length-1]}</p>
-                      <p className="text-xs text-muted-foreground truncate">{image.split('/')[0]}</p>
-                    </button>
+                    <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
                   ))}
                 </div>
               </TabsContent>
-               <TabsContent value="dev">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
-                  {imageCategories["Development Toolboxes"].map(image => (
-                     <button type="button" key={image} onClick={() => handleImageSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all", selectedImage === image && "border-primary ring-2 ring-primary")}>
-                      <p className="font-semibold truncate">{image.split('/')[image.split('/').length-1]}</p>
-                      <p className="text-xs text-muted-foreground truncate">{image.split('/')[0]}</p>
-                    </button>
+               <TabsContent value="enterprise" className="pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {imageCategories["Enterprise & Stable"].map(image => (
+                     <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
                   ))}
                 </div>
               </TabsContent>
-              <TabsContent value="immutable">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
-                  {imageCategories["Immutable OS Toolboxes"].map(image => (
-                     <button type="button" key={image} onClick={() => handleImageSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all", selectedImage === image && "border-primary ring-2 ring-primary")}>
-                      <p className="font-semibold truncate">{image.split('/')[image.split('/').length-1]}</p>
-                      <p className="text-xs text-muted-foreground truncate">{image.split('/')[0]}</p>
-                    </button>
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="specialized">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
-                  {imageCategories["Specialized"].map(image => (
-                    <button type="button" key={image} onClick={() => handleImageSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all", selectedImage === image && "border-primary ring-2 ring-primary")}>
-                      <p className="font-semibold truncate">{image.split('/')[image.split('/').length-1]}</p>
-                      <p className="text-xs text-muted-foreground truncate">{image.split('/')[0]}</p>
-                    </button>
+              <TabsContent value="specialized" className="pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {imageCategories["Immutable & Specialized"].map(image => (
+                    <ImageCard key={image} image={image} onSelect={handleImageSelect} isSelected={selectedImage === image} />
                   ))}
                 </div>
               </TabsContent>
@@ -160,7 +175,7 @@ export default function DownloadPage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">Or</span>
+                <span className="bg-card px-2 text-muted-foreground">Or</span>
               </div>
             </div>
 

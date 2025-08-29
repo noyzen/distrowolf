@@ -10,16 +10,25 @@ import { Label } from "@/components/ui/label";
 import { Upload, Loader, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Container, SearchableApp } from "@/lib/types";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportApp, searchContainerApps } from "@/lib/distrobox";
 
 interface FindAppsPanelProps {
     container: Container;
 }
 
+const packageManagers = [
+    { value: 'dpkg', label: 'dpkg (Debian/Ubuntu)' },
+    { value: 'rpm', label: 'rpm (Fedora/RHEL)' },
+    { value: 'pacman', label: 'pacman (Arch)' },
+    { value: 'apk', label: 'apk (Alpine)' },
+    { value: 'flatpak', label: 'Flatpak' },
+    { value: 'snap', label: 'Snap' },
+];
+
 export function FindAppsPanel({ container }: FindAppsPanelProps) {
   const { toast } = useToast();
-  const [packageManager, setPackageManager] = useState("apt");
+  const [packageManager, setPackageManager] = useState("dpkg");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchableApp[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -39,7 +48,7 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
         if (results.length === 0) {
             toast({
                 title: "No Results",
-                description: `No packages found matching "${searchQuery}" using ${packageManager}.`,
+                description: `No packages found matching "${searchQuery}" using ${packageManager}. Try another package manager.`,
             });
         }
     } catch(error: any) {
@@ -80,7 +89,7 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
           Search for installed packages and export them to your host system.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
             <Input 
                 placeholder="Search for applications..." 
@@ -89,21 +98,17 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
-            <div className="flex items-center space-x-4">
-                <RadioGroup value={packageManager} onValueChange={setPackageManager} className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="apt" id="apt" />
-                        <Label htmlFor="apt">apt</Label>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="dnf" id="dnf" />
-                        <Label htmlFor="dnf">dnf</Label>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="pacman" id="pacman" />
-                        <Label htmlFor="pacman">pacman</Label>
-                    </div>
-                </RadioGroup>
+            <div className="flex items-center space-x-2">
+               <Select value={packageManager} onValueChange={setPackageManager}>
+                    <SelectTrigger className="w-full sm:w-[220px]">
+                        <SelectValue placeholder="Select a package manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {packageManagers.map(pm => (
+                            <SelectItem key={pm.value} value={pm.value}>{pm.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                  <Button onClick={handleSearch} disabled={isSearching || !searchQuery}>
                     {isSearching ? <Loader className="mr-2 h-4 w-4 animate-spin"/> : <Search className="mr-2 h-4 w-4"/>}
                     Search
@@ -116,13 +121,14 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                 <TableRow>
                 <TableHead>Application</TableHead>
                 <TableHead>Version</TableHead>
+                <TableHead>Description</TableHead>
                 <TableHead className="text-right w-[180px]">Action</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {isSearching ? (
                     <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center">
+                        <TableCell colSpan={4} className="h-24 text-center">
                             <div className="flex items-center justify-center gap-2 text-muted-foreground">
                                 <Loader className="h-6 w-6 animate-spin" />
                                 <span>Searching for packages...</span>
@@ -132,8 +138,9 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                 ) : searchResults.length > 0 ? (
                 searchResults.map((app) => (
                 <TableRow key={app.id}>
-                    <TableCell className="font-medium">{app.name}</TableCell>
-                    <TableCell>{app.version}</TableCell>
+                    <TableCell className="font-medium truncate max-w-xs">{app.name}</TableCell>
+                    <TableCell className="truncate">{app.version}</TableCell>
+                    <TableCell className="text-muted-foreground truncate max-w-sm">{app.description}</TableCell>
                     <TableCell className="text-right">
                     <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
                         {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
@@ -144,7 +151,7 @@ export function FindAppsPanel({ container }: FindAppsPanelProps) {
                 ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
                             Search for an application to see results.
                         </TableCell>
                     </TableRow>
