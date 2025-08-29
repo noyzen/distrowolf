@@ -108,9 +108,16 @@ function parseLocalImages(output) {
 }
 
 function parseSharedApps(output) {
-  const lines = output.trim().split('\n').slice(2); // Skip headers
+  const lines = output.trim().split('\n');
   const apps = [];
-  lines.forEach(line => {
+  
+  // Find the header line to correctly parse columns
+  const headerIndex = lines.findIndex(line => line.includes("CONTAINER") && line.includes("APP/BINARY"));
+  if (headerIndex === -1) return [];
+
+  const dataLines = lines.slice(headerIndex + 2); // Skip header and separator line
+  
+  dataLines.forEach(line => {
     const parts = line.split('|').map(p => p.trim());
     if (parts.length >= 3) {
       apps.push({
@@ -128,25 +135,42 @@ function parseSearchableApps(output, packageManager) {
     const lines = output.trim().split('\n');
     return lines.map((line, index) => {
         const parts = line.split(/\s+/);
-        if (parts.length < 2) return null;
-        let name, version;
+        // Handle cases where there might not be a description
+        if (parts.length < 1) return null;
+
+        let name, version, description;
 
         if (packageManager === 'apt') {
-            const [pkg, ver] = parts[0].split('/');
-            name = pkg;
-            version = ver;
-        } else { // dnf, pacman
-            name = parts[0];
+            // Example: "adduser/now 3.118 all [installed,local]" or "zlib1g/now 1:1.2.11.dfsg-2ubuntu1.2 amd64 [installed,local]"
+            const [pkgInfo, ...rest] = parts;
+            const [pkgName] = pkgInfo.split('/');
+            name = pkgName;
+            version = "N/A"; // apt list doesn't show version cleanly here
+            description = rest.join(' ');
+        } else if (packageManager === 'dnf') {
+            // Example: "zlib.x86_64  1.2.11-28.el8"
+            if (parts.length < 2) return null;
+            name = parts[0].split('.')[0]; // remove arch
             version = parts[1];
+            description = parts.slice(2).join(' ');
+        } else if (packageManager === 'pacman') {
+            // Example: "core/zlib 1:1.2.13-2" and then on next line "    gzip ...""
+            if(parts.length < 2) return null; // This might be a description line
+            if (line.startsWith(' ')) return null; // Likely a description line
+            name = parts[0].split('/')[1] || parts[0];
+            version = parts[1];
+            description = ""; // pacman -Qs doesn't give a one-line description
+        } else {
+            return null; // Unsupported for now
         }
         
-        if (!name || !version) return null;
+        if (!name) return null;
 
         return {
             id: `s-app-${name}-${index}`,
             name,
-            version,
-            description: parts.slice(2).join(' ')
+            version: version || 'N/A',
+            description: description || 'No description available.',
         };
     }).filter(Boolean);
 }
@@ -197,7 +221,6 @@ ipcMain.handle('list-local-images', async () => {
 
 ipcMain.handle('pull-image', async (event, imageName) => {
     try {
-        console.log(`Pulling image: ${imageName}`);
         await execAsync(`podman pull ${imageName}`);
         return { success: true };
     } catch (error) {
@@ -206,9 +229,20 @@ ipcMain.handle('pull-image', async (event, imageName) => {
     }
 });
 
+ipcMain.handle('delete-image', async (event, imageId) => {
+    try {
+        await execAsync(`podman rmi -f ${imageId}`);
+        return { success: true };
+    } catch(error) {
+        console.error(`Error deleting image ${imageId}:`, error);
+        throw error;
+    }
+});
+
+
 ipcMain.handle('create-container', async (event, { name, image, home, init, nvidia, volumes }) => {
     let command = `distrobox create --name ${name} --image "${image}"`;
-    if (home) command += ` --home "${home}"`;
+    if (home && home.trim() !== '') command += ` --home "${home}"`;
     if (init) command += ' --init';
     if (nvidia) command += ' --nvidia';
     volumes.forEach(volume => {
@@ -238,16 +272,17 @@ ipcMain.handle('list-containers', async () => {
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
-    // Use "true" as a no-op command to just start the container
-    await execAsync(`distrobox enter ${containerName} -- "true"`);
+    // Using `true` is a common trick to start a container and have it exit immediately,
+    // leaving it running in the background if it's daemonized (which distrobox containers are).
+    await execAsync(`distrobox enter ${containerName} -- true`);
     return { success: true };
   } catch (error) {
-    console.error(`Error starting container ${containerName}:`, error);
-    // Even if it fails, it might have started, let's not re-throw immediately
-    // The UI will refresh and show the current state.
+     // Distrobox enter returns a non-zero exit code if the command fails, but the container might still start.
+     // A better check is to see if the error indicates it's already running.
     if (error.stderr && error.stderr.includes("is already running")) {
         return { success: true };
     }
+    console.error(`Error starting container ${containerName}:`, error);
     throw error;
   }
 });
@@ -265,7 +300,7 @@ ipcMain.handle('stop-container', async (event, containerName) => {
 ipcMain.handle('delete-container', async (event, containerName) => {
   try {
     // The --yes flag is needed for non-interactive deletion
-    await execAsync(`distrobox rm -f --yes ${containerName}`);
+    await execAsync(`distrobox rm ${containerName} --force --yes`);
     return { success: true };
   } catch (error) {
     console.error(`Error deleting container ${containerName}:`, error);
@@ -275,28 +310,40 @@ ipcMain.handle('delete-container', async (event, containerName) => {
 
 
 ipcMain.handle('enter-container', (event, containerName) => {
+  // This command will be spawned in a new process, detached from the main app.
+  const command = `distrobox enter ${containerName}`;
+
+  // List of terminal emulators to try.
   const terminals = [
-    { cmd: 'gnome-terminal', args: ['--', 'distrobox', 'enter', containerName] },
-    { cmd: 'konsole', args: ['-e', 'distrobox', 'enter', containerName] },
-    { cmd: 'xfce4-terminal', args: ['-e', 'distrobox enter ' + containerName] },
-    { cmd: 'xterm', args: ['-e', 'distrobox', 'enter', containerName] },
+    { cmd: 'gnome-terminal', args: ['--', 'bash', '-c', command] },
+    { cmd: 'konsole', args: ['-e', command] },
+    { cmd: 'xfce4-terminal', args: ['-e', command] },
+    { cmd: 'xterm', args: ['-e', command] },
+    // Fallback for other terminals
+    { cmd: 'x-terminal-emulator', args: ['-e', command] }
   ];
 
   let spawned = false;
   for (const t of terminals) {
     try {
-      spawn(t.cmd, t.args, { detached: true, stdio: 'ignore' }).unref();
+      // We use spawn with detached:true and stdio:'ignore' to launch the terminal
+      // as a completely separate process. This prevents the main app from hanging
+      // or crashing if the terminal is closed.
+      const child = spawn(t.cmd, t.args, { detached: true, stdio: 'ignore' });
+      // unref() allows the main Node.js process to exit even if the child process is still running.
+      child.unref();
       spawned = true;
+      console.log(`Successfully launched terminal with: ${t.cmd}`);
       break; 
     } catch (e) {
-      // Ignore and try next
+      console.warn(`Could not launch terminal with ${t.cmd}, trying next.`);
     }
   }
   
   if (spawned) {
     return { success: true };
   } else {
-     const error = new Error('Could not find a compatible terminal to open.');
+     const error = new Error('Could not find a compatible terminal to open. Please open your terminal and run the command manually.');
      console.error(error);
      throw error;
   }
@@ -329,11 +376,13 @@ ipcMain.handle('list-shared-apps', async (event, containerName) => {
   try {
     const { stdout } = await execAsync(`distrobox list --show-exports --no-color`);
     const allApps = parseSharedApps(stdout);
-    const containerApps = allApps.filter(app => app.container === containerName);
+    // If a container name is provided, filter for it. Otherwise, return all.
+    const containerApps = containerName ? allApps.filter(app => app.container === containerName) : allApps;
     return containerApps;
   } catch (error) {
     console.error(`Error listing shared apps for ${containerName}:`, error);
-    throw error;
+    // Don't throw, just return empty list on error
+    return [];
   }
 });
 
@@ -341,13 +390,14 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
   let searchCommand;
   switch (packageManager) {
     case 'apt':
-      searchCommand = `apt list --installed ${query}*`;
+      // Using apt-cache for better scripting compatibility
+      searchCommand = `apt-cache search ${query}`;
       break;
     case 'dnf':
-      searchCommand = `dnf list installed ${query}*`;
+      searchCommand = `dnf search ${query}`;
       break;
     case 'pacman':
-      searchCommand = `pacman -Qs ${query}`;
+      searchCommand = `pacman -Ss ${query}`;
       break;
     default:
       throw new Error(`Unsupported package manager: ${packageManager}`);
@@ -366,7 +416,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
 ipcMain.handle('export-app', async (event, { containerName, appName }) => {
   try {
-    await execAsync(`distrobox-export --app ${appName} -c ${containerName} --export-path ~/.local/bin`);
+    await execAsync(`distrobox-export --app ${appName} -c ${containerName}`);
     return { success: true };
   } catch (error) {
     console.error(`Error exporting app ${appName} from ${containerName}:`, error);

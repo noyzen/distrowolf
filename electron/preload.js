@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('electron', {
   // Image Management
   listLocalImages: () => ipcRenderer.invoke('list-local-images'),
   pullImage: (imageName) => ipcRenderer.invoke('pull-image', imageName),
+  deleteImage: (imageId) => ipcRenderer.invoke('delete-image', imageId),
 
   // App Management
   listSharedApps: (containerName) => ipcRenderer.invoke('list-shared-apps', containerName),

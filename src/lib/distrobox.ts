@@ -38,6 +38,7 @@ declare global {
       
       listLocalImages: () => Promise<LocalImage[]>;
       pullImage: (imageName: string) => Promise<{ success: boolean }>;
+      deleteImage: (imageId: string) => Promise<{ success: boolean }>;
 
       listSharedApps: (containerName: string) => Promise<SharedApp[]>;
       searchContainerApps: (options: SearchAppsOptions) => Promise<SearchableApp[]>;
@@ -76,6 +77,13 @@ export async function pullImage(imageName: string): Promise<{ success: boolean }
   console.warn("Electron API not available.");
   return { success: false };
 }
+
+export async function deleteImage(imageId: string): Promise<{ success: boolean }> {
+  if (window.electron) return window.electron.deleteImage(imageId);
+  console.warn("Electron API not available.");
+  return { success: false };
+}
+
 
 export async function createContainer(options: CreateContainerOptions): Promise<{ success: boolean }> {
   if (window.electron) return window.electron.createContainer(options);

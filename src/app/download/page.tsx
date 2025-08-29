@@ -8,28 +8,37 @@ import * as z from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Download, Loader, Rocket } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Download, Loader } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { pullImage } from "@/lib/distrobox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
-const popularImages = [
-  "ubuntu:latest",
-  "fedora:latest",
-  "archlinux:latest",
-  "debian:latest",
-  "alpine:latest",
-  "opensuse/tumbleweed:latest",
-  "quay.io/toolbx/fedora-toolbox:38",
-  "quay.io/toolbx/ubuntu-toolbox:22.04"
-];
+const imageCategories = {
+    "General Purpose": [
+        "ubuntu:latest",
+        "fedora:latest",
+        "debian:stable-slim",
+        "archlinux:latest",
+        "opensuse/tumbleweed:latest",
+        "alpine:latest",
+    ],
+    "Development Toolboxes": [
+        "quay.io/toolbx/fedora-toolbox:latest",
+        "quay.io/toolbx/ubuntu-toolbox:22.04",
+        "registry.access.redhat.com/ubi9/toolbox:latest"
+    ],
+    "Immutable OS Toolboxes": [
+        "ghcr.io/ublue-os/toolbox:latest",
+        "ghcr.io/vanilla-os/first-setup-toolbox:2"
+    ],
+    "Specialized": [
+        "kalilinux/kali-rolling:latest",
+        "continuumio/miniconda3:latest",
+        "docker.io/amazonlinux:latest"
+    ]
+};
 
 const formSchema = z.object({
   imageName: z.string().min(1, "Image name cannot be empty."),
@@ -38,7 +47,8 @@ const formSchema = z.object({
 export default function DownloadPage() {
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
-  
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -46,8 +56,17 @@ export default function DownloadPage() {
     },
   });
 
-  const handleSelectChange = (value: string) => {
+  const handleImageSelect = (image: string) => {
+    setSelectedImage(image);
+    form.setValue("imageName", image);
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
     form.setValue("imageName", value);
+    if (selectedImage && value !== selectedImage) {
+      setSelectedImage(null);
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -64,6 +83,7 @@ export default function DownloadPage() {
         description: `Successfully pulled ${values.imageName}. It is now available when creating a new container.`,
       });
       form.reset();
+      setSelectedImage(null);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -76,66 +96,98 @@ export default function DownloadPage() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <Card>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardHeader>
-              <CardTitle className="font-headline">Download Image</CardTitle>
-              <CardDescription>
-                Download a new container image from an official registry.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <FormLabel>From popular registries</FormLabel>
-                <Select onValueChange={handleSelectChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a popular image" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {popularImages.map(image => (
-                      <SelectItem key={image} value={image}>{image}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+    <Card>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardHeader>
+            <CardTitle className="font-headline">Download Container Image</CardTitle>
+            <CardDescription>
+              Select a popular image from the list or enter a custom URL to download it from a registry.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="dev">Development</TabsTrigger>
+                <TabsTrigger value="immutable">Immutable</TabsTrigger>
+                <TabsTrigger value="specialized">Specialized</TabsTrigger>
+              </TabsList>
+              <TabsContent value="general">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+                  {imageCategories["General Purpose"].map(image => (
+                    <button type="button" key={image} onClick={() => handleImageSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all", selectedImage === image && "border-primary ring-2 ring-primary")}>
+                      <p className="font-semibold truncate">{image.split('/')[image.split('/').length-1]}</p>
+                      <p className="text-xs text-muted-foreground truncate">{image.split('/')[0]}</p>
+                    </button>
+                  ))}
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or</span>
+              </TabsContent>
+               <TabsContent value="dev">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+                  {imageCategories["Development Toolboxes"].map(image => (
+                     <button type="button" key={image} onClick={() => handleImageSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all", selectedImage === image && "border-primary ring-2 ring-primary")}>
+                      <p className="font-semibold truncate">{image.split('/')[image.split('/').length-1]}</p>
+                      <p className="text-xs text-muted-foreground truncate">{image.split('/')[0]}</p>
+                    </button>
+                  ))}
                 </div>
+              </TabsContent>
+              <TabsContent value="immutable">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+                  {imageCategories["Immutable OS Toolboxes"].map(image => (
+                     <button type="button" key={image} onClick={() => handleImageSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all", selectedImage === image && "border-primary ring-2 ring-primary")}>
+                      <p className="font-semibold truncate">{image.split('/')[image.split('/').length-1]}</p>
+                      <p className="text-xs text-muted-foreground truncate">{image.split('/')[0]}</p>
+                    </button>
+                  ))}
+                </div>
+              </TabsContent>
+              <TabsContent value="specialized">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
+                  {imageCategories["Specialized"].map(image => (
+                    <button type="button" key={image} onClick={() => handleImageSelect(image)} className={cn("p-4 border rounded-lg text-left hover:border-primary transition-all", selectedImage === image && "border-primary ring-2 ring-primary")}>
+                      <p className="font-semibold truncate">{image.split('/')[image.split('/').length-1]}</p>
+                      <p className="text-xs text-muted-foreground truncate">{image.split('/')[0]}</p>
+                    </button>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
               </div>
-              <FormField
-                control={form.control}
-                name="imageName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>From a custom registry URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="docker.io/library/ubuntu:latest" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isDownloading}>
-                {isDownloading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Download Image
-              </Button>
-            </CardContent>
-          </form>
-        </Form>
-      </Card>
-      <Card className="flex flex-col items-center justify-center p-6 bg-accent/10 border-dashed">
-        <Rocket className="h-16 w-16 text-primary mb-4" />
-        <h3 className="text-xl font-headline text-center">Ready for Liftoff?</h3>
-        <p className="text-muted-foreground text-center mt-2">
-          Download a new image to start building your next containerized environment.
-        </p>
-      </Card>
-    </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">Or</span>
+              </div>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="imageName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Custom Image URL</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="docker.io/library/ubuntu:latest" 
+                      {...field} 
+                      onChange={handleInputChange}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full" disabled={isDownloading || !form.getValues("imageName")}>
+              {isDownloading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              Download Image
+            </Button>
+          </CardContent>
+        </form>
+      </Form>
+    </Card>
   );
 }
