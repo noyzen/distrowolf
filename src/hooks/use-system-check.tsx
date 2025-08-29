@@ -10,6 +10,8 @@ interface SystemCheckContextType {
   dependenciesReady: boolean;
   checkingDependencies: boolean;
   checkSystemDependencies: () => Promise<void>;
+  skipped: boolean;
+  setSkipped: (skipped: boolean) => void;
 }
 
 const SystemCheckContext = createContext<SystemCheckContextType | undefined>(undefined);
@@ -17,6 +19,7 @@ const SystemCheckContext = createContext<SystemCheckContextType | undefined>(und
 export function SystemCheckProvider({ children }: { children: ReactNode }) {
   const [dependencies, setDependencies] = useState<DependencyInfo | null>(null);
   const [checkingDependencies, setCheckingDependencies] = useState(true);
+  const [skipped, setSkipped] = useState(false);
 
   const checkSystemDependencies = useCallback(async () => {
     setCheckingDependencies(true);
@@ -38,7 +41,7 @@ export function SystemCheckProvider({ children }: { children: ReactNode }) {
   const dependenciesReady = !!dependencies && dependencies.distroboxInstalled && dependencies.podmanInstalled;
 
   return (
-    <SystemCheckContext.Provider value={{ dependencies, dependenciesReady, checkingDependencies, checkSystemDependencies }}>
+    <SystemCheckContext.Provider value={{ dependencies, dependenciesReady, checkingDependencies, checkSystemDependencies, skipped, setSkipped }}>
       {children}
     </SystemCheckContext.Provider>
   );
@@ -51,5 +54,3 @@ export function useSystemCheck() {
   }
   return context;
 }
-
-    

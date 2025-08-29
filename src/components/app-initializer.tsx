@@ -4,11 +4,11 @@
 import { type ReactNode } from 'react';
 import { useSystemCheck } from '@/hooks/use-system-check';
 import { AppShell } from '@/components/app-shell';
-import SetupPage from '@/components/setup-wizard';
+import SetupWizard from '@/components/setup-wizard';
 import { Loader, Shield } from 'lucide-react';
 
 export function AppInitializer({ children }: { children: ReactNode }) {
-  const { dependenciesReady, checkingDependencies } = useSystemCheck();
+  const { dependenciesReady, checkingDependencies, skipped } = useSystemCheck();
 
   if (checkingDependencies) {
     return (
@@ -23,8 +23,8 @@ export function AppInitializer({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!dependenciesReady) {
-    return <SetupPage />;
+  if (!dependenciesReady && !skipped) {
+    return <SetupWizard />;
   }
 
   return <AppShell>{children}</AppShell>;

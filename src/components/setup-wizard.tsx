@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, XCircle, ExternalLink, Loader, Shield } from "lucide-react";
+import { CheckCircle, XCircle, ExternalLink, Loader, Shield, LogOut } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useSystemCheck } from "@/hooks/use-system-check";
@@ -14,7 +14,7 @@ import { installDistrobox, installPodman } from "@/lib/distrobox";
 type InstallState = "idle" | "installing" | "success" | "error";
 
 export function SetupWizard() {
-  const { dependencies, checkSystemDependencies } = useSystemCheck();
+  const { dependencies, checkSystemDependencies, setSkipped } = useSystemCheck();
   const [podmanInstallState, setPodmanInstallState] = useState<InstallState>("idle");
   const [distroboxInstallState, setDistroboxInstallState] = useState<InstallState>("idle");
   const { toast } = useToast();
@@ -100,11 +100,17 @@ export function SetupWizard() {
                     <p>If installation fails, please install the dependencies manually and then re-check.</p>
                 </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => checkSystemDependencies()}>
-                    Re-check Dependencies
-                </Button>
-                <Link href="https://distrobox.it/usage/installation/" passHref legacyBehavior>
+            <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
+                 <div className="flex gap-4">
+                     <Button variant="outline" onClick={() => setSkipped(true)}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Skip for now
+                    </Button>
+                    <Button variant="secondary" onClick={() => checkSystemDependencies()}>
+                        Re-check Dependencies
+                    </Button>
+                 </div>
+                <Link href="https://distrobox.it/" passHref legacyBehavior>
                     <a target="_blank" rel="noopener noreferrer">
                         <Button>
                             <ExternalLink className="mr-2 h-4 w-4"/>
