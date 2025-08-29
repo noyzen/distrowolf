@@ -477,7 +477,7 @@ export default function HomePage() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-auto max-h-[calc(100vh-450px)] pr-2">
+          <ScrollArea className="h-auto max-h-[calc(100vh-480px)] pr-2">
             <div className="space-y-2 p-1">
               {filteredContainers.length === 0 && !loading ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-4 text-center">
@@ -567,5 +567,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

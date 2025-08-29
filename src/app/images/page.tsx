@@ -118,7 +118,7 @@ export default function ImagesPage() {
   }
 
   const ImageCard = ({ image }: { image: LocalImage }) => (
-    <div className="p-4 border rounded-lg flex flex-col gap-4">
+    <div className="p-4 border rounded-lg flex flex-col gap-4 bg-card hover:bg-accent/50 transition-colors">
         <div className="flex items-center gap-3">
             <i className={cn(getDistroIcon(image.repository), "text-3xl")}></i>
             <div className="flex flex-col overflow-hidden">
@@ -162,8 +162,8 @@ export default function ImagesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[calc(100vh-250px)]">
-            <div className="hidden md:block">
+          <ScrollArea className="h-[calc(100vh-220px)]">
+            <div className="hidden md:block pr-4">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -230,7 +230,7 @@ export default function ImagesPage() {
                 </TableBody>
               </Table>
             </div>
-             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:hidden pr-4">
                  {loading ? (
                     <div className="col-span-full h-24 flex items-center justify-center text-muted-foreground">
                         <Loader className="h-6 w-6 animate-spin" />
@@ -279,5 +279,3 @@ export default function ImagesPage() {
     </>
   );
 }
-
-    

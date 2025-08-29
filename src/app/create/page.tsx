@@ -289,7 +289,7 @@ export default function CreateContainerPage() {
                         control={form.control}
                         name="init"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg bg-background/50">
+                            <FormItem className="flex flex-row items-center justify-between">
                                 <div className="space-y-0.5">
                                 <FormLabel className="text-base flex items-center gap-2">
                                     <Power className="h-5 w-5 text-primary" />
@@ -312,7 +312,7 @@ export default function CreateContainerPage() {
                         control={form.control}
                         name="nvidia"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg bg-background/50">
+                            <FormItem className="flex flex-row items-center justify-between">
                                  <div className="space-y-0.5">
                                 <FormLabel className="text-base flex items-center gap-2">
                                      <Server className="h-5 w-5 text-primary" />
@@ -363,5 +363,3 @@ export default function CreateContainerPage() {
     </Form>
   );
 }
-
-    
