@@ -68,6 +68,7 @@ async function parseListOutput(output) {
         }
 
         const args = info.Config?.Cmd || [];
+        
         const findArgValue = (arg) => {
           const index = args.indexOf(arg);
           return index !== -1 && index + 1 < args.length ? args[index + 1] : null;
@@ -587,3 +588,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    
