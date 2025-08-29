@@ -371,12 +371,9 @@ ipcMain.handle('list-containers', async () => {
 
 ipcMain.handle('start-container', async (event, containerName) => {
   try {
-    // Using `distrobox enter` with a non-interactive command is a reliable way to start a container
     await execAsync(`distrobox enter ${containerName} -- true`);
     return { success: true };
   } catch (error) {
-    // If the container is already running, `distrobox enter` might still exit with an error,
-    // but the setup messages indicate success.
     if (error.stderr && (error.stderr.includes("is already running") || error.stderr.includes("Container Setup Complete"))) {
         return { success: true };
     }
@@ -421,6 +418,7 @@ ipcMain.handle('enter-container', (event, containerName) => {
   for (const t of terminals) {
     try {
       const child = spawn(t.cmd, t.args, { detached: true, stdio: 'ignore' });
+      child.on('error', () => { /* Prevent crashing */ });
       child.unref();
       spawned = true;
       console.log(`Successfully launched terminal with: ${t.cmd}`);
@@ -433,7 +431,7 @@ ipcMain.handle('enter-container', (event, containerName) => {
   if (spawned) {
     return { success: true };
   } else {
-     const message = 'Could not find a compatible terminal. Please run manually: ' + command;
+     const message = `Could not find a compatible terminal emulator on your system. Please run the command manually in your terminal:\n\n${command}`;
      console.error(message);
      return { success: false, message };
   }
@@ -464,13 +462,10 @@ ipcMain.handle('save-as-image', async (event, containerName) => {
 
 ipcMain.handle('list-shared-apps', async (event, containerName) => {
   try {
-    // The --show-exports flag is deprecated/removed in some versions.
-    // A more reliable way is to enter the container and list them.
     const { stdout } = await execAsync(`distrobox enter ${containerName} -- distrobox-export --list-apps`);
     return parseSharedApps(stdout, containerName);
   } catch (error) {
     console.error(`Error listing shared apps for ${containerName}:`, error);
-    // Return empty array on error, as it might just mean none are shared.
     return [];
   }
 });
@@ -572,3 +567,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    

@@ -67,6 +67,8 @@ export default function Home() {
   const [dependencies, setDependencies] = useState<{ distroboxInstalled: boolean, podmanInstalled: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isInfoDialogOpen, setInfoDialogOpen] = useState(false);
+  const [infoDialogContent, setInfoDialogContent] = useState({ title: "", message: "" });
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
   const [containerToDelete, setContainerToDelete] = useState<Container | null>(null);
   const [actioningContainerId, setActioningContainerId] = useState<string | null>(null);
@@ -196,11 +198,11 @@ export default function Home() {
             description: `Entering container "${containerName}" in a new terminal.`
           });
       } else {
-         toast({
-            variant: "destructive",
-            title: "Could not open terminal",
-            description: result.message || "No compatible terminal found on your system. Please run the command manually.",
+         setInfoDialogContent({
+            title: "Could Not Open Terminal",
+            message: result.message || "An unknown error occurred."
          });
+         setInfoDialogOpen(true);
       }
     } catch(error: any) {
       toast({
@@ -470,6 +472,25 @@ export default function Home() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={isInfoDialogOpen} onOpenChange={setInfoDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{infoDialogContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+                <div className="mt-4 bg-background/50 p-4 rounded-lg">
+                    <code className="font-mono text-foreground">{infoDialogContent.message}</code>
+                </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setInfoDialogOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
+
+    
