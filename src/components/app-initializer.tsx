@@ -24,7 +24,11 @@ export function AppInitializer({ children }: { children: ReactNode }) {
   }
 
   if (!dependenciesReady && !skipped) {
-    return <SetupWizard />;
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <SetupWizard />
+      </div>
+    );
   }
 
   return <AppShell>{children}</AppShell>;
