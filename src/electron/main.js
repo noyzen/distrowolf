@@ -7,13 +7,17 @@ const { promisify } = require('util');
 const Store = require('electron-store');
 const clipboard = require('electron').clipboard;
 const fs = require('fs');
+const serve = require('electron-serve');
 
 const execAsync = promisify(exec);
 const store = new Store();
+const isDev = !app.isPackaged;
+
+if (!isDev) {
+  serve({ directory: path.join(__dirname, '../out') });
+}
 
 function createWindow() {
-  const isDev = !app.isPackaged;
-
   const win = new BrowserWindow({
     width: store.get('windowBounds.width', 1200),
     height: store.get('windowBounds.height', 800),
@@ -36,11 +40,11 @@ function createWindow() {
     store.set('windowBounds', win.getBounds());
   });
 
-  const loadUrl = isDev
-    ? 'http://localhost:9002'
-    : `file://${path.join(app.getAppPath(), 'out/index.html')}`;
-    
-  win.loadURL(loadUrl);
+  if (isDev) {
+    win.loadURL('http://localhost:9002');
+  } else {
+    win.loadURL('app://-');
+  }
 
   // Enable DevTools in production if the --debug flag is present
   if (process.argv.includes('--debug')) {
