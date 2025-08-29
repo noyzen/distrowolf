@@ -209,7 +209,7 @@ function parseSearchableApps(output, packageManager) {
                     description = zypperParts[2];
                     break;
                 case 'apk':
-                    name = parts[0].replace(/-\d.*/, '');
+                    name = parts[0].replace(/-\\d.*/, '');
                     version = parts[0].substring(name.length + 1) || 'N/A';
                     break;
                 case 'snap':
@@ -582,45 +582,45 @@ ipcMain.handle('enter-container', async (event, containerName) => {
     }
     
     const enterCommand = `distrobox enter ${containerName}`;
-    let finalCommand;
+    let spawnArgs = [];
 
     if (terminal) {
         switch (terminal) {
             case 'wezterm':
-                finalCommand = `wezterm start -- ${enterCommand}`;
+                spawnArgs = ['wezterm', 'start', '--', ...enterCommand.split(' ')];
                 break;
             case 'konsole':
-                finalCommand = `konsole -e ${enterCommand}`;
+                spawnArgs = ['konsole', '-e', enterCommand];
                 break;
             case 'gnome-terminal':
             case 'mate-terminal':
             case 'xfce4-terminal':
             case 'lxterminal':
-                finalCommand = `${terminal} -- ${enterCommand}`;
+                spawnArgs = [terminal, '--', ...enterCommand.split(' ')];
                 break;
             case 'terminator':
             case 'tilix':
-                finalCommand = `${terminal} -e "${enterCommand}"`;
+                spawnArgs = [terminal, '-e', enterCommand];
                 break;
             case 'alacritty':
-                 finalCommand = `alacritty -e ${enterCommand}`;
+                 spawnArgs = ['alacritty', '-e', ...enterCommand.split(' ')];
                  break;
             default:
-                finalCommand = enterCommand; // Fallback for unknown but detected terminals
+                // This case should ideally not be hit if detection is accurate, but as a fallback:
+                spawnArgs = ['x-terminal-emulator', '-e', enterCommand];
                 break;
         }
+
         try {
-            console.log(`[DEBUG] Executing terminal command: ${finalCommand}`);
-            // Use spawn with detached option to launch the terminal as a separate process
-            const child = spawn('sh', ['-c', finalCommand], {
+            console.log(`[DEBUG] Spawning terminal command:`, spawnArgs);
+            const child = spawn(spawnArgs[0], spawnArgs.slice(1), {
                 detached: true,
                 stdio: 'ignore'
             });
-            child.unref(); // Allow parent process to exit independently
+            child.unref(); 
             return { success: true, launched: true };
         } catch (error) {
-             console.error(`Failed to launch terminal with command: ${finalCommand}`, error);
-             // Fallback to showing command
+             console.error(`Failed to launch terminal with spawn:`, error);
              return { success: true, launched: false, message: enterCommand };
         }
     }
