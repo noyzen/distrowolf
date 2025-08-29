@@ -531,8 +531,6 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
 ipcMain.handle('export-app', async (event, { containerName, appName, type }) => {
   try {
-    // For binaries, distrobox-export needs the --export-path flag.
-    // For apps (.desktop files), it's not needed.
     const flag = type === 'app' ? '--app' : '--bin';
     const exportPath = type === 'binary' ? `--export-path "${app.getPath('home')}/.local/bin"` : '';
     const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${appName}" ${exportPath}`;
@@ -548,7 +546,6 @@ ipcMain.handle('unshare-app', async (event, { containerName, appName, type }) =>
   try {
     const flag = type === 'app' ? '--app' : '--bin';
     const exportPath = type === 'binary' ? `--export-path "${app.getPath('home')}/.local/bin"` : '';
-    // The --delete flag is used to unshare.
     const command = `distrobox enter ${containerName} -- distrobox-export ${flag} "${appName}" --delete ${exportPath}`;
     await execAsync(command);
     return { success: true };

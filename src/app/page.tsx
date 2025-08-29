@@ -358,11 +358,10 @@ export default function Home() {
         <div
             onClick={() => onSelect(container)}
             className={cn(
-                "relative flex items-center justify-between p-4 border-b transition-colors duration-200 cursor-pointer hover:bg-muted/50",
-                isSelected && "bg-primary/10"
+                "relative flex items-center justify-between p-4 border-b transition-colors duration-200 cursor-pointer hover:bg-muted/50 rounded-lg",
+                isSelected && "ring-2 ring-primary ring-inset bg-primary/10"
             )}
         >
-            {isSelected && <div className="absolute left-0 top-0 h-full w-1 bg-primary rounded-r-full"></div>}
             <div className="flex items-center gap-4 flex-1 min-w-0">
                 <Badge
                     variant={container.status === "running" ? "default" : "secondary"}
@@ -457,38 +456,36 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg overflow-hidden">
-            <ScrollArea className="h-auto max-h-[45vh]">
-                <div className="divide-y">
-                {filteredContainers.length === 0 && !loading ? (
-                    <div className="flex flex-col items-center justify-center h-48 gap-4 text-center">
-                        <Box className="h-12 w-12 text-muted-foreground" />
-                        <div>
-                            <h3 className="font-semibold">No containers found</h3>
-                            <p className="text-muted-foreground">{searchTerm ? "No containers match your search." : "Create a container to get started!"}</p>
-                        </div>
-                        {!searchTerm && (
-                            <Button asChild>
-                            <Link href="/create">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Create Container
-                            </Link>
-                            </Button>
-                        )}
-                    </div>
-                ) : (
-                filteredContainers.map((container) => (
-                    <ContainerRow 
-                        key={container.id} 
-                        container={container}
-                        onSelect={handleRowClick}
-                        isSelected={selectedContainer?.id === container.id}
-                    />
-                ))
-                )}
-                </div>
-            </ScrollArea>
-           </div>
+          <ScrollArea className="h-auto max-h-[45vh]">
+            <div className="space-y-2 p-1">
+              {filteredContainers.length === 0 && !loading ? (
+                  <div className="flex flex-col items-center justify-center h-48 gap-4 text-center">
+                      <Box className="h-12 w-12 text-muted-foreground" />
+                      <div>
+                          <h3 className="font-semibold">No containers found</h3>
+                          <p className="text-muted-foreground">{searchTerm ? "No containers match your search." : "Create a container to get started!"}</p>
+                      </div>
+                      {!searchTerm && (
+                          <Button asChild>
+                          <Link href="/create">
+                              <PlusCircle className="mr-2 h-4 w-4" />
+                              Create Container
+                          </Link>
+                          </Button>
+                      )}
+                  </div>
+              ) : (
+              filteredContainers.map((container) => (
+                  <ContainerRow 
+                      key={container.id} 
+                      container={container}
+                      onSelect={handleRowClick}
+                      isSelected={selectedContainer?.id === container.id}
+                  />
+              ))
+              )}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
 
