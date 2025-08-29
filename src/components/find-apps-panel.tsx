@@ -4,13 +4,12 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader, Search, Settings, Info, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Container, SearchableApp, SharedApp } from "@/lib/types";
 import { exportApp, searchContainerApps } from "@/lib/distrobox";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -87,7 +86,7 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
     setIsExporting(appName);
     toast({
         title: "Sharing Application",
-        description: `"${appName}" from ${container.name} is being shared. It will appear in 'Shared Apps' shortly.`,
+        description: `"${appName}" from ${container.name} is being shared. This might require a password.`,
     });
     try {
         await exportApp({containerName: container.name, appName});
@@ -158,58 +157,46 @@ export function FindAppsPanel({ container, sharedApps, onAppShared }: FindAppsPa
             <Info className="h-4 w-4"/>
             <span>Searching with: {selectedPM || 'None selected'}</span>
         </div>
-        <ScrollArea className="h-[300px] border rounded-lg">
-            <Table>
-            <TableBody>
+        <ScrollArea className="h-[300px] pr-2">
+            <div className="space-y-2">
                 {isSearching ? (
-                    <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center">
-                            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                                <Loader className="h-6 w-6 animate-spin" />
-                                <span>Searching for packages...</span>
-                            </div>
-                        </TableCell>
-                    </TableRow>
+                    <div className="flex items-center justify-center h-24 gap-2 text-muted-foreground">
+                        <Loader className="h-6 w-6 animate-spin" />
+                        <span>Searching for packages...</span>
+                    </div>
                 ) : searchResults.length > 0 ? (
-                searchResults.map((app) => (
-                    <React.Fragment key={app.id}>
-                        <TableRow>
-                            <TableCell className="font-medium">
-                                {app.name}
-                                <span className="font-normal text-muted-foreground ml-2">{app.version}</span>
-                            </TableCell>
-                            <TableCell className="text-right">
-                            { sharedAppNames.includes(app.name) ? (
-                                <Badge variant="secondary" className="gap-1.5">
-                                    <CheckCircle className="h-4 w-4"/>
-                                    Shared
-                                </Badge>
-                            ) : (
-                                <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
-                                    {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                    Share
-                                </Button>
-                            )}
-                            </TableCell>
-                        </TableRow>
-                        <TableRow>
-                            <TableCell colSpan={2} className="pt-0 pb-2 text-sm text-muted-foreground">
-                                {app.description}
-                            </TableCell>
-                        </TableRow>
-                    </React.Fragment>
-                ))
+                    searchResults.map((app) => (
+                        <div key={app.id} className="p-3 border rounded-lg flex flex-col gap-2 bg-background/50">
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <h4 className="font-semibold">{app.name}</h4>
+                                    <p className="text-xs text-muted-foreground">{app.version}</p>
+                                </div>
+                                { sharedAppNames.includes(app.name) ? (
+                                    <Badge variant="secondary" className="gap-1.5 h-fit">
+                                        <CheckCircle className="h-4 w-4"/>
+                                        Shared
+                                    </Badge>
+                                ) : (
+                                    <Button variant="outline" size="sm" onClick={() => handleExport(app.name)} disabled={!!isExporting}>
+                                        {isExporting === app.name ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                        Share
+                                    </Button>
+                                )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">{app.description}</p>
+                        </div>
+                    ))
                 ) : (
-                    <TableRow>
-                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                            Search for an application to see results.
-                        </TableCell>
-                    </TableRow>
+                    <div className="flex items-center justify-center h-24 text-muted-foreground">
+                        Search for an application to see results.
+                    </div>
                 )}
-            </TableBody>
-            </Table>
+            </div>
         </ScrollArea>
       </CardContent>
     </Card>
   );
 }
+
+    

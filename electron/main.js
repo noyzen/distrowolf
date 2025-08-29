@@ -159,7 +159,7 @@ function parseSearchableApps(output, packageManager, query) {
                     id: `s-app-${name}-${packages.length}`,
                     name: name,
                     version: parts[2],
-                    description: parts.slice(4).join(' '),
+                    description: parts.slice(3).join(' '),
                 };
             } else if (currentPackage && line.startsWith(' ')) { // Description continuation lines start with a space
                 currentPackage.description += ' ' + line.trim();
@@ -561,7 +561,7 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
 ipcMain.handle('export-app', async (event, { containerName, appName }) => {
   try {
-    await execAsync(`distrobox enter ${containerName} -- distrobox-export --app ${appName}`);
+    await execAsync(`distrobox enter ${containerName} -- sudo distrobox-export --app ${appName}`);
     return { success: true };
   } catch (error) {
     console.error(`Error exporting app ${appName} from ${containerName}:`, error);
@@ -571,7 +571,7 @@ ipcMain.handle('export-app', async (event, { containerName, appName }) => {
 
 ipcMain.handle('unshare-app', async (event, { containerName, appName }) => {
   try {
-    await execAsync(`distrobox enter ${containerName} -- distrobox-export --app ${appName} --delete`);
+    await execAsync(`distrobox enter ${containerName} -- sudo distrobox-export --app ${appName} --delete`);
     return { success: true };
   } catch (error) {
     console.error(`Error unsharing app ${appName} from ${containerName}:`, error);
@@ -592,3 +592,5 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+    
