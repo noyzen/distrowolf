@@ -5,6 +5,7 @@ import '../../fontlogodistro/font-logos.css'; // Import the distro font logos
 import { Toaster } from '@/components/ui/toaster';
 import { AppShell } from '@/components/app-shell';
 import { SearchProvider } from '@/hooks/use-search';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
   title: 'DistroWolf',
@@ -31,9 +32,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased bg-background">
-        <SearchProvider>
-            <AppShell>{children}</AppShell>
-        </SearchProvider>
+        <SidebarProvider>
+          <SearchProvider>
+              <AppShell>{children}</AppShell>
+          </SearchProvider>
+        </SidebarProvider>
         <Toaster />
       </body>
     </html>
