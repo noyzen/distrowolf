@@ -358,7 +358,7 @@ export default function Home() {
         <div
             onClick={() => onSelect(container)}
             className={cn(
-                "relative flex items-center justify-between p-4 border-b transition-colors duration-200 cursor-pointer hover:bg-muted/50 rounded-lg",
+                "relative flex items-center justify-between p-4 border rounded-lg transition-colors duration-200 cursor-pointer hover:bg-muted/50",
                 isSelected && "ring-2 ring-primary ring-inset bg-primary/10"
             )}
         >
@@ -456,7 +456,7 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-auto max-h-[45vh]">
+          <ScrollArea className="h-auto max-h-[calc(100vh-450px)] pr-2">
             <div className="space-y-2 p-1">
               {filteredContainers.length === 0 && !loading ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-4 text-center">

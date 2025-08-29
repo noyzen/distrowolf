@@ -122,123 +122,99 @@ function parseLocalImages(output) {
 
 function parseSharedApps(output, containerName) {
     const lines = output.trim().split('\n');
-    const apps = [];
-    lines.forEach((line, index) => {
-        if (!line.trim()) return;
+    return lines.map((line, index) => {
+        if (!line.trim()) return null;
         const parts = line.split(':');
-        if (parts.length < 2) return;
+        if (parts.length < 2) return null;
         const name = parts[0].trim();
         const binaryPath = parts.slice(1).join(':').trim();
-        apps.push({
+        return {
             id: `shared-app-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
-            name: name,
+            name,
             container: containerName,
-            binaryPath: binaryPath,
-            type: 'app'
-        });
-    });
-    return apps;
+            binaryPath,
+            type: 'app',
+        };
+    }).filter(Boolean);
 }
 
 function parseSharedBinaries(output, containerName) {
     const lines = output.trim().split('\n');
-    const binaries = [];
-    lines.forEach((line, index) => {
-        if (!line.trim()) return;
+    return lines.map((line, index) => {
+        if (!line.trim()) return null;
         const parts = line.split(':');
-        if (parts.length < 2) return;
+        if (parts.length < 2) return null;
         const name = parts[0].trim();
         const binaryPath = parts.slice(1).join(':').trim();
-        binaries.push({
+        return {
             id: `shared-bin-${containerName}-${name.replace(/\s/g, '-')}-${index}`,
-            name: name,
+            name,
             container: containerName,
-            binaryPath: binaryPath,
-            type: 'binary'
-        });
-    });
-    return binaries;
+            binaryPath,
+            type: 'binary',
+        };
+    }).filter(Boolean);
 }
 
 
-function parseSearchableApps(output, packageManager, query) {
+function parseSearchableApps(output, packageManager) {
     const lines = output.trim().split('\n').filter(line => line.trim() !== '');
-    const normalizedQuery = query.toLowerCase();
+    if (lines.length === 0) return [];
     
-    let allPackages = [];
-
-    if (packageManager === 'dpkg') {
-        // dpkg-query output is multi-line, so we parse it differently.
-        lines.forEach(line => {
-            const parts = line.split(/\s+/);
-            if (parts.length >= 4 && parts[0] === 'ii') {
-                const name = parts[1].split(':')[0]; // remove arch like :amd64
-                const version = parts[2];
-                const description = parts.slice(3).join(' ');
-                allPackages.push({
-                    id: `s-app-${name}-${allPackages.length}`,
-                    name: name,
-                    version: version,
-                    description: description,
-                    type: 'app' // Assume app for now
-                });
-            }
-        });
-    } else {
-        allPackages = lines.map((line, index) => {
-            let name, version = 'N/A', description = 'N/A', type = 'app';
-            try {
-                const parts = line.trim().split(/\s+/);
-                if (parts.length === 0) return null;
-
-                switch (packageManager) {
-                    case 'rpm':
-                        name = parts[0];
-                        description = 'RPM Package';
-                        break;
-                    case 'dnf': case 'yum':
-                         name = parts[0].split('.').slice(0, -1).join('.').toLowerCase();
-                         version = parts[1];
-                         description = parts.length > 2 ? `Repo: ${parts[2]}` : 'Installed package';
-                         break;
-                    case 'pacman':
-                        name = parts[0];
-                        version = parts[1];
-                        description = 'Arch Package';
-                        break;
-                    case 'zypper':
-                        if(parts.length < 5 || (parts[0].toLowerCase() !== 'i' && parts[0].toLowerCase() !== 'i+')) return null;
-                        name = parts[2];
-                        version = parts[4];
-                        description = parts.slice(6).join(' ');
-                        break;
-                    case 'apk':
-                        name = parts[0];
-                        version = 'N/A';
-                        description = 'Alpine Package';
-                        break;
-                    default: return null;
-                }
-            } catch (e) {
-                console.error(`Error parsing line for ${packageManager}: "${line}"`, e);
-                return null;
-            }
-
-            if (!name || name.trim() === '') return null;
+    return lines.map((line, index) => {
+        let name, version = 'N/A', description = 'No description available.';
+        try {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length === 0) return null;
             
-            return {
-                id: `s-app-${name.trim()}-${index}`,
-                name: name.trim(),
-                version: (version || 'N/A').trim(),
-                description: (description || 'No description available.').trim(),
-                type: type,
-            };
-        }).filter(Boolean);
-    }
-    
-    // The grep in the command already does the filtering, but we can do a final client-side filter
-    // to be safe and handle cases where grep might not be perfect.
-    return allPackages.filter(p => p.name && p.name.toLowerCase().includes(normalizedQuery));
+            switch (packageManager) {
+                case 'dpkg':
+                    if (parts.length < 2) return null;
+                    name = parts[1].split(':')[0]; // remove arch
+                    version = parts[2];
+                    description = parts.slice(3).join(' ');
+                    break;
+                case 'rpm':
+                case 'dnf':
+                case 'yum':
+                    name = parts[0].split('.').slice(0, -1).join('.'); // remove arch from name
+                    version = parts[1];
+                    description = `Repo: ${parts[2] || 'N/A'}`;
+                    break;
+                case 'pacman':
+                    name = parts[0];
+                    version = parts[1];
+                    break;
+                case 'zypper':
+                    if(parts.length < 5 || (parts[0].toLowerCase() !== 'i' && parts[0].toLowerCase() !== 'i+')) return null;
+                    name = parts[2];
+                    version = parts[4];
+                    description = parts.slice(6).join(' ');
+                    break;
+                case 'apk':
+                    // APK info output is just package names, sometimes with version
+                    name = parts[0].replace(/-\d.*/, ''); // Attempt to strip version
+                    version = parts[0].substring(name.length + 1) || 'N/A';
+                    break;
+                default:
+                    name = parts[0];
+                    version = parts[1] || 'N/A';
+            }
+        } catch (e) {
+            console.error(`Error parsing line for ${packageManager}: "${line}"`, e);
+            return null;
+        }
+
+        if (!name || name.trim() === '') return null;
+        
+        return {
+            id: `s-app-${name.trim()}-${index}`,
+            name: name.trim(),
+            version: version.trim(),
+            description: description.trim(),
+            type: 'app', // Assume app for now
+        };
+    }).filter(Boolean);
 }
 
 
@@ -483,31 +459,37 @@ ipcMain.handle('list-shared-apps', async (event, containerName) => {
 });
 
 ipcMain.handle('search-container-apps', async (event, { containerName, packageManager, query }) => {
-  let searchCommand;
-  // Basic sanitation to prevent command injection. Escape characters that have special meaning in shells.
+  // Basic sanitation to prevent command injection.
   const escapedQuery = query.replace(/(["'$`\\])/g, '\\$1');
+  let searchCommand;
 
   switch (packageManager) {
     case 'dpkg':
       searchCommand = `dpkg-query -W -f='ii \${binary:Package} \${Version} \${Description}\\n' | grep -i "${escapedQuery}"`;
       break;
     case 'rpm':
-      searchCommand = `rpm -qa --queryformat '%{NAME}\\n' | grep -i "${escapedQuery}"`;
+      searchCommand = `rpm -qa | grep -i "${escapedQuery}"`;
       break;
     case 'dnf':
-    case 'yum':
       searchCommand = `dnf list installed | grep -i "${escapedQuery}"`;
       break;
+    case 'yum':
+      searchCommand = `yum list installed | grep -i "${escapedQuery}"`;
+      break;
     case 'pacman':
-      // Using -Ss for searching available packages as well which is more common user intent.
-      // -i for case-insensitive search
       searchCommand = `pacman -Q | grep -i "${escapedQuery}"`; 
       break;
     case 'zypper':
-      searchCommand = `zypper se -i -s '${escapedQuery}'`; 
+      searchCommand = `zypper se -i ${escapedQuery}`; 
       break;
     case 'apk':
         searchCommand = `apk info | grep -i "${escapedQuery}"`;
+        break;
+    case 'equery':
+        searchCommand = `equery list ${escapedQuery}`;
+        break;
+    case 'xbps-query':
+        searchCommand = `xbps-query -l | grep -i ${escapedQuery}`;
         break;
     default:
         // A safe default
@@ -516,10 +498,9 @@ ipcMain.handle('search-container-apps', async (event, { containerName, packageMa
 
   try {
     const { stdout } = await execAsync(`distrobox enter ${containerName} -- sh -c "${searchCommand}"`);
-    return parseSearchableApps(stdout, packageManager, query);
+    return parseSearchableApps(stdout, packageManager);
   } catch (error) {
     // Grep returns exit code 1 if no matches are found, which execAsync treats as an error.
-    // We should check for this and return an empty array instead of throwing.
     if (error.code === 1 && error.stdout === '') {
         return [];
     }

@@ -22,7 +22,7 @@ body {
     --muted-foreground: 210 5% 65%;
     --accent: 120 60% 60%; /* Use primary green for accents */
     --accent-foreground: 120 25% 10%;
-    --destructive: 0 63% 31%;
+    --destructive: 0 84.2% 60.2%; /* Lighter, more vibrant red */
     --destructive-foreground: 0 0% 98%;
     --border: 220 10% 25%;
     --input: 220 10% 25%;
@@ -57,7 +57,7 @@ body {
     --muted-foreground: 210 5% 65%;
     --accent: 120 60% 60%; /* Use primary green for accents */
     --accent-foreground: 120 25% 10%;
-    --destructive: 0 63% 31%;
+    --destructive: 0 84.2% 60.2%; /* Lighter, more vibrant red */
     --destructive-foreground: 0 0% 98%;
     --border: 220 10% 25%;
     --input: 220 10% 25%;

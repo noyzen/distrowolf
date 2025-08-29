@@ -12,7 +12,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 
 interface SharedAppsPanelProps {
     container: Container;
@@ -84,8 +83,8 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] border rounded-lg">
-            <div className="divide-y divide-border">
+        <ScrollArea className="h-[300px] border rounded-lg p-2">
+            <div className="space-y-2">
                 {isLoading && sharedApps.length === 0 ? (
                     <div className="flex items-center justify-center h-24 gap-2 text-muted-foreground">
                         <Loader className="h-6 w-6 animate-spin" />
@@ -93,35 +92,38 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
                     </div>
                 ) : filteredApps.length > 0 ? (
                     filteredApps.map((app) => (
-                        <div key={app.id} className="p-3 flex items-center justify-between hover:bg-accent/50">
+                        <div key={app.id} className="p-2 pr-3 border rounded-lg flex items-center justify-between hover:bg-accent/50 bg-background/50">
                             <div className="flex items-center gap-3">
+                                {app.type === 'app' ? <AppWindow className="h-5 w-5 text-primary" /> : <Terminal className="h-5 w-5 text-muted-foreground" />}
+                               <span className="font-medium">{app.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
                                 <TooltipProvider>
                                     <Tooltip>
-                                        <TooltipTrigger>
-                                            {app.type === 'app' ? <AppWindow className="h-5 w-5 text-primary" /> : <Terminal className="h-5 w-5 text-muted-foreground" />}
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                <Info className="h-4 w-4" />
+                                            </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p className="capitalize">{app.type}</p>
                                             <p className="font-mono text-xs">{app.binaryPath}</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
-                               <span className="font-medium">{app.name}</span>
+                                <Button 
+                                    variant="destructive" 
+                                    size="sm" 
+                                    onClick={() => handleUnshare(app)}
+                                    disabled={!!isUnsharing}
+                                >
+                                    {isUnsharing === app.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                                    Unshare
+                                </Button>
                             </div>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="text-red-400 border-red-500/30 hover:bg-red-900/40 hover:border-red-500/50 hover:text-red-300"
-                                onClick={() => handleUnshare(app)}
-                                disabled={!!isUnsharing}
-                            >
-                                {isUnsharing === app.id ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
-                                Unshare
-                            </Button>
                         </div>
                     ))
                 ) : (
-                    <div className="flex items-center justify-center h-24 text-muted-foreground">
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
                         No {showBinaries ? 'items' : 'applications'} shared from {container.name}.
                     </div>
                 )}
@@ -131,5 +133,3 @@ export function SharedAppsPanel({ container, sharedApps, onAppUnshared }: Shared
     </Card>
   );
 }
-
-    
