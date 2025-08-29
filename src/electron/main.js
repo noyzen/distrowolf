@@ -13,8 +13,11 @@ const execAsync = promisify(exec);
 const store = new Store();
 const isDev = !app.isPackaged;
 
+let loadURL;
 if (!isDev) {
-  serve({ directory: path.join(__dirname, '../out') });
+  loadURL = serve({
+    directory: path.join(app.getAppPath(), 'out'),
+  });
 }
 
 function createWindow() {
@@ -43,7 +46,7 @@ function createWindow() {
   if (isDev) {
     win.loadURL('http://localhost:9002');
   } else {
-    win.loadURL('app://-');
+    loadURL(win);
   }
 
   // Enable DevTools in production if the --debug flag is present
