@@ -105,15 +105,13 @@ export default function Home() {
     try {
       const fetchedContainers = await listContainers();
       setContainers(fetchedContainers);
+      
+      // If a container was selected, find its updated state in the new list
       if (selectedContainer) {
         const updatedSelected = fetchedContainers.find(c => c.id === selectedContainer.id);
-        if (!updatedSelected) {
-          setSelectedContainer(null);
-          setSelectedContainerInfo(null);
-        } else {
-          setSelectedContainer(updatedSelected);
-        }
+        setSelectedContainer(updatedSelected || null);
       }
+
     } catch (error: any) {
       console.error("Failed to list containers:", error);
       toast({
@@ -124,7 +122,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [toast, selectedContainer]);
+  }, [toast]); // Removed selectedContainer from dependencies to prevent loop
 
   const fetchSharedApps = useCallback(async () => {
     if (!selectedContainer) {
@@ -153,6 +151,8 @@ export default function Home() {
   useEffect(() => {
     if (selectedContainer) {
       fetchSharedApps();
+    } else {
+      setSharedApps([]); // Clear shared apps when no container is selected
     }
   }, [selectedContainer, fetchSharedApps]);
 
@@ -322,7 +322,7 @@ export default function Home() {
     }
   }
 
-  if (loading) {
+  if (loading && containers.length === 0) {
     return (
         <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
             <Loader className="h-12 w-12 animate-spin text-primary" />
@@ -420,9 +420,14 @@ export default function Home() {
                         key={container.id} 
                         onClick={() => handleRowClick(container)}
                         className={cn(
-                            "cursor-pointer transition-all duration-200 rounded-lg", 
-                            selectedContainer?.id === container.id && "bg-primary/10 ring-2 ring-primary ring-offset-2 ring-offset-background"
+                            "cursor-pointer transition-all duration-200", 
+                            selectedContainer?.id === container.id && "bg-primary/10"
                         )}
+                        style={selectedContainer?.id === container.id ? {
+                            outline: '2px solid hsl(var(--primary))',
+                            borderRadius: 'var(--radius)',
+                            boxShadow: '0 0 10px hsl(var(--primary) / 0.5)',
+                        }: {}}
                     >
                       <TableCell>
                         <Badge
@@ -569,3 +574,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
