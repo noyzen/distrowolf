@@ -1,7 +1,6 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import '../../fontlogodistro/font-logos.css';
 import { Toaster } from '@/components/ui/toaster';
 import { SearchProvider } from '@/hooks/use-search';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -22,6 +21,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         <meta httpEquiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+        <link rel="stylesheet" href="/fontlogodistro/font-logos.css" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
