@@ -1,3 +1,4 @@
+@import './fontlogodistro/font-logos.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

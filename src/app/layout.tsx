@@ -7,6 +7,7 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { SystemCheckProvider } from '@/hooks/use-system-check';
 import { AppInitializer } from '@/components/app-initializer';
 
+
 export const metadata: Metadata = {
   title: 'DistroWolf',
   description: 'A GUI for managing Distrobox containers.',
@@ -21,7 +22,6 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         <meta httpEquiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
-        <link rel="stylesheet" href="/fontlogodistro/font-logos.css" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
